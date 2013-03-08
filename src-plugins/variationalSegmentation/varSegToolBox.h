@@ -1,7 +1,7 @@
 #ifndef VarSegToolBox_H
 #define VarSegToolBox_H
 
-#include "medToolBoxSegmentationCustom.h"
+#include "medSegmentationAbstractToolBox.h"
 
 #include <dtkCore/dtkAbstractData.h>
 #include <dtkCore/dtkSmartPointer.h>
@@ -20,7 +20,7 @@ namespace mseg {
 //    class SelectDataEventFilter;
 
 //! Segmentation toolbox to allow manual painting of pixels
-class VarSegToolBox : public medToolBoxSegmentationCustom
+class VarSegToolBox : public medSegmentationAbstractToolBox
 {
     Q_OBJECT
 public:
@@ -32,7 +32,7 @@ public:
     QString description() const { return s_description(); }
     QString identifier() const { return s_identifier(); }
 
-    static medToolBoxSegmentationCustom * createInstance( QWidget *parent );
+    static medSegmentationAbstractToolBox * createInstance( QWidget *parent );
 
     static QString s_description();
     static QString s_identifier();

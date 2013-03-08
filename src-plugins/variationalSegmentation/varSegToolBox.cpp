@@ -8,7 +8,7 @@
 #include <medImageMaskAnnotationData.h>
 #include <medMetaDataKeys.h>
 #include <medMessageController.h>
-#include <medToolBoxSegmentation.h>
+#include <medSegmentationSelectorToolBox.h>
 #include <medMessageController.h>
 
 #include <dtkCore/dtkAbstractDataFactory.h>
@@ -158,7 +158,7 @@ namespace mseg {
 //};
 
 VarSegToolBox::VarSegToolBox(QWidget * parent )
-    : medToolBoxSegmentationCustom(parent)
+    : medSegmentationAbstractToolBox(parent)
 {
     QWidget *displayWidget = new QWidget(this);
     this->addWidget(displayWidget);
@@ -177,7 +177,7 @@ VarSegToolBox::~VarSegToolBox()
 
 
 //static
-medToolBoxSegmentationCustom * VarSegToolBox::createInstance(QWidget *parent )
+medSegmentationAbstractToolBox * VarSegToolBox::createInstance(QWidget *parent )
 {
     return new VarSegToolBox( parent );
 }
