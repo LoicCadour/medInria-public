@@ -186,6 +186,8 @@ medMainWindow::medMainWindow ( QWidget *parent ) : QMainWindow ( parent ), d ( n
     d->stack->addWidget ( d->browserArea );
     d->stack->addWidget ( d->workspaceArea );
 
+    connect(d->browserArea, SIGNAL(openRequested(const medDataIndex&, int)), this, SLOT(open(const medDataIndex&, int)));
+    
     //  Setup quick access menu
 
     d->quickAccessButton = new medQuickAccessPushButton ( this );
@@ -820,12 +822,24 @@ void medMainWindow::onEditSettings()
     dialog->exec();
 }
 
+void medMainWindow::open ( const medDataIndex& index , int slice )
+{
+   connect (this, SIGNAL(sliceSelected(int)), d->workspaceArea, SIGNAL(sliceSelected(int)));
+   if(d->workspaceArea->openInTab(index))
+    {
+        d->quickAccessButton->setText(tr("Workspace: Visualization"));
+        d->quickAccessButton->setMinimumWidth(170);
+        this->switchToWorkspaceArea();
+        emit sliceSelected(slice);  //to display the selected slice
+    }
+}
+
 void medMainWindow::availableSpaceOnStatusBar()
 {
     QPoint workspaceButton_topRight = d->quickAccessButton->mapTo(d->statusBar, d->quickAccessButton->rect().topRight());
-    QPoint fullscreenButton_topLeft = d->fullscreenButton->mapTo(d->statusBar, d->fullscreenButton->rect().topLeft());
-    //Available space = space between the spacing after workspace button and the spacing before fullscreen button
-    int space = (fullscreenButton_topLeft.x()-d->statusBarLayout->spacing()) -  (workspaceButton_topRight.x()+d->statusBarLayout->spacing()); 
+    QPoint screenshotButton_topLeft = d->screenshotButton->mapTo(d->statusBar, d->screenshotButton->rect().topLeft());
+    //Available space = space between the spacing after workspace button and the spacing before screenshot button
+    int space = (screenshotButton_topLeft.x()-d->statusBarLayout->spacing()) -  (workspaceButton_topRight.x()+d->statusBarLayout->spacing()); 
     d->statusBar->setAvailableSpace(space);
 }
 
