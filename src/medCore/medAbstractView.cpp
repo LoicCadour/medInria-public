@@ -86,6 +86,7 @@ medAbstractView::medAbstractView(medAbstractView *parent) : dtkAbstractView(pare
 
     // properties to keep up to date synchronization
     this->addProperty ("Daddy",                 QStringList() << "true" << "false");
+    this->addProperty ("Closable",              QStringList() << "true" << "false");
     this->addProperty ("PositionLinked",        QStringList() << "true" << "false");
     this->addProperty ("CameraLinked",          QStringList() << "true" << "false");
     this->addProperty ("WindowingLinked",       QStringList() << "true" << "false");
@@ -381,7 +382,7 @@ void medAbstractView::removeOverlay(int layer)
         emit (dataRemoved(oldData, layer));
         emit (dataRemoved(layer));
         d->dataList.removeAt(layer);
-        
+
     }
 }
 
@@ -392,10 +393,10 @@ void medAbstractView::onSliceChanged (int slice)
 
 void medAbstractView::addDataInList(dtkAbstractData * data, int layer)
 {
-  
+
     if(layer >=0 &&  layer < d->dataList.size() )
         d->dataList[layer] = data;
-    else 
+    else
         d->dataList.append(data);
     medAbstractView::addDataType(data->identifier());
 }
