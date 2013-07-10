@@ -45,12 +45,15 @@ struct PaintState {
     enum E{ None, Wand, Stroke, DeleteStroke };
 };
 
+    struct PaintState {
+        enum E{ None, Wand, Stroke, DeleteStroke, BoundaryStroke };
+    };
+
 //! Segmentation toolbox to allow manual painting of pixels
 class MEDVIEWSEGMENTATIONPLUGIN_EXPORT AlgorithmPaintToolbox : public medSegmentationAbstractToolBox
 {
     Q_OBJECT;
 public:
-
 
     AlgorithmPaintToolbox( QWidget *parent );
     ~AlgorithmPaintToolbox();
@@ -70,8 +73,12 @@ public:
     /** \param trObj : Provide an object for the tr() function. If NULL qApp will be used. */
     static QString s_name(const QObject * trObj =  NULL);
 
+    inline void forcePaintState(PaintState::E state){m_paintState = state;}
+    inline PaintState::E paintState(){return m_paintState;}
+
     inline void setPaintState( PaintState::E value){m_paintState = value;}
     inline PaintState::E paintState(){return m_paintState;}
+    void setCurrentView(medAbstractView * view);
 
 public slots:
     void onStrokePressed();
@@ -90,8 +97,13 @@ public slots:
     void updateWandRegion(medAbstractView * view, QVector3D &vec);
     void updateMouseInteraction();
 
+    void onUndo();
+    void onRedo();
+    void addToStackIndex(medAbstractView * view);
+
 protected:
     friend class ClickAndMoveEventFilter;
+    friend class ClickEventFilter;
 
     void addStroke( medAbstractView *view, const QVector3D &vec );
     void setData( dtkAbstractData *data );
@@ -115,6 +127,8 @@ private:
     QPushButton *m_strokeButton;
     QPushButton *m_labelColorWidget;
     QSpinBox *m_strokeLabelSpinBox;
+    QShortcut *undo_shortcut,*redo_shortcut;
+    
     QLabel *m_colorLabel;
 
     QSlider *m_brushSizeSlider;
@@ -141,11 +155,23 @@ private:
 
     dtkSmartPointer<medAbstractData> m_maskData;
     dtkSmartPointer<medAbstractData> m_imageData;
-
+    
     medImageMaskAnnotationData::ColorMapType m_labelColorMap;
-
+    
     typedef itk::Image<unsigned char, 3> MaskType;
     MaskType::Pointer m_itkMask;
+
+    
+    // undo_redo_feature's attributes
+    typedef QPair<MaskType::IndexType,unsigned char> pair;
+    typedef QList<pair> list_pair;
+
+    list_pair * listIndexPixel;
+    QHash<medAbstractView*,QStack<list_pair*>*> * undoStacks;
+    QHash<medAbstractView*,QStack<list_pair*>*> * redoStacks;
+    medAbstractView * currentView;
+    //QStack<list_pair*> *undo_stack, *redo_stack;
+
 
     template <typename IMAGE> void RunConnectedFilter (MaskType::IndexType &index, unsigned int planeIndex);
     template <typename IMAGE> void GenerateMinMaxValuesFromImage ();

@@ -66,6 +66,7 @@ public:
         {
             m_cb->setPaintState(m_lastPaintState);
             m_paintState = m_lastPaintState;
+            m_cb->addToStackIndex(view);
         }
 
         if(mouseEvent->button() == Qt::RightButton) // right-click for erasing
@@ -74,11 +75,20 @@ public:
             m_cb->setPaintState(PaintState::DeleteStroke);
             m_paintState = m_cb->paintState(); //update
         }
+        m_paintState(m_cb->paintState())
 
         if (m_paintState == PaintState::Stroke && mouseEvent->button() == Qt::LeftButton)
         {
             m_cb->setPaintState(PaintState::Stroke);
             m_paintState = m_cb->paintState(); //update paintState
+        }
+            {
+                m_cb->forcePaintState(PaintState::DeleteStroke);
+            }
+            else if(mouseEvent->button() == Qt::LeftButton)
+            {
+                m_cb->forcePaintState(PaintState::Stroke);
+            }
         }
 
         medAbstractViewCoordinates * coords = view->coordinates();
@@ -111,6 +121,7 @@ public:
             return false;
 
         medAbstractViewCoordinates * coords = view->coordinates();
+        m_cb->setCurrentView(view);
         mouseEvent->accept();
 
         if (coords->is2D())
@@ -130,6 +141,7 @@ public:
         m_paintState = PaintState::None; //Painting is done
         m_cb->updateStroke(this,view);
         this->m_points.clear();
+            m_cb->addToStackIndex(view);
         return true;
     }
 
@@ -159,6 +171,12 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
 
     m_strokeButton = new QPushButton( tr("Paint / Erase") , displayWidget);
     m_strokeButton->setToolTip(tr("Left-click: Start painting with specified label.\nRight-click: Erase painted voxels."));
+
+    m_magicWandButton = new QPushButton(tr("Magic Wand"), displayWidget);
+    QPixmap pixmap(":medSegmentation/pixmaps/magic_wand.png");
+    QIcon buttonIcon(pixmap);
+    m_magicWandButton->setIcon(buttonIcon);
+    m_magicWandButton->setToolTip(tr("Magic wand to automatically paint similar voxels."));
     m_strokeButton->setCheckable(true);
 
     m_magicWandButton = new QPushButton(tr("Magic Wand"), displayWidget);
@@ -171,9 +189,10 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     QHBoxLayout * addRemoveButtonLayout = new QHBoxLayout();
     addRemoveButtonLayout->addWidget( m_strokeButton );
     addRemoveButtonLayout->addWidget( m_magicWandButton );
+     addRemoveButtonLayout->addWidget( m_magicWandButton );
     layout->addLayout( addRemoveButtonLayout );
 
-
+    m_strokeLabelSpinBox->hide();
     QHBoxLayout * brushSizeLayout = new QHBoxLayout();
     m_brushSizeSlider = new QSlider(Qt::Horizontal, displayWidget);
     m_brushSizeSlider->setToolTip(tr("Changes the brush radius."));
@@ -191,7 +210,7 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
 
     connect(m_brushSizeSpinBox, SIGNAL(valueChanged(int)),m_brushSizeSlider,SLOT(setValue(int)) );
     connect(m_brushSizeSlider,SIGNAL(valueChanged(int)),m_brushSizeSpinBox,SLOT(setValue(int)) );
-
+    m_brushRadiusLabel = new QLabel(tr("Brush Radius"), displayWidget);
     brushSizeLayout->addWidget(m_brushRadiusLabel);
     brushSizeLayout->addWidget( m_brushSizeSlider );
     brushSizeLayout->addWidget( m_brushSizeSpinBox );
@@ -258,13 +277,26 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_applyButton = new QPushButton( tr("Create Database Item") , displayWidget);
     m_applyButton->setToolTip(tr("Save result to the Temporary Database"));
 
+    m_applyButton->hide();
+    //dataButtonsLayout->addWidget( m_applyButton );
+    //layout->addWidget( m_applyButton );
+    
+    m_clearMaskButton = new QPushButton( tr("Clear Mask") , displayWidget);
+    m_clearMaskButton->setToolTip(tr("Resets the mask."));
+    m_clearMaskButton->hide();
+    //dataButtonsLayout->addWidget( m_clearMaskButton );
+    //layout->addLayout(dataButtonsLayout);
+    QHBoxLayout * dataButtonsLayout = new QHBoxLayout();
+    dataButtonsLayout->addWidget(m_applyButton);
+    dataButtonsLayout->addWidget(m_clearMaskButton);
+    layout->addLayout(dataButtonsLayout);
+
     m_clearMaskButton = new QPushButton( tr("Clear Mask") , displayWidget);
     m_clearMaskButton->setToolTip(tr("Resets the mask."));
     QHBoxLayout * dataButtonsLayout = new QHBoxLayout();
     dataButtonsLayout->addWidget(m_applyButton);
     dataButtonsLayout->addWidget(m_clearMaskButton);
     layout->addLayout(dataButtonsLayout);
-
     connect (m_strokeButton,     SIGNAL(pressed()),
         this, SLOT(onStrokePressed ()));
 
@@ -281,11 +313,22 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
         this, SLOT(updateMouseInteraction()));
 
     showButtons(false);
+
+    undo_shortcut = new QShortcut(QKeySequence(tr("Ctrl+z","Undo segmentation")),this);
+    redo_shortcut = new QShortcut(QKeySequence(tr("Ctrl+y","Redo segmentation")),this);
+
+
+    undoStacks = new QHash<medAbstractView*,QStack<list_pair*>*>();
+    redoStacks = new QHash<medAbstractView*,QStack<list_pair*>*>();
+    //undo_stack = new QStack<list_pair*>();
+    //redo_stack = new QStack<list_pair*>();
+    listIndexPixel = new list_pair();
+    
+    connect(undo_shortcut,SIGNAL(activated()),this,SLOT(onUndo()));
+    connect(redo_shortcut,SIGNAL(activated()),this,SLOT(onRedo()));
 }
 
-AlgorithmPaintToolbox::~AlgorithmPaintToolbox()
-{
-}
+AlgorithmPaintToolbox::~AlgorithmPaintToolbox(){}
 
     void AlgorithmPaintToolbox::setWandSliderValue(double val)
     {
@@ -326,29 +369,48 @@ void AlgorithmPaintToolbox::onStrokePressed()
 {
     if ( this->m_strokeButton->isChecked() ) {
         this->m_viewFilter->removeFromAllViews();
-        m_paintState = (PaintState::None);
+        m_paintState=(PaintState::None);
         updateButtons();
+        m_brushSizeSlider->hide();
+        m_brushRadiusLabel->hide();
         return;
     }
     setPaintState(PaintState::Stroke);
     updateButtons();
     this->m_magicWandButton->setChecked(false);
+    m_brushSizeSpinBox->show();
+    m_brushSizeSlider->show();
+    m_brushRadiusLabel->show();
     m_viewFilter = ( new ClickAndMoveEventFilter(this->segmentationToolBox(), this) );
     this->segmentationToolBox()->addViewEventFilter( m_viewFilter );
 }
 
+        m_paintState=(PaintState::None);
+        m_brushSizeSpinBox->hide();
+        m_brushSizeSlider->hide();
+        m_brushRadiusLabel->hide();
+    m_brushSizeSpinBox->show();
+    m_brushSizeSlider->show();
+    m_brushRadiusLabel->show();
 void AlgorithmPaintToolbox::onMagicWandPressed()
 {
     if ( this->m_magicWandButton->isChecked() ) {
         this->m_viewFilter->removeFromAllViews();
         m_paintState = (PaintState::None);
+        m_wand3DCheckbox->hide();
         updateButtons();
+        m_wandThresholdSizeSlider->hide();
+        m_wandThresholdSizeSpinBox->hide();
         return;
     }
     setPaintState(PaintState::Wand);
     updateButtons();
     this->m_strokeButton->setChecked(false);
     m_viewFilter = ( new ClickAndMoveEventFilter(this->segmentationToolBox(), this) );
+    m_wand3DCheckbox->show();
+    m_wandThresholdSizeSlider->show();
+    m_wandThresholdSizeSpinBox->show();
+    m_viewFilter = ( new ClickEventFilter(this->segmentationToolBox(), this) );
     this->segmentationToolBox()->addViewEventFilter( m_viewFilter );
 }
 
@@ -415,7 +477,7 @@ void AlgorithmPaintToolbox::setData( dtkAbstractData *dtkdata )
     m_lastVpn = QVector3D();
 
     m_imageData = dtkSmartPointer<dtkAbstractData>(dtkdata);
-
+    
     // Update values of slider
 
     GenerateMinMaxValuesFromImage < itk::Image <char,3> > ();
@@ -681,6 +743,8 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
             RunConnectedFilter < itk::Image <unsigned long,3> > (index,planeIndex);
             RunConnectedFilter < itk::Image <float,3> > (index,planeIndex);
             RunConnectedFilter < itk::Image <double,3> > (index,planeIndex);
+
+
         }
     }
 
@@ -741,7 +805,10 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
             while (!maskFilterItr.IsAtEnd())
             {
                 if (outFilterItr.Get() != 0)
+                {
                     maskFilterItr.Set(pxValue);
+                    listIndexPixel->append(pair(maskFilterItr.GetIndex(),pxValue));
+                }
 
                 ++outFilterItr;
                 ++maskFilterItr;
@@ -758,8 +825,10 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
             itk::ImageRegionIterator <MaskType> maskFilterItr (m_itkMask, tmpPtr->GetLargestPossibleRegion());
             while (!maskFilterItr.IsAtEnd())
             {
-                if (outFilterItr.Get() != 0)
+                if (outFilterItr.Get() != 0){
                     maskFilterItr.Set(pxValue);
+
+                }
 
                 ++outFilterItr;
                 ++maskFilterItr;
@@ -795,7 +864,7 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
         this->setWandSpinBoxValue(m_wandThresholdSizeSlider->value());
     }
 
-void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medAbstractView * view )
+void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medAbstractView * view)
 {
     this->updateFromGuiItems();
 
@@ -898,6 +967,7 @@ void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medA
             bool isInside = m_itkMask->TransformPhysicalPointToIndex( testPt, index );
             if ( isInside ) {
                 m_itkMask->SetPixel( index, pxValue );
+                listIndexPixel->append(pair(index,pxValue));
             }
         }
     }
@@ -941,8 +1011,7 @@ void AlgorithmPaintToolbox::updateButtons()
         m_labelColorWidget->hide();
         m_strokeLabelSpinBox->hide();
         m_colorLabel->hide();
-        return;
-    }
+        }
     else
     {
         m_labelColorWidget->show();
@@ -978,5 +1047,86 @@ void AlgorithmPaintToolbox::updateMouseInteraction() //Apply the current interac
     }
 }
 
+void AlgorithmPaintToolbox::onUndo()
+{
+    if (!undoStacks->contains(currentView))
+        return;
+
+    QStack<list_pair*> * undo_stack = undoStacks->value(currentView);
+
+    if (undo_stack->isEmpty())
+        return;
+
+    if (!redoStacks->contains(currentView))
+        redoStacks->insert(currentView,new QStack<list_pair*>());
+
+    QStack<list_pair*> * redo_stack = redoStacks->value(currentView);
+    redo_stack->append(undo_stack->pop());
+
+    m_itkMask->FillBuffer( medSegmentationSelectorToolBox::MaskPixelValues::Unset ); // clear mask
+    for(int k =0;k<undo_stack->size();k++)
+    {
+        list_pair * list = undo_stack->at(k);
+        for(int i = 0;i<list->size();i++)
+        {
+            m_itkMask->SetPixel( list->at(i).first, list->at(i).second);    
+        }
+    }
+    m_itkMask->Modified();
+    m_itkMask->GetPixelContainer()->Modified();
+    m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
+    m_maskAnnotationData->invokeModified();
+}
+
+void AlgorithmPaintToolbox::onRedo()
+{
+    if (!redoStacks->contains(currentView))
+        return;
+
+    QStack<list_pair*> * redo_stack = redoStacks->value(currentView);
+    QStack<list_pair*> * undo_stack = undoStacks->value(currentView);
+
+    if (redo_stack->isEmpty())
+        return;
+
+    undo_stack->append(redo_stack->pop());
+
+    m_itkMask->FillBuffer( medSegmentationSelectorToolBox::MaskPixelValues::Unset ); // clear mask
+
+    for(int k =0;k<undo_stack->size();k++)
+    {
+        list_pair * list = undo_stack->at(k);
+        for(int i = 0;i<list->size();i++)
+        {
+            m_itkMask->SetPixel( list->at(i).first, list->at(i).second);    
+        }
+    }
+    m_itkMask->Modified();
+    m_itkMask->GetPixelContainer()->Modified();
+    m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
+    m_maskAnnotationData->invokeModified();
+}
+
+void AlgorithmPaintToolbox::addToStackIndex(medAbstractView * view)
+{
+    qDebug() << "view dans table hash : " << undoStacks->contains(view);
+    if (undoStacks->contains(view))
+        undoStacks->value(view)->append(new list_pair(*listIndexPixel));
+    else
+    {
+        undoStacks->insert(view,new QStack<list_pair*>());
+        undoStacks->value(view)->append(new list_pair(*listIndexPixel));
+        listIndexPixel->clear();
+        if (redoStacks->contains(view))
+            redoStacks->value(view)->clear();
+    }
+}
+
+void AlgorithmPaintToolbox::setCurrentView(medAbstractView * view){
+    currentView = view;   
+}
+
 } // namespace mseg
+
+
 
