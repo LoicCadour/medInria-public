@@ -80,19 +80,21 @@ public:
     inline PaintState::E paintState(){return m_paintState;}
     void setCurrentView(medAbstractView * view);
 
-public slots:
-    void onStrokePressed();
-    void onMagicWandPressed();
+    bool getSeedPlanted();
+    void setSeedPlanted(bool,QVector3D);
 
-    void onApplyButtonPressed();
-    void onClearMaskPressed();
+public slots:
+    void onStrokeToggled(bool);
+    void onMagicWandToggled(bool);
+
+    void onApplyButtonClicked();
+    void onClearMaskClicked();
 
     void onLabelChanged(int newVal);
     void onSelectLabelColor();
 
-    void setWandSliderValue(double val);
-    void setWandSpinBoxValue(int val);
-
+    void synchronizeWandSpinBoxesAndSliders(void);
+    
     void updateStroke(ClickAndMoveEventFilter * filter, medAbstractView * view);
     void updateWandRegion(medAbstractView * view, QVector3D &vec);
     void updateMouseInteraction();
@@ -100,6 +102,11 @@ public slots:
     void onUndo();
     void onRedo();
     void addToStackIndex(medAbstractView * view);
+
+    //void onInterpolate();
+    void wheelEvent(QWheelEvent * event);
+    void onAcceptGrowth();
+    void onRemoveSeed();
 
 protected:
     friend class ClickAndMoveEventFilter;
@@ -120,6 +127,7 @@ protected:
     void generateLabelColorMap(unsigned int numLabels);
 
     void updateButtons();
+    void addBrushSize(int size);
 
 private:
     typedef dtkSmartPointer<medSeedPointAnnotationData> SeedPoint;
@@ -127,20 +135,26 @@ private:
     QPushButton *m_strokeButton;
     QPushButton *m_labelColorWidget;
     QSpinBox *m_strokeLabelSpinBox;
+    //QPushButton *m_interpolate;
+    QPushButton * m_acceptGrowthButton;
+    QPushButton * m_removeSeedButton;
     QShortcut *undo_shortcut,*redo_shortcut;
     
     QLabel *m_colorLabel;
+    QLabel * m_wandInfo;
 
     QSlider *m_brushSizeSlider;
     QSpinBox *m_brushSizeSpinBox;
     QLabel *m_brushRadiusLabel;
 
+    QFormLayout * magicWandLayout;
     QPushButton *m_magicWandButton;
-    // The slider works on percentages of a linear scale between min and max values, i.e.
-    // wandradius = (max - min) * sliderPerc / 2.0
-    QSlider *m_wandThresholdSizeSlider;
-    QDoubleSpinBox *m_wandThresholdSizeSpinBox;
+    QSlider *m_wandUpperThresholdSlider, *m_wandLowerThresholdSlider;
+    QDoubleSpinBox *m_wandUpperThresholdSpinBox , * m_wandLowerThresholdSpinBox;
     QCheckBox *m_wand3DCheckbox;
+
+    bool seedPlanted;
+    QVector3D seed;
 
     double m_MinValueImage;
     double m_MaxValueImage;
@@ -161,17 +175,13 @@ private:
     typedef itk::Image<unsigned char, 3> MaskType;
     MaskType::Pointer m_itkMask;
 
-    
     // undo_redo_feature's attributes
     typedef QPair<MaskType::IndexType,unsigned char> pair;
     typedef QList<pair> list_pair;
 
     list_pair * listIndexPixel;
-    QHash<medAbstractView*,QStack<list_pair*>*> * undoStacks;
-    QHash<medAbstractView*,QStack<list_pair*>*> * redoStacks;
+    QHash<medAbstractView*,QStack<list_pair*>*> * undoStacks, * redoStacks;
     medAbstractView * currentView;
-    //QStack<list_pair*> *undo_stack, *redo_stack;
-
 
     template <typename IMAGE> void RunConnectedFilter (MaskType::IndexType &index, unsigned int planeIndex);
     template <typename IMAGE> void GenerateMinMaxValuesFromImage ();
@@ -180,7 +190,7 @@ private:
     QVector3D m_lastVpn;
     double m_sampleSpacing[2];
 
-    double m_wandRadius;
+    double m_wandRadius, m_wandUpperThreshold, m_wandLowerThreshold;
     double m_strokeRadius;
     unsigned int m_strokeLabel;
 

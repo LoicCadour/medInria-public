@@ -36,6 +36,12 @@
 #include <itkImageRegionIterator.h>
 #include <itkConnectedThresholdImageFilter.h>
 #include <itkMinimumMaximumImageCalculator.h>
+#include <itkSignedDanielssonDistanceMapImageFilter.h>
+#include <itkLinearInterpolateImageFunction.h>
+#include <itkBinaryThresholdImageFilter.h>
+#include <itkImageDuplicator.h>
+#include <itkResampleImageFilter.h>
+#include <itkIdentityTransform.h>
 
 #include <QtCore>
 #include <QColorDialog>
@@ -66,7 +72,10 @@ public:
         {
             m_cb->setPaintState(m_lastPaintState);
             m_paintState = m_lastPaintState;
-            m_cb->addToStackIndex(view);
+                m_cb->addToStackIndex(view);
+                m_cb->setSeedPlanted(true,posImage);
+    }
+        return false;
         }
 
         if(mouseEvent->button() == Qt::RightButton) // right-click for erasing
@@ -145,6 +154,22 @@ public:
         return true;
     }
 
+    virtual bool mouseWheelEvent(medAbstractView *view, QWheelEvent * event)
+    {
+        if ((m_paintState == PaintState::Stroke || m_paintState == PaintState::DeleteStroke) && (event->modifiers()==Qt::ControlModifier))
+        { 
+            int numDegrees = event->delta() / 8;
+            int numSteps = numDegrees / 15;
+            if (event->orientation() == Qt::Horizontal)
+                m_cb->addBrushSize(-numSteps);
+            else 
+                m_cb->addBrushSize(numSteps);
+            return true;
+        }
+        return false;
+    }
+
+
     const std::vector<QVector3D> & points() const { return m_points; }
 
 private :
@@ -177,6 +202,14 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     QIcon buttonIcon(pixmap);
     m_magicWandButton->setIcon(buttonIcon);
     m_magicWandButton->setToolTip(tr("Magic wand to automatically paint similar voxels."));
+    /*m_interpolate = new QPushButton(tr("Interpolate"), displayWidget);
+    m_interpolate->setToolTip(tr("Interpolate roi between slices"));
+    m_interpolate->hide();*/
+
+    /*QButtonGroup * modeGroup = new QButtonGroup(this);
+    modeGroup->addButton(m_strokeButton);
+    modeGroup->addButton(m_removeStrokeButton);
+    modeGroup->addButton(m_magicWandButton);*/
     m_strokeButton->setCheckable(true);
 
     m_magicWandButton = new QPushButton(tr("Magic Wand"), displayWidget);
@@ -189,7 +222,8 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     QHBoxLayout * addRemoveButtonLayout = new QHBoxLayout();
     addRemoveButtonLayout->addWidget( m_strokeButton );
     addRemoveButtonLayout->addWidget( m_magicWandButton );
-     addRemoveButtonLayout->addWidget( m_magicWandButton );
+    addRemoveButtonLayout->addWidget( m_magicWandButton );
+    //addRemoveButtonLayout->addWidget(m_interpolate);
     layout->addLayout( addRemoveButtonLayout );
 
     m_strokeLabelSpinBox->hide();
@@ -216,34 +250,82 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     brushSizeLayout->addWidget( m_brushSizeSpinBox );
     layout->addLayout( brushSizeLayout );
 
-    QHBoxLayout * magicWandLayout = new QHBoxLayout();
 
-    m_wandThresholdSizeSlider = new QSlider(Qt::Horizontal, displayWidget);
-    m_wandThresholdSizeSlider->setValue(100);
-    m_wandThresholdSizeSlider->setMinimum(0);
-    m_wandThresholdSizeSlider->setMaximum(1000);
-    m_wandThresholdSizeSlider->hide();
+    // magic wand 's  widgets //
+    m_wandUpperThresholdSlider = new QSlider(Qt::Horizontal, displayWidget);
+    m_wandUpperThresholdSlider->setToolTip(tr("Upper Threshold"));
+    m_wandUpperThresholdSlider->setValue(100);
+    m_wandUpperThresholdSlider->setMinimum(0);
+    m_wandUpperThresholdSlider->setMaximum(10000);
+    m_wandUpperThresholdSlider->hide();
 
-    m_wandThresholdSizeSpinBox = new QDoubleSpinBox(displayWidget);
-    m_wandThresholdSizeSpinBox->setMinimum(0);
-    m_wandThresholdSizeSpinBox->setMaximum(1000000);
-    m_wandThresholdSizeSpinBox->setDecimals(2);
-    m_wandThresholdSizeSpinBox->hide();
+    m_wandLowerThresholdSlider = new QSlider(Qt::Horizontal, displayWidget);
+    m_wandLowerThresholdSlider->setToolTip(tr("Lower Threshold"));
+    m_wandLowerThresholdSlider->setValue(100);
+    m_wandLowerThresholdSlider->setMinimum(0);
+    m_wandLowerThresholdSlider->setMaximum(10000);
+    m_wandLowerThresholdSlider->hide();
 
-    this->setWandSpinBoxValue(100);
+    m_wandUpperThresholdSpinBox = new QDoubleSpinBox(displayWidget);
+    m_wandUpperThresholdSpinBox->setToolTip(tr("Upper Threshold"));
+    m_wandUpperThresholdSpinBox->setMinimum(0);
+    m_wandUpperThresholdSpinBox->setMaximum(1000000);
+    m_wandUpperThresholdSpinBox->setDecimals(2);
+    m_wandUpperThresholdSpinBox->hide();
 
-    connect(m_wandThresholdSizeSpinBox, SIGNAL(valueChanged(double)),this,SLOT(setWandSliderValue(double)) );
-    connect(m_wandThresholdSizeSlider,SIGNAL(valueChanged(int)),this,SLOT(setWandSpinBoxValue(int)) );
+    m_wandLowerThresholdSpinBox = new QDoubleSpinBox(displayWidget);
+    m_wandLowerThresholdSpinBox->setToolTip(tr("Lower Threshold"));
+    m_wandLowerThresholdSpinBox->setMinimum(0);
+    m_wandLowerThresholdSpinBox->setMaximum(1000000);
+    m_wandLowerThresholdSpinBox->setDecimals(2);
+    m_wandLowerThresholdSpinBox->hide();
 
-    m_wand3DCheckbox = new QCheckBox (tr("3D"), displayWidget);
+    m_acceptGrowthButton = new QPushButton("Accept growth",this);
+    m_acceptGrowthButton->hide();
+    m_removeSeedButton = new QPushButton("Remove seed",this);
+    m_removeSeedButton->hide();
+    seedPlanted = false;
+    
+    connect(m_acceptGrowthButton,SIGNAL(clicked()),this,SLOT(onAcceptGrowth()));
+    connect(m_removeSeedButton,SIGNAL(clicked()),this,SLOT(onRemoveSeed()));
+
+    connect(m_wandUpperThresholdSlider,SIGNAL(sliderReleased()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
+    connect(m_wandUpperThresholdSpinBox, SIGNAL(editingFinished()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
+    connect(m_wandLowerThresholdSlider,SIGNAL(sliderReleased()),this,SLOT(synchronizeWandSpinBoxesAndSliders()) );
+    connect(m_wandLowerThresholdSpinBox, SIGNAL(editingFinished()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
+
+    m_wand3DCheckbox = new QCheckBox (tr("Activate 3D mode"), displayWidget);
     m_wand3DCheckbox->setCheckState(Qt::Unchecked);
     m_wand3DCheckbox->hide();
 
-    magicWandLayout->addWidget( m_wand3DCheckbox );
-    magicWandLayout->addWidget( m_wandThresholdSizeSlider );
-    magicWandLayout->addWidget( m_wandThresholdSizeSpinBox );
-    layout->addLayout( magicWandLayout );
+    m_wandInfo = new QLabel("Select a pixel in the image to plant the seed",this);
+    m_wandInfo->hide();
 
+    QHBoxLayout * magicWandLayout1 = new QHBoxLayout();
+    magicWandLayout1->addWidget( m_wandInfo );
+    magicWandLayout1->addWidget( m_wand3DCheckbox );
+    QHBoxLayout * magicWandLayout2 = new QHBoxLayout();
+    magicWandLayout2->addWidget( m_wandUpperThresholdSlider );
+    magicWandLayout2->addWidget( m_wandUpperThresholdSpinBox );
+    QHBoxLayout * magicWandLayout3 = new QHBoxLayout();
+    magicWandLayout3->addWidget( m_wandLowerThresholdSlider );
+    magicWandLayout3->addWidget( m_wandLowerThresholdSpinBox );
+    QHBoxLayout * magicWandLayout4 = new QHBoxLayout();
+    magicWandLayout4->addWidget( m_acceptGrowthButton );
+    magicWandLayout4->addWidget( m_removeSeedButton );
+
+    magicWandLayout = new QFormLayout(this);
+    magicWandLayout->addRow(m_wandInfo);
+    magicWandLayout->addRow(m_wand3DCheckbox);
+    /*magicWandLayout->addRow(tr("Upper Threshold"),magicWandLayout2);
+    magicWandLayout->addRow(tr("Lower Threshold"),magicWandLayout3);*/
+    magicWandLayout->addRow(magicWandLayout2);
+    magicWandLayout->addRow(magicWandLayout3);
+    magicWandLayout->addRow(magicWandLayout4);
+    
+    layout->addLayout(magicWandLayout);
+    /*layout->addLayout( magicWandLayout1 );
+    layout->addLayout( magicWandLayout2 );*/
     this->generateLabelColorMap(24);
 
     QHBoxLayout * labelSelectionLayout = new QHBoxLayout();
@@ -289,6 +371,7 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     QHBoxLayout * dataButtonsLayout = new QHBoxLayout();
     dataButtonsLayout->addWidget(m_applyButton);
     dataButtonsLayout->addWidget(m_clearMaskButton);
+    //dataButtonsLayout->addWidget(m_interpolate);
     layout->addLayout(dataButtonsLayout);
 
     m_clearMaskButton = new QPushButton( tr("Clear Mask") , displayWidget);
@@ -297,17 +380,15 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     dataButtonsLayout->addWidget(m_applyButton);
     dataButtonsLayout->addWidget(m_clearMaskButton);
     layout->addLayout(dataButtonsLayout);
-    connect (m_strokeButton,     SIGNAL(pressed()),
-        this, SLOT(onStrokePressed ()));
+    connect (m_clearMaskButton,     SIGNAL(clicked()),
+        this, SLOT(onClearMaskClicked ()));
 
-    connect (m_magicWandButton, SIGNAL(pressed()),
-             this,SLOT(onMagicWandPressed()));
 
-    connect (m_clearMaskButton,     SIGNAL(pressed()),
-        this, SLOT(onClearMaskPressed ()));
 
-    connect (m_applyButton,     SIGNAL(pressed()),
-        this, SLOT(onApplyButtonPressed()));
+    connect (m_applyButton,     SIGNAL(clicked()),
+        this, SLOT(onApplyButtonClicked()));
+
+    //connect(m_interpolate,SIGNAL(clicked()),this,SLOT(onInterpolate()));
 
     connect (medViewManager::instance(), SIGNAL(viewOpened()), 
         this, SLOT(updateMouseInteraction()));
@@ -329,77 +410,84 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
 
 AlgorithmPaintToolbox::~AlgorithmPaintToolbox(){}
 
-    void AlgorithmPaintToolbox::setWandSliderValue(double val)
+    void AlgorithmPaintToolbox::synchronizeWandSpinBoxesAndSliders()
     {
-        double perc = 4000.0 * val / (m_MaxValueImage - m_MinValueImage);
-
-        unsigned int percRound = (unsigned int)floor(perc);
-
-        m_wandThresholdSizeSlider->blockSignals(true);
-        m_wandThresholdSizeSlider->setValue(percRound);
-        m_wandThresholdSizeSlider->blockSignals(false);
-    }
-
-    void AlgorithmPaintToolbox::setWandSpinBoxValue(int val)
-    {
-        double realValue = val * (m_MaxValueImage - m_MinValueImage) / 4000.0;
-
-        // Determine number of decimals necessary
-
-        double testValue = (m_MaxValueImage - m_MinValueImage) / 4.0;
-
-        unsigned int powTestValue = 1;
-        while (testValue < 1)
+        QObject * sender = QObject::sender();
+        int val;
+        if (sender == m_wandUpperThresholdSlider)
         {
-            ++powTestValue;
-            testValue *= 10;
+            val = m_wandUpperThresholdSlider->value();
+            m_wandUpperThresholdSpinBox->blockSignals(true);
+            m_wandUpperThresholdSpinBox->setValue(val);
+            m_wandUpperThresholdSpinBox->blockSignals(false);
+        }
+        else if (sender == m_wandUpperThresholdSpinBox)
+        {
+            val = m_wandUpperThresholdSpinBox->value();
+            m_wandUpperThresholdSlider->blockSignals(true);
+            m_wandUpperThresholdSlider->setValue(val);
+            m_wandUpperThresholdSlider->blockSignals(false);
+        }
+        else if (sender == m_wandLowerThresholdSlider)
+        {
+            val = m_wandLowerThresholdSlider->value();
+            m_wandLowerThresholdSpinBox->blockSignals(true);
+            m_wandLowerThresholdSpinBox->setValue(val);
+            m_wandLowerThresholdSpinBox->blockSignals(false);
+        }
+        else if (sender == m_wandLowerThresholdSpinBox)
+        {
+            val = m_wandLowerThresholdSpinBox->value();
+            m_wandLowerThresholdSlider->blockSignals(true);
+            m_wandLowerThresholdSlider->setValue(val);
+            m_wandLowerThresholdSlider->blockSignals(false);
         }
 
-        if (powTestValue < 2)
-            powTestValue = 2;
-
-        m_wandThresholdSizeSpinBox->setDecimals(powTestValue);
-        m_wandThresholdSizeSpinBox->blockSignals(true);
-        m_wandThresholdSizeSpinBox->setValue(realValue);
-        m_wandThresholdSizeSpinBox->blockSignals(false);
-    }
-
-void AlgorithmPaintToolbox::onStrokePressed()
-{
-    if ( this->m_strokeButton->isChecked() ) {
-        this->m_viewFilter->removeFromAllViews();
-        m_paintState=(PaintState::None);
+        if (seedPlanted)
+        {
+            onUndo();
+            updateWandRegion(currentView,seed);
+            addToStackIndex(currentView);
         updateButtons();
-        m_brushSizeSlider->hide();
-        m_brushRadiusLabel->hide();
-        return;
-    }
-    setPaintState(PaintState::Stroke);
+        }
     updateButtons();
     this->m_magicWandButton->setChecked(false);
-    m_brushSizeSpinBox->show();
-    m_brushSizeSlider->show();
-    m_brushRadiusLabel->show();
-    m_viewFilter = ( new ClickAndMoveEventFilter(this->segmentationToolBox(), this) );
-    this->segmentationToolBox()->addViewEventFilter( m_viewFilter );
-}
+    }
 
+void AlgorithmPaintToolbox::onStrokeToggled(bool checked)
+    if (!checked ) {
         m_paintState=(PaintState::None);
         m_brushSizeSpinBox->hide();
         m_brushSizeSlider->hide();
         m_brushRadiusLabel->hide();
+    setPaintState(PaintState::Stroke);
     m_brushSizeSpinBox->show();
     m_brushSizeSlider->show();
     m_brushRadiusLabel->show();
-void AlgorithmPaintToolbox::onMagicWandPressed()
+//    if ( !checked ) {
+//        m_paintState=(PaintState::None);
+//        m_brushSizeSpinBox->hide();
+//        m_brushSizeSlider->hide();
+//        m_brushRadiusLabel->hide();
+//    setPaintState(PaintState::DeleteStroke);
+//    m_brushSizeSpinBox->show();
+//    m_brushSizeSlider->show();
+//    m_brushRadiusLabel->show();
+void AlgorithmPaintToolbox::onMagicWandToggled(bool checked)
 {
-    if ( this->m_magicWandButton->isChecked() ) {
+    if (!checked ) {
         this->m_viewFilter->removeFromAllViews();
         m_paintState = (PaintState::None);
+        onAcceptGrowth(); // to uncheck the button will automatically accept the current growth 
         m_wand3DCheckbox->hide();
         updateButtons();
-        m_wandThresholdSizeSlider->hide();
-        m_wandThresholdSizeSpinBox->hide();
+        m_wandUpperThresholdSlider->hide();
+        m_wandLowerThresholdSlider->hide();
+        m_wandUpperThresholdSpinBox->hide();
+        m_wandLowerThresholdSpinBox->hide();
+        m_acceptGrowthButton->hide();
+        m_removeSeedButton->hide();
+        m_wandInfo->hide();
         return;
     }
     setPaintState(PaintState::Wand);
@@ -407,13 +495,16 @@ void AlgorithmPaintToolbox::onMagicWandPressed()
     this->m_strokeButton->setChecked(false);
     m_viewFilter = ( new ClickAndMoveEventFilter(this->segmentationToolBox(), this) );
     m_wand3DCheckbox->show();
-    m_wandThresholdSizeSlider->show();
-    m_wandThresholdSizeSpinBox->show();
+    m_wandUpperThresholdSlider->show();
+    m_wandLowerThresholdSlider->show();
+    m_wandUpperThresholdSpinBox->show();
+    m_wandLowerThresholdSpinBox->show();
+    m_wandInfo->show();
     m_viewFilter = ( new ClickEventFilter(this->segmentationToolBox(), this) );
     this->segmentationToolBox()->addViewEventFilter( m_viewFilter );
 }
 
-void AlgorithmPaintToolbox::onApplyButtonPressed()
+void AlgorithmPaintToolbox::onApplyButtonClicked()
 {
     dtkAbstractProcessFactory *factory = dtkAbstractProcessFactory::instance();
 
@@ -426,6 +517,7 @@ void AlgorithmPaintToolbox::onApplyButtonPressed()
     this->segmentationToolBox()->run( alg );
 }
 
+void AlgorithmPaintToolbox::onClearMaskClicked()
 void AlgorithmPaintToolbox::onLabelChanged(int newVal)
 {
     QColor labelColor = m_labelColorMap[newVal-1].second;
@@ -763,8 +855,8 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
 
         double value = tmpPtr->GetPixel(index);
 
-        ctiFilter->SetUpper( value + m_wandRadius );
-        ctiFilter->SetLower( value - m_wandRadius );
+        ctiFilter->SetUpper( m_wandUpperThreshold );
+        ctiFilter->SetLower( m_wandLowerThreshold );
 
         MaskType::RegionType regionRequested = tmpPtr->GetLargestPossibleRegion();
         regionRequested.SetIndex(planeIndex, index[planeIndex]);
@@ -826,7 +918,7 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
             {
                 if (outFilterItr.Get() != 0){
                     maskFilterItr.Set(pxValue);
-
+                    //listIndexPixel->append(pair(maskFilterItr.GetIndex(),pxValue)); // trop couteux en 3D a ameliorer !! 
                 }
 
                 ++outFilterItr;
@@ -859,8 +951,10 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
 
         m_MinValueImage = minMaxFilter->GetMinimum();
         m_MaxValueImage = minMaxFilter->GetMaximum();
-
-        this->setWandSpinBoxValue(m_wandThresholdSizeSlider->value());
+        m_wandLowerThresholdSlider->setMaximum(m_MaxValueImage);
+        m_wandUpperThresholdSlider->setMaximum(m_MaxValueImage);
+        m_wandLowerThresholdSlider->setMinimum(m_MinValueImage);
+        m_wandUpperThresholdSlider->setMinimum(m_MinValueImage);
     }
 
 void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medAbstractView * view)
@@ -981,12 +1075,14 @@ void AlgorithmPaintToolbox::updateFromGuiItems()
 {
     this->m_strokeRadius = m_brushSizeSlider->value();
     this->m_strokeLabel = m_strokeLabelSpinBox->value();
-    this->m_wandRadius = m_wandThresholdSizeSpinBox->value();
+    this->m_wandLowerThreshold = m_wandLowerThresholdSpinBox->value();
+    this->m_wandUpperThreshold = m_wandUpperThresholdSpinBox->value();
 }
 
 void AlgorithmPaintToolbox::showButtons( bool value )
 {
     if (value)
+    //m_interpolate->setEnabled(value);
     {
         m_applyButton->show();
         m_clearMaskButton->show();
@@ -1004,7 +1100,11 @@ void AlgorithmPaintToolbox::updateButtons()
         m_wandThresholdSizeSlider->hide();
         m_wandThresholdSizeSpinBox->hide();
         m_wand3DCheckbox->hide();
+            if (value==PaintState::Stroke)
+                m_magicWandButton->setChecked(false);
+            else 
         m_brushSizeSlider->hide();
+                m_strokeButton->setChecked(false);
         m_brushSizeSpinBox->hide();
         m_brushRadiusLabel->hide();
         m_labelColorWidget->hide();
@@ -1018,9 +1118,7 @@ void AlgorithmPaintToolbox::updateButtons()
         m_colorLabel->show();
 
         if ( m_paintState == PaintState::Wand ) {
-            m_brushSizeSlider->hide();
             m_brushSizeSpinBox->hide();
-            m_brushRadiusLabel->hide();
             m_wandThresholdSizeSlider->show();
             m_wandThresholdSizeSpinBox->show();
             m_wand3DCheckbox->show();
@@ -1029,8 +1127,6 @@ void AlgorithmPaintToolbox::updateButtons()
             m_brushSizeSlider->show();
             m_brushSizeSpinBox->show();
             m_brushRadiusLabel->show();
-            m_wandThresholdSizeSlider->hide();
-            m_wandThresholdSizeSpinBox->hide();
             m_wand3DCheckbox->hide();
         }
     }
@@ -1044,11 +1140,15 @@ void AlgorithmPaintToolbox::updateMouseInteraction() //Apply the current interac
         m_viewFilter = ( new ClickAndMoveEventFilter(this->segmentationToolBox(), this) );
         this->segmentationToolBox()->addViewEventFilter( m_viewFilter );
     }
+    //m_interpolate->show();
 }
 
 void AlgorithmPaintToolbox::onUndo()
 {
     if (currentView==NULL)
+        return;
+
+    if (undoStacks==NULL)
         return;
 
     if (!undoStacks->contains(currentView))
@@ -1085,6 +1185,9 @@ void AlgorithmPaintToolbox::onRedo()
     if (currentView==NULL)
         return;
 
+    if (redoStacks==NULL)
+        return;
+
     if (!redoStacks->contains(currentView))
         return;
 
@@ -1114,6 +1217,8 @@ void AlgorithmPaintToolbox::onRedo()
 
 void AlgorithmPaintToolbox::addToStackIndex(medAbstractView * view)
 {
+    //TODO : We need to remove the view from the QHash when it is closed
+
     if (currentView==NULL)
         return;
 
@@ -1132,6 +1237,135 @@ void AlgorithmPaintToolbox::addToStackIndex(medAbstractView * view)
 
 void AlgorithmPaintToolbox::setCurrentView(medAbstractView * view){
     currentView = view;   
+}
+
+//void AlgorithmPaintToolbox::onInterpolate()
+//{
+//    typedef itk::Image<int,3> distanceMapType;
+//    typedef itk::DanielssonDistanceMapImageFilter<MaskType,distanceMapType> DistanceMapImageFilterType;
+//    typedef itk::LinearInterpolateImageFunction<distanceMapType> InterpolationFunction;
+//    typedef itk::BinaryThresholdImageFilter<distanceMapType,MaskType> BinaryThresholdFilterType;
+//    typedef itk::ImageDuplicator<distanceMapType> DuplicatorType;
+//    typedef itk::IdentityTransform<double, 3> TransformType;
+//    typedef itk::ResampleImageFilter<MaskType, MaskType> ResampleImageFilterType;
+//    
+//    
+//    DistanceMapImageFilterType::Pointer distanceMapFilter = DistanceMapImageFilterType::New();
+//    ResampleImageFilterType::Pointer resample = ResampleImageFilterType::New();
+//    InterpolationFunction::Pointer interpolateFunction = InterpolationFunction::New();
+//    BinaryThresholdFilterType::Pointer binaryFilter = BinaryThresholdFilterType::New();
+//    DuplicatorType::Pointer duplicator = DuplicatorType::New();
+//    
+//    distanceMapFilter->SetInput(m_itkMask);
+//    distanceMapFilter->Update();
+//    distanceMapType::Pointer distanceMap = distanceMapFilter->GetOutput();
+//    
+//   /* resample->SetInput(distanceMap);
+//    resample->SetInterpolator(interpolateFunction);
+//    resample->SetTransform(TransformType::New());
+//    resample->UpdateLargestPossibleRegion();*/
+//    
+//    /*MaskType::Pointer interpolatedImage = resample->GetOutput(); 
+//    
+//    binaryFilter->SetInput(interpolatedImage);
+//    binaryFilter->SetLowerThreshold(0);
+//    binaryFilter->SetInsideValue(m_strokeLabel);
+//    binaryFilter->SetOutsideValue(medSegmentationSelectorToolBox::MaskPixelValues::Unset);
+//    binaryFilter->UpdateLargestPossibleRegion();
+//    
+//    MaskType::Pointer interpolatedMask = binaryFilter->GetOutput();
+//    
+//    interpolatedMask->CopyInformation(m_itkMask);
+//    m_itkMask->Graft(interpolatedMask);
+//*/
+//
+//    interpolateFunction->SetInputImage(distanceMap);
+//    duplicator->SetInputImage(distanceMap);
+//    duplicator->Update();
+//    distanceMapType::Pointer interpolatedImage = duplicator->GetOutput(); 
+//    itk::ImageRegionIterator<distanceMapType> it(interpolatedImage,interpolatedImage->GetRequestedRegion());
+//    QList<int> list;
+//    it.GoToBegin();
+//    while(!it.IsAtEnd())
+//    {
+//        it.Set(interpolateFunction->EvaluateAtIndex(it.GetIndex()));
+//        list.append(interpolateFunction->EvaluateAtIndex(it.GetIndex()));
+//        ++it;
+//    }
+//    
+//    qSort(list.begin(), list.end(), qGreater<int>());
+//    int maxValue = list[0];
+//    qSort(list.begin(), list.end(), qLess<int>());
+//    int minValue = list[0] ;
+//    qDebug()<< "valeur max " << maxValue ;
+//    qDebug()<< "valeur min " << minValue ;
+//
+//    binaryFilter->SetInput(interpolatedImage);
+//    binaryFilter->SetLowerThreshold(0);
+//    binaryFilter->SetUpperThreshold(30);
+//    binaryFilter->SetInsideValue(m_strokeLabel);
+//    binaryFilter->SetOutsideValue(medSegmentationSelectorToolBox::MaskPixelValues::Unset);
+//    binaryFilter->Update();
+//    
+//    MaskType::Pointer interpolatedMask = binaryFilter->GetOutput();
+//    
+//    interpolatedMask->CopyInformation(m_itkMask);
+//    m_itkMask->Graft(interpolatedMask);
+//
+//    m_itkMask->Modified();
+//    m_itkMask->GetPixelContainer()->Modified();
+//    m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
+//    m_maskAnnotationData->invokeModified();
+//}
+
+void AlgorithmPaintToolbox::addBrushSize(int size)
+{
+    if (m_paintState==PaintState::Stroke || m_paintState==PaintState::DeleteStroke)
+        m_brushSizeSlider->setValue(m_brushSizeSlider->value()+size);
+}
+
+void AlgorithmPaintToolbox::wheelEvent(QWheelEvent * event)
+{
+    if (m_paintState==PaintState::Stroke || m_paintState==PaintState::DeleteStroke)
+    {
+        int numDegrees = event->delta() / 8;
+        int numSteps = numDegrees / 15;
+        if (event->orientation() == Qt::Horizontal)
+            addBrushSize(-numSteps);
+        else 
+            addBrushSize(numSteps);
+
+    }
+}
+
+bool AlgorithmPaintToolbox::getSeedPlanted()
+{
+    return seedPlanted;
+}
+void AlgorithmPaintToolbox::setSeedPlanted(bool val,QVector3D seed)
+{
+    seedPlanted = val;
+    this->seed=seed;
+    if (val)
+    {
+        m_wandInfo->setText("Seed x : " + QString::number(seed.x()) + " mm y : " + QString::number(seed.y()) + " mm location : " + QString::number(seed.z()) + " mm"); 
+        m_acceptGrowthButton->show();
+        m_removeSeedButton->show();
+    }
+}
+
+void AlgorithmPaintToolbox::onAcceptGrowth()
+{
+    seedPlanted = false;
+    m_wandInfo->setText("Select a pixel in the image to plant the seed");
+    m_acceptGrowthButton->hide();
+    m_removeSeedButton->hide();
+}
+
+void AlgorithmPaintToolbox::onRemoveSeed()
+{
+    onAcceptGrowth(); // Accepting the growth will remove the seed.
+    onUndo();
 }
 
 } // namespace mseg
