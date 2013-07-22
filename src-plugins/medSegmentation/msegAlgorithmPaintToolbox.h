@@ -55,6 +55,10 @@ class MEDVIEWSEGMENTATIONPLUGIN_EXPORT AlgorithmPaintToolbox : public medSegment
     Q_OBJECT;
 public:
 
+    typedef itk::Image<unsigned char, 3> MaskType;
+    typedef QPair<MaskType::IndexType,unsigned char> pair;
+    typedef QList<pair> list_pair;
+
     AlgorithmPaintToolbox( QWidget *parent );
     ~AlgorithmPaintToolbox();
 
@@ -81,7 +85,8 @@ public:
     void setCurrentView(medAbstractView * view);
 
     bool getSeedPlanted();
-    void setSeedPlanted(bool,QVector3D);
+    void setSeedPlanted(bool,MaskType::IndexType,unsigned int,double);
+    void setSeed(QVector3D);
 
 public slots:
     void onStrokeToggled(bool);
@@ -152,7 +157,7 @@ private:
     QCheckBox *m_wand3DCheckbox;
 
     bool seedPlanted;
-    QVector3D seed;
+    QVector3D m_seed;
 
     double m_MinValueImage;
     double m_MaxValueImage;
@@ -170,13 +175,9 @@ private:
     
     medImageMaskAnnotationData::ColorMapType m_labelColorMap;
     
-    typedef itk::Image<unsigned char, 3> MaskType;
     MaskType::Pointer m_itkMask;
 
     // undo_redo_feature's attributes
-    typedef QPair<MaskType::IndexType,unsigned char> pair;
-    typedef QList<pair> list_pair;
-
     list_pair * listIndexPixel;
     QHash<medAbstractView*,QStack<list_pair*>*> * undoStacks, * redoStacks;
     medAbstractView * currentView;

@@ -64,10 +64,10 @@ public:
 
         if ( this->m_paintState == PaintState::DeleteStroke )
         {
+                m_cb->setSeed(posImage);
             m_cb->setPaintState(m_lastPaintState);
             m_paintState = m_lastPaintState;
                 m_cb->addToStackIndex(view);
-                m_cb->setSeedPlanted(true,posImage);
     }
         return false;
         }
@@ -424,7 +424,7 @@ AlgorithmPaintToolbox::~AlgorithmPaintToolbox(){}
         if (seedPlanted)
         {
             onUndo();
-            updateWandRegion(currentView,seed);
+            updateWandRegion(currentView,m_seed);
             addToStackIndex(currentView);
         updateButtons();
         }
@@ -823,6 +823,9 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
         typename ConnectedThresholdImageFilterType::Pointer ctiFilter = ConnectedThresholdImageFilterType::New();
 
         double value = tmpPtr->GetPixel(index);
+
+        if (!seedPlanted)
+            setSeedPlanted(true,index,planeIndex,value);
 
         ctiFilter->SetUpper( m_wandUpperThreshold );
         ctiFilter->SetLower( m_wandLowerThreshold );
@@ -1229,13 +1232,33 @@ bool AlgorithmPaintToolbox::getSeedPlanted()
 {
     return seedPlanted;
 }
-void AlgorithmPaintToolbox::setSeedPlanted(bool val,QVector3D seed)
+void AlgorithmPaintToolbox::setSeed(QVector3D point)
+{
+    m_seed = point;
+}
+void AlgorithmPaintToolbox::setSeedPlanted(bool val,MaskType::IndexType index,unsigned int planeIndex,double value)
 {
     seedPlanted = val;
-    this->seed=seed;
     if (val)
     {
-        m_wandInfo->setText("Seed x : " + QString::number(seed.x()) + " mm y : " + QString::number(seed.y()) + " mm location : " + QString::number(seed.z()) + " mm"); 
+        int x,y;
+        if (planeIndex==2)
+        {
+            x = 0;
+            y = 1;
+        }
+        else if (planeIndex==1)
+        {
+            x = 0;
+            y = 2;
+        }
+        else 
+        {
+            x=1;
+            y=2;
+        }
+
+        m_wandInfo->setText("Seed X : " + QString::number(index[x]) + " Y : " + QString::number(index[y]) + " Slice : " + QString::number(index[planeIndex]+1) + " Value : " + QString::number(value)); 
         m_acceptGrowthButton->show();
         m_removeSeedButton->show();
     }
@@ -1256,6 +1279,3 @@ void AlgorithmPaintToolbox::onRemoveSeed()
 }
 
 } // namespace mseg
-
-
-
