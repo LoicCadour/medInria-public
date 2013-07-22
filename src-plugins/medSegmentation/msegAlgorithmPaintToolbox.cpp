@@ -36,12 +36,6 @@
 #include <itkImageRegionIterator.h>
 #include <itkConnectedThresholdImageFilter.h>
 #include <itkMinimumMaximumImageCalculator.h>
-#include <itkSignedDanielssonDistanceMapImageFilter.h>
-#include <itkLinearInterpolateImageFunction.h>
-#include <itkBinaryThresholdImageFilter.h>
-#include <itkImageDuplicator.h>
-#include <itkResampleImageFilter.h>
-#include <itkIdentityTransform.h>
 
 #include <QtCore>
 #include <QColorDialog>
@@ -202,14 +196,6 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     QIcon buttonIcon(pixmap);
     m_magicWandButton->setIcon(buttonIcon);
     m_magicWandButton->setToolTip(tr("Magic wand to automatically paint similar voxels."));
-    /*m_interpolate = new QPushButton(tr("Interpolate"), displayWidget);
-    m_interpolate->setToolTip(tr("Interpolate roi between slices"));
-    m_interpolate->hide();*/
-
-    /*QButtonGroup * modeGroup = new QButtonGroup(this);
-    modeGroup->addButton(m_strokeButton);
-    modeGroup->addButton(m_removeStrokeButton);
-    modeGroup->addButton(m_magicWandButton);*/
     m_strokeButton->setCheckable(true);
 
     m_magicWandButton = new QPushButton(tr("Magic Wand"), displayWidget);
@@ -223,7 +209,6 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     addRemoveButtonLayout->addWidget( m_strokeButton );
     addRemoveButtonLayout->addWidget( m_magicWandButton );
     addRemoveButtonLayout->addWidget( m_magicWandButton );
-    //addRemoveButtonLayout->addWidget(m_interpolate);
     layout->addLayout( addRemoveButtonLayout );
 
     m_strokeLabelSpinBox->hide();
@@ -317,15 +302,11 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     magicWandLayout = new QFormLayout(this);
     magicWandLayout->addRow(m_wandInfo);
     magicWandLayout->addRow(m_wand3DCheckbox);
-    /*magicWandLayout->addRow(tr("Upper Threshold"),magicWandLayout2);
-    magicWandLayout->addRow(tr("Lower Threshold"),magicWandLayout3);*/
     magicWandLayout->addRow(magicWandLayout2);
     magicWandLayout->addRow(magicWandLayout3);
     magicWandLayout->addRow(magicWandLayout4);
     
     layout->addLayout(magicWandLayout);
-    /*layout->addLayout( magicWandLayout1 );
-    layout->addLayout( magicWandLayout2 );*/
     this->generateLabelColorMap(24);
 
     QHBoxLayout * labelSelectionLayout = new QHBoxLayout();
@@ -388,8 +369,6 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     connect (m_applyButton,     SIGNAL(clicked()),
         this, SLOT(onApplyButtonClicked()));
 
-    //connect(m_interpolate,SIGNAL(clicked()),this,SLOT(onInterpolate()));
-
     connect (medViewManager::instance(), SIGNAL(viewOpened()), 
         this, SLOT(updateMouseInteraction()));
 
@@ -397,7 +376,6 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
 
     undo_shortcut = new QShortcut(QKeySequence(tr("Ctrl+z","Undo segmentation")),this);
     redo_shortcut = new QShortcut(QKeySequence(tr("Ctrl+y","Redo segmentation")),this);
-
 
     undoStacks = new QHash<medAbstractView*,QStack<list_pair*>*>();
     redoStacks = new QHash<medAbstractView*,QStack<list_pair*>*>();
@@ -464,15 +442,6 @@ void AlgorithmPaintToolbox::onStrokeToggled(bool checked)
     m_brushSizeSpinBox->show();
     m_brushSizeSlider->show();
     m_brushRadiusLabel->show();
-//    if ( !checked ) {
-//        m_paintState=(PaintState::None);
-//        m_brushSizeSpinBox->hide();
-//        m_brushSizeSlider->hide();
-//        m_brushRadiusLabel->hide();
-//    setPaintState(PaintState::DeleteStroke);
-//    m_brushSizeSpinBox->show();
-//    m_brushSizeSlider->show();
-//    m_brushRadiusLabel->show();
 void AlgorithmPaintToolbox::onMagicWandToggled(bool checked)
 {
     if (!checked ) {
@@ -918,7 +887,7 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
             {
                 if (outFilterItr.Get() != 0){
                     maskFilterItr.Set(pxValue);
-                    //listIndexPixel->append(pair(maskFilterItr.GetIndex(),pxValue)); // trop couteux en 3D a ameliorer !! 
+                    //listIndexPixel->append(pair(maskFilterItr.GetIndex(),pxValue)); // too expensive in 3D => TO IMPROVE
                 }
 
                 ++outFilterItr;
@@ -1067,7 +1036,6 @@ void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medA
     m_itkMask->Modified();
     m_itkMask->GetPixelContainer()->Modified();
     m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
-
     m_maskAnnotationData->invokeModified();
 }
 
@@ -1082,7 +1050,6 @@ void AlgorithmPaintToolbox::updateFromGuiItems()
 void AlgorithmPaintToolbox::showButtons( bool value )
 {
     if (value)
-    //m_interpolate->setEnabled(value);
     {
         m_applyButton->show();
         m_clearMaskButton->show();
@@ -1140,7 +1107,6 @@ void AlgorithmPaintToolbox::updateMouseInteraction() //Apply the current interac
         m_viewFilter = ( new ClickAndMoveEventFilter(this->segmentationToolBox(), this) );
         this->segmentationToolBox()->addViewEventFilter( m_viewFilter );
     }
-    //m_interpolate->show();
 }
 
 void AlgorithmPaintToolbox::onUndo()
@@ -1238,85 +1204,6 @@ void AlgorithmPaintToolbox::addToStackIndex(medAbstractView * view)
 void AlgorithmPaintToolbox::setCurrentView(medAbstractView * view){
     currentView = view;   
 }
-
-//void AlgorithmPaintToolbox::onInterpolate()
-//{
-//    typedef itk::Image<int,3> distanceMapType;
-//    typedef itk::DanielssonDistanceMapImageFilter<MaskType,distanceMapType> DistanceMapImageFilterType;
-//    typedef itk::LinearInterpolateImageFunction<distanceMapType> InterpolationFunction;
-//    typedef itk::BinaryThresholdImageFilter<distanceMapType,MaskType> BinaryThresholdFilterType;
-//    typedef itk::ImageDuplicator<distanceMapType> DuplicatorType;
-//    typedef itk::IdentityTransform<double, 3> TransformType;
-//    typedef itk::ResampleImageFilter<MaskType, MaskType> ResampleImageFilterType;
-//    
-//    
-//    DistanceMapImageFilterType::Pointer distanceMapFilter = DistanceMapImageFilterType::New();
-//    ResampleImageFilterType::Pointer resample = ResampleImageFilterType::New();
-//    InterpolationFunction::Pointer interpolateFunction = InterpolationFunction::New();
-//    BinaryThresholdFilterType::Pointer binaryFilter = BinaryThresholdFilterType::New();
-//    DuplicatorType::Pointer duplicator = DuplicatorType::New();
-//    
-//    distanceMapFilter->SetInput(m_itkMask);
-//    distanceMapFilter->Update();
-//    distanceMapType::Pointer distanceMap = distanceMapFilter->GetOutput();
-//    
-//   /* resample->SetInput(distanceMap);
-//    resample->SetInterpolator(interpolateFunction);
-//    resample->SetTransform(TransformType::New());
-//    resample->UpdateLargestPossibleRegion();*/
-//    
-//    /*MaskType::Pointer interpolatedImage = resample->GetOutput(); 
-//    
-//    binaryFilter->SetInput(interpolatedImage);
-//    binaryFilter->SetLowerThreshold(0);
-//    binaryFilter->SetInsideValue(m_strokeLabel);
-//    binaryFilter->SetOutsideValue(medSegmentationSelectorToolBox::MaskPixelValues::Unset);
-//    binaryFilter->UpdateLargestPossibleRegion();
-//    
-//    MaskType::Pointer interpolatedMask = binaryFilter->GetOutput();
-//    
-//    interpolatedMask->CopyInformation(m_itkMask);
-//    m_itkMask->Graft(interpolatedMask);
-//*/
-//
-//    interpolateFunction->SetInputImage(distanceMap);
-//    duplicator->SetInputImage(distanceMap);
-//    duplicator->Update();
-//    distanceMapType::Pointer interpolatedImage = duplicator->GetOutput(); 
-//    itk::ImageRegionIterator<distanceMapType> it(interpolatedImage,interpolatedImage->GetRequestedRegion());
-//    QList<int> list;
-//    it.GoToBegin();
-//    while(!it.IsAtEnd())
-//    {
-//        it.Set(interpolateFunction->EvaluateAtIndex(it.GetIndex()));
-//        list.append(interpolateFunction->EvaluateAtIndex(it.GetIndex()));
-//        ++it;
-//    }
-//    
-//    qSort(list.begin(), list.end(), qGreater<int>());
-//    int maxValue = list[0];
-//    qSort(list.begin(), list.end(), qLess<int>());
-//    int minValue = list[0] ;
-//    qDebug()<< "valeur max " << maxValue ;
-//    qDebug()<< "valeur min " << minValue ;
-//
-//    binaryFilter->SetInput(interpolatedImage);
-//    binaryFilter->SetLowerThreshold(0);
-//    binaryFilter->SetUpperThreshold(30);
-//    binaryFilter->SetInsideValue(m_strokeLabel);
-//    binaryFilter->SetOutsideValue(medSegmentationSelectorToolBox::MaskPixelValues::Unset);
-//    binaryFilter->Update();
-//    
-//    MaskType::Pointer interpolatedMask = binaryFilter->GetOutput();
-//    
-//    interpolatedMask->CopyInformation(m_itkMask);
-//    m_itkMask->Graft(interpolatedMask);
-//
-//    m_itkMask->Modified();
-//    m_itkMask->GetPixelContainer()->Modified();
-//    m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
-//    m_maskAnnotationData->invokeModified();
-//}
 
 void AlgorithmPaintToolbox::addBrushSize(int size)
 {

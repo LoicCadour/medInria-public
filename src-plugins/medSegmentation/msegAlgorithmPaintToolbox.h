@@ -103,7 +103,6 @@ public slots:
     void onRedo();
     void addToStackIndex(medAbstractView * view);
 
-    //void onInterpolate();
     void wheelEvent(QWheelEvent * event);
     void onAcceptGrowth();
     void onRemoveSeed();
@@ -135,7 +134,6 @@ private:
     QPushButton *m_strokeButton;
     QPushButton *m_labelColorWidget;
     QSpinBox *m_strokeLabelSpinBox;
-    //QPushButton *m_interpolate;
     QPushButton * m_acceptGrowthButton;
     QPushButton * m_removeSeedButton;
     QShortcut *undo_shortcut,*redo_shortcut;
