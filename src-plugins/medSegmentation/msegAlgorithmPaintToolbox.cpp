@@ -205,11 +205,11 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_magicWandButton->setToolTip(tr("Magic wand to automatically paint similar voxels."));
     m_magicWandButton->setCheckable(true);
 
-    QHBoxLayout * addRemoveButtonLayout = new QHBoxLayout();
-    addRemoveButtonLayout->addWidget( m_strokeButton );
+    QHBoxLayout * ButtonLayout = new QHBoxLayout();
+    ButtonLayout->addWidget( m_strokeButton );
+    ButtonLayout->addWidget( m_magicWandButton );
     addRemoveButtonLayout->addWidget( m_magicWandButton );
-    addRemoveButtonLayout->addWidget( m_magicWandButton );
-    layout->addLayout( addRemoveButtonLayout );
+    layout->addLayout( ButtonLayout );
 
     m_strokeLabelSpinBox->hide();
     QHBoxLayout * brushSizeLayout = new QHBoxLayout();
@@ -274,9 +274,9 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     connect(m_acceptGrowthButton,SIGNAL(clicked()),this,SLOT(onAcceptGrowth()));
     connect(m_removeSeedButton,SIGNAL(clicked()),this,SLOT(onRemoveSeed()));
 
-    connect(m_wandUpperThresholdSlider,SIGNAL(sliderReleased()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
+    connect(m_wandUpperThresholdSlider,SIGNAL(valueChanged(int)),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
     connect(m_wandUpperThresholdSpinBox, SIGNAL(editingFinished()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
-    connect(m_wandLowerThresholdSlider,SIGNAL(sliderReleased()),this,SLOT(synchronizeWandSpinBoxesAndSliders()) );
+    connect(m_wandLowerThresholdSlider,SIGNAL(valueChanged(int)),this,SLOT(synchronizeWandSpinBoxesAndSliders()) );
     connect(m_wandLowerThresholdSpinBox, SIGNAL(editingFinished()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
 
     m_wand3DCheckbox = new QCheckBox (tr("Activate 3D mode"), displayWidget);
