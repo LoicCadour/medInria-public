@@ -138,6 +138,9 @@ protected:
 
     char computePlaneIndex(const QVector3D &,MaskType::IndexType & ,bool& isInside);
 
+    void copySliceFromMask3D(itk::Image<unsigned char,2>::Pointer copy,const char planeIndex,const char * direction,const int slice);
+    void pasteSliceToMask3D(itk::Image<unsigned char,2>::Pointer image2D,const char planeIndex,const char * direction,const int slice);
+
 private:
     typedef dtkSmartPointer<medSeedPointAnnotationData> SeedPoint;
 

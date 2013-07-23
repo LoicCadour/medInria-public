@@ -1287,7 +1287,7 @@ void AlgorithmPaintToolbox::copySliceMask()
     MaskType::RegionType requestedRegion = m_itkMask->GetLargestPossibleRegion();
 
     unsigned int i, j;
-    unsigned int direction[2];
+    char direction[2];
     for (i = 0, j = 0; i < 3; ++i )
     {
         if (i != planeIndex)
@@ -1310,32 +1310,7 @@ void AlgorithmPaintToolbox::copySliceMask()
     m_copy.first->SetRegions(region);
     m_copy.first->Allocate();
     
-    SliceIteratorType  It3d(m_itkMask,m_itkMask->GetLargestPossibleRegion());
-    LinearIteratorType It2d(m_copy.first,m_copy.first->GetRequestedRegion() );
-
-    It3d.SetFirstDirection(direction[1]);
-    It3d.SetSecondDirection(direction[0]);
-
-    It2d.SetDirection(1-direction[0]); 
-
-    It3d.GoToBegin();
-    It2d.GoToBegin();
-
-    while ( !It3d.IsAtEndOfSlice() )
-    {
-        while(It3d.GetIndex()[planeIndex]!=slice && !It3d.IsAtEndOfSlice()){
-            It3d.NextSlice();
-        }
-
-        while ( !It3d.IsAtEndOfLine() )
-        {
-            It2d.Set(It3d.Get());
-            ++It3d;
-            ++It2d;
-        }
-        It2d.NextLine();
-        It3d.NextLine();
-    }
+    copySliceFromMask3D(m_copy.first,planeIndex,direction,slice);
 
     m_copy.second = planeIndex;
 }
@@ -1357,15 +1332,13 @@ void AlgorithmPaintToolbox::pasteSliceMask()
     int slice = index3D[planeIndex];
 
     typedef itk::Image<unsigned char,2U> copyMaskType;
-    typedef itk::ImageLinearIteratorWithIndex< copyMaskType > LinearIteratorType;
-    typedef itk::ImageSliceIteratorWithIndex< MaskType> SliceIteratorType;
-
+    
     copyMaskType::RegionType region;
     copyMaskType::RegionType::SizeType size;
     copyMaskType::RegionType::IndexType index2d;
 
     unsigned int i, j;
-    unsigned int direction[2];
+    char direction[2];
     for (i = 0, j = 0; i < 3; ++i )
     {
         if (i != planeIndex)
@@ -1374,34 +1347,9 @@ void AlgorithmPaintToolbox::pasteSliceMask()
             j++;
         }
     }
-    
-    SliceIteratorType  It3d( m_itkMask, m_itkMask->GetLargestPossibleRegion() );
-    LinearIteratorType It2d( m_copy.first,m_copy.first->GetRequestedRegion() );
 
-    It3d.SetFirstDirection( direction[1]);
-    It3d.SetSecondDirection( direction[0] );
+    pasteSliceToMask3D(m_copy.first,planeIndex,direction,slice);
 
-    It2d.SetDirection(1-direction[0]); 
-
-    It3d.GoToBegin();
-    It2d.GoToBegin();
-
-    while ( !It3d.IsAtEndOfSlice() )
-    {
-        while(It3d.GetIndex()[planeIndex]!=slice && !It3d.IsAtEndOfSlice()){
-            It3d.NextSlice();
-        }
-
-        while ( !It3d.IsAtEndOfLine() )
-        {
-            It3d.Set(It2d.Get());
-            ++It3d;
-            ++It2d;
-        }
-        It2d.NextLine();
-        It3d.NextLine();
-    }
-    
     m_itkMask->Modified();
     m_itkMask->GetPixelContainer()->Modified();
     m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
@@ -1446,4 +1394,72 @@ char AlgorithmPaintToolbox::computePlaneIndex(const QVector3D & vec,MaskType::In
     }
     return planeIndex;
 }
+
+void AlgorithmPaintToolbox::copySliceFromMask3D(itk::Image<unsigned char,2>::Pointer copy,const char planeIndex,const char * direction,const int slice)
+{
+    typedef itk::ImageLinearIteratorWithIndex< itk::Image<unsigned char,2> > LinearIteratorType;
+    typedef itk::ImageSliceIteratorWithIndex< MaskType> SliceIteratorType;
+
+    SliceIteratorType  It3d( m_itkMask, m_itkMask->GetLargestPossibleRegion() );
+    LinearIteratorType It2d( copy,copy->GetRequestedRegion() );
+
+    It3d.SetFirstDirection( direction[1]);
+    It3d.SetSecondDirection( direction[0] );
+
+    It2d.SetDirection(1-direction[0]); 
+
+    It3d.GoToBegin();
+    It2d.GoToBegin();
+
+    while ( !It3d.IsAtEndOfSlice() )
+    {
+        while(It3d.GetIndex()[planeIndex]!=slice && !It3d.IsAtEndOfSlice()){
+            It3d.NextSlice();
+        }
+
+        while ( !It3d.IsAtEndOfLine() )
+        {
+            It2d.Set(It3d.Get());
+            ++It3d;
+            ++It2d;
+        }
+        It2d.NextLine();
+        It3d.NextLine();
+    }
+}
+
+void AlgorithmPaintToolbox::pasteSliceToMask3D(const itk::Image<unsigned char,2>::Pointer image2D,const char planeIndex,const char * direction,const int slice)
+{
+    typedef itk::ImageLinearIteratorWithIndex< itk::Image<unsigned char,2> > LinearIteratorType;
+    typedef itk::ImageSliceIteratorWithIndex< MaskType> SliceIteratorType;
+
+    SliceIteratorType  It3d( m_itkMask, m_itkMask->GetLargestPossibleRegion() );
+    LinearIteratorType It2d( image2D,image2D->GetRequestedRegion() );
+
+    It3d.SetFirstDirection( direction[1]);
+    It3d.SetSecondDirection( direction[0] );
+
+    It2d.SetDirection(1-direction[0]); 
+
+    It3d.GoToBegin();
+    It2d.GoToBegin();
+
+    while ( !It3d.IsAtEndOfSlice() )
+    {
+        while(It3d.GetIndex()[planeIndex]!=slice && !It3d.IsAtEndOfSlice()){
+            It3d.NextSlice();
+        }
+
+        while ( !It3d.IsAtEndOfLine() )
+        {
+            It3d.Set(It2d.Get());
+            ++It3d;
+            ++It2d;
+        }
+        It2d.NextLine();
+        It3d.NextLine();
+    }
+}
+
+
 } // namespace mseg
