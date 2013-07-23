@@ -112,6 +112,9 @@ public slots:
     void onAcceptGrowth();
     void onRemoveSeed();
 
+    void copySliceMask();
+    void pasteSliceMask();
+
 protected:
     friend class ClickAndMoveEventFilter;
     friend class ClickEventFilter;
@@ -133,6 +136,8 @@ protected:
     void updateButtons();
     void addBrushSize(int size);
 
+    char computePlaneIndex(const QVector3D &,MaskType::IndexType & ,bool& isInside);
+
 private:
     typedef dtkSmartPointer<medSeedPointAnnotationData> SeedPoint;
 
@@ -141,7 +146,7 @@ private:
     QSpinBox *m_strokeLabelSpinBox;
     QPushButton * m_acceptGrowthButton;
     QPushButton * m_removeSeedButton;
-    QShortcut *undo_shortcut,*redo_shortcut;
+    QShortcut *undo_shortcut, *redo_shortcut, *copy_shortcut, *paste_shortcut;
     
     QLabel *m_colorLabel;
     QLabel * m_wandInfo;
@@ -176,6 +181,7 @@ private:
     medImageMaskAnnotationData::ColorMapType m_labelColorMap;
     
     MaskType::Pointer m_itkMask;
+    QPair<itk::Image<unsigned char,2>::Pointer,char> m_copy;
 
     // undo_redo_feature's attributes
     list_pair * listIndexPixel;

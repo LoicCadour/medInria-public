@@ -36,7 +36,9 @@
 #include <itkImageRegionIterator.h>
 #include <itkConnectedThresholdImageFilter.h>
 #include <itkMinimumMaximumImageCalculator.h>
-
+#include <itkImageSliceIteratorWithIndex.h>
+#include <itkConstSliceIterator.h>
+#include <itkImageLinearIteratorWithIndex.h>
 #include <QtCore>
 #include <QColorDialog>
 
@@ -287,24 +289,21 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_wandInfo->hide();
 
     QHBoxLayout * magicWandLayout1 = new QHBoxLayout();
-    magicWandLayout1->addWidget( m_wandInfo );
-    magicWandLayout1->addWidget( m_wand3DCheckbox );
+    magicWandLayout1->addWidget( m_wandUpperThresholdSlider );
+    magicWandLayout1->addWidget( m_wandUpperThresholdSpinBox );
     QHBoxLayout * magicWandLayout2 = new QHBoxLayout();
-    magicWandLayout2->addWidget( m_wandUpperThresholdSlider );
-    magicWandLayout2->addWidget( m_wandUpperThresholdSpinBox );
+    magicWandLayout2->addWidget( m_wandLowerThresholdSlider );
+    magicWandLayout2->addWidget( m_wandLowerThresholdSpinBox );
     QHBoxLayout * magicWandLayout3 = new QHBoxLayout();
-    magicWandLayout3->addWidget( m_wandLowerThresholdSlider );
-    magicWandLayout3->addWidget( m_wandLowerThresholdSpinBox );
-    QHBoxLayout * magicWandLayout4 = new QHBoxLayout();
-    magicWandLayout4->addWidget( m_acceptGrowthButton );
-    magicWandLayout4->addWidget( m_removeSeedButton );
+    magicWandLayout3->addWidget( m_acceptGrowthButton );
+    magicWandLayout3->addWidget( m_removeSeedButton );
 
     magicWandLayout = new QFormLayout(this);
     magicWandLayout->addRow(m_wandInfo);
     magicWandLayout->addRow(m_wand3DCheckbox);
+    magicWandLayout->addRow(magicWandLayout1);
     magicWandLayout->addRow(magicWandLayout2);
     magicWandLayout->addRow(magicWandLayout3);
-    magicWandLayout->addRow(magicWandLayout4);
     
     layout->addLayout(magicWandLayout);
     this->generateLabelColorMap(24);
@@ -376,6 +375,11 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
 
     undo_shortcut = new QShortcut(QKeySequence(tr("Ctrl+z","Undo segmentation")),this);
     redo_shortcut = new QShortcut(QKeySequence(tr("Ctrl+y","Redo segmentation")),this);
+    copy_shortcut = new QShortcut(QKeySequence(tr("Ctrl+c","copy segmentation")),this);
+    paste_shortcut = new QShortcut(QKeySequence(tr("Ctrl+v","paste segmentation")),this);
+
+    m_copy.first=0;
+    m_copy.second=-1;
 
     undoStacks = new QHash<medAbstractView*,QStack<list_pair*>*>();
     redoStacks = new QHash<medAbstractView*,QStack<list_pair*>*>();
@@ -384,6 +388,8 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     
     connect(undo_shortcut,SIGNAL(activated()),this,SLOT(onUndo()));
     connect(redo_shortcut,SIGNAL(activated()),this,SLOT(onRedo()));
+    connect(copy_shortcut,SIGNAL(activated()),this,SLOT(copySliceMask()));
+    connect(paste_shortcut,SIGNAL(activated()),this,SLOT(pasteSliceMask()));
 }
 
 AlgorithmPaintToolbox::~AlgorithmPaintToolbox(){}
@@ -758,39 +764,10 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
             medMessageController::instance()->showError(tr("Magic wand option is only available for 3D images"),3000);
             return;
         }
-
-        const medAbstractViewCoordinates * coords = view->coordinates();
-        const QVector3D vpn = coords->viewPlaneNormal();
-
-        const MaskType::DirectionType & direction = m_itkMask->GetDirection();
-
-        typedef  MaskType::DirectionType::InternalMatrixType::element_type ElemType;
-        vnl_vector_fixed<ElemType, 3> vecVpn(vpn.x(), vpn.y(), vpn.z() );
-
-        double absDotProductMax = 0;
-        unsigned int planeIndex = 0;
-        for (unsigned int i = 0;i < 3;++i)
-        {
-            double dotProduct = 0;
-            for (unsigned int j = 0;j < 3;++j)
-                dotProduct += direction(j,i) * vecVpn[j];
-
-            if (fabs(dotProduct) > absDotProductMax)
-            {
-                planeIndex = i;
-                absDotProductMax = fabs(dotProduct);
-            }
-        }
-
-        MaskType::PointType point;
+        bool isInside;
         MaskType::IndexType index;
-
-        point[0] = vec.x();
-        point[1] = vec.y();
-        point[2] = vec.z();
-
-        bool isInside = m_itkMask->TransformPhysicalPointToIndex (point, index);
-
+        unsigned int planeIndex = computePlaneIndex(vec,index,isInside);
+        unsigned int currentSlice = index[planeIndex];
         if (isInside)
         {
             RunConnectedFilter < itk::Image <char,3> > (index,planeIndex);
@@ -803,8 +780,6 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
             RunConnectedFilter < itk::Image <unsigned long,3> > (index,planeIndex);
             RunConnectedFilter < itk::Image <float,3> > (index,planeIndex);
             RunConnectedFilter < itk::Image <double,3> > (index,planeIndex);
-
-
         }
     }
 
@@ -823,6 +798,8 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
         typename ConnectedThresholdImageFilterType::Pointer ctiFilter = ConnectedThresholdImageFilterType::New();
 
         double value = tmpPtr->GetPixel(index);
+        if (!seedPlanted)
+            setSeedPlanted(true,index,planeIndex,value);
 
         if (!seedPlanted)
             setSeedPlanted(true,index,planeIndex,value);
@@ -1232,10 +1209,12 @@ bool AlgorithmPaintToolbox::getSeedPlanted()
 {
     return seedPlanted;
 }
+
 void AlgorithmPaintToolbox::setSeed(QVector3D point)
 {
     m_seed = point;
 }
+
 void AlgorithmPaintToolbox::setSeedPlanted(bool val,MaskType::IndexType index,unsigned int planeIndex,double value)
 {
     seedPlanted = val;
@@ -1278,4 +1257,193 @@ void AlgorithmPaintToolbox::onRemoveSeed()
     onUndo();
 }
 
+void AlgorithmPaintToolbox::copySliceMask()
+{
+    if (m_copy.first)
+    {
+        m_copy.second = -1;
+        m_copy.first = NULL; // trigger the delete of the previous copy.
+    }
+    
+    MaskType::IndexType index3D;
+    medAbstractViewCoordinates * coords = currentView->coordinates();
+    QVector3D vec = coords->displayToWorld(QPointF(0,0));
+    bool isInside;
+    char planeIndex = AlgorithmPaintToolbox::computePlaneIndex(vec,index3D,isInside);
+   
+    if (planeIndex == -1) // TODO add message failed to copy slice !
+        return;
+    
+    int slice = index3D[planeIndex];
+
+    typedef itk::Image<unsigned char,2U> copyMaskType;
+    typedef itk::ImageLinearIteratorWithIndex< copyMaskType > LinearIteratorType;
+    typedef itk::ImageSliceIteratorWithIndex< MaskType> SliceIteratorType;
+
+    copyMaskType::RegionType region;
+    copyMaskType::RegionType::SizeType size;
+    copyMaskType::RegionType::IndexType index2d;
+
+    MaskType::RegionType requestedRegion = m_itkMask->GetLargestPossibleRegion();
+
+    unsigned int i, j;
+    unsigned int direction[2];
+    for (i = 0, j = 0; i < 3; ++i )
+    {
+        if (i != planeIndex)
+        {
+            direction[j] = i;
+            j++;
+        }
+    }
+
+    index2d[ direction[0] ]    = requestedRegion.GetIndex()[ direction[0] ];
+    index2d[ 1- direction[0] ] = requestedRegion.GetIndex()[ direction[1] ];
+    size[ direction[0] ]     = requestedRegion.GetSize()[  direction[0] ];
+    size[ 1- direction[0] ]  = requestedRegion.GetSize()[  direction[1] ];
+
+    region.SetSize(size);
+    region.SetIndex(index2d);
+
+    m_copy.first = copyMaskType::New();
+
+    m_copy.first->SetRegions(region);
+    m_copy.first->Allocate();
+    
+    SliceIteratorType  It3d(m_itkMask,m_itkMask->GetLargestPossibleRegion());
+    LinearIteratorType It2d(m_copy.first,m_copy.first->GetRequestedRegion() );
+
+    It3d.SetFirstDirection(direction[1]);
+    It3d.SetSecondDirection(direction[0]);
+
+    It2d.SetDirection(1-direction[0]); 
+
+    It3d.GoToBegin();
+    It2d.GoToBegin();
+
+    while ( !It3d.IsAtEndOfSlice() )
+    {
+        while(It3d.GetIndex()[planeIndex]!=slice && !It3d.IsAtEndOfSlice()){
+            It3d.NextSlice();
+        }
+
+        while ( !It3d.IsAtEndOfLine() )
+        {
+            It2d.Set(It3d.Get());
+            ++It3d;
+            ++It2d;
+        }
+        It2d.NextLine();
+        It3d.NextLine();
+    }
+
+    m_copy.second = planeIndex;
+}
+
+void AlgorithmPaintToolbox::pasteSliceMask()
+{
+   if (!m_copy.first || m_copy.second==-1)  // TODO add message No copy in buffer
+        return;
+
+    MaskType::IndexType index3D;
+    medAbstractViewCoordinates * coords = currentView->coordinates();
+    QVector3D vec = coords->displayToWorld(QPointF(0,0));
+    bool isInside;
+    char planeIndex = AlgorithmPaintToolbox::computePlaneIndex(vec,index3D,isInside);   
+
+    if (planeIndex == -1 || planeIndex!=m_copy.second) // TODO add message previous copy failed or view orientation not similar
+        return;
+    
+    int slice = index3D[planeIndex];
+
+    typedef itk::Image<unsigned char,2U> copyMaskType;
+    typedef itk::ImageLinearIteratorWithIndex< copyMaskType > LinearIteratorType;
+    typedef itk::ImageSliceIteratorWithIndex< MaskType> SliceIteratorType;
+
+    copyMaskType::RegionType region;
+    copyMaskType::RegionType::SizeType size;
+    copyMaskType::RegionType::IndexType index2d;
+
+    unsigned int i, j;
+    unsigned int direction[2];
+    for (i = 0, j = 0; i < 3; ++i )
+    {
+        if (i != planeIndex)
+        {
+            direction[j] = i;
+            j++;
+        }
+    }
+    
+    SliceIteratorType  It3d( m_itkMask, m_itkMask->GetLargestPossibleRegion() );
+    LinearIteratorType It2d( m_copy.first,m_copy.first->GetRequestedRegion() );
+
+    It3d.SetFirstDirection( direction[1]);
+    It3d.SetSecondDirection( direction[0] );
+
+    It2d.SetDirection(1-direction[0]); 
+
+    It3d.GoToBegin();
+    It2d.GoToBegin();
+
+    while ( !It3d.IsAtEndOfSlice() )
+    {
+        while(It3d.GetIndex()[planeIndex]!=slice && !It3d.IsAtEndOfSlice()){
+            It3d.NextSlice();
+        }
+
+        while ( !It3d.IsAtEndOfLine() )
+        {
+            It3d.Set(It2d.Get());
+            ++It3d;
+            ++It2d;
+        }
+        It2d.NextLine();
+        It3d.NextLine();
+    }
+    
+    m_itkMask->Modified();
+    m_itkMask->GetPixelContainer()->Modified();
+    m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
+    m_maskAnnotationData->invokeModified();
+}
+
+char AlgorithmPaintToolbox::computePlaneIndex(const QVector3D & vec,MaskType::IndexType & index,bool & isInside)
+{
+    typedef  MaskType::DirectionType::InternalMatrixType::element_type ElemType;
+
+    char planeIndex=-1;
+    
+    medAbstractViewCoordinates * coords = currentView->coordinates();
+    if (coords->is2D()){
+        const QVector3D vpn = coords->viewPlaneNormal();
+        
+        const MaskType::DirectionType & direction = m_itkMask->GetDirection();
+        vnl_vector_fixed<ElemType, 3> vecVpn(vpn.x(), vpn.y(), vpn.z() );
+
+        MaskType::PointType point;
+
+        point[0] = vec.x();
+        point[1] = vec.y();
+        point[2] = vec.z();
+
+        isInside = m_itkMask->TransformPhysicalPointToIndex(point,index);
+
+        double absDotProductMax = 0;
+        planeIndex = 0;
+        for (unsigned int i = 0;i < 3;++i)
+        {
+            double dotProduct = 0;
+            for (unsigned int j = 0;j < 3;++j)
+                dotProduct += direction(j,i) * vecVpn[j];
+
+            if (fabs(dotProduct) > absDotProductMax)
+            {
+                planeIndex = i;
+                absDotProductMax = fabs(dotProduct);
+            }
+        }
+    }
+    return planeIndex;
+}
 } // namespace mseg
