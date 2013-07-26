@@ -377,7 +377,11 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     redo_shortcut = new QShortcut(QKeySequence(tr("Ctrl+y","Redo segmentation")),this);
     copy_shortcut = new QShortcut(QKeySequence(tr("Ctrl+c","copy segmentation")),this);
     paste_shortcut = new QShortcut(QKeySequence(tr("Ctrl+v","paste segmentation")),this);
-
+    acceptGrowth_shortcut = new QShortcut(QKeySequence(tr("Ctrl+Return","accept growth")),this);
+    removeSeed_shortcut = new QShortcut(QKeySequence(tr("Ctrl+BackSpace","remove seed")),this);
+    acceptGrowth_shortcut->setEnabled(false);
+    removeSeed_shortcut->setEnabled(false);
+        
     m_copy.first=0;
     m_copy.second=-1;
 
@@ -386,10 +390,13 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     currentView = NULL;
     listIndexPixel = new list_pair();
     
+    //Shortcuts
     connect(undo_shortcut,SIGNAL(activated()),this,SLOT(onUndo()));
     connect(redo_shortcut,SIGNAL(activated()),this,SLOT(onRedo()));
     connect(copy_shortcut,SIGNAL(activated()),this,SLOT(copySliceMask()));
     connect(paste_shortcut,SIGNAL(activated()),this,SLOT(pasteSliceMask()));
+    connect(acceptGrowth_shortcut,SIGNAL(activated()),this,SLOT(onAcceptGrowth()));
+    connect(removeSeed_shortcut,SIGNAL(activated()),this,SLOT(onRemoveSeed()));
 }
 
 AlgorithmPaintToolbox::~AlgorithmPaintToolbox(){}
@@ -436,6 +443,9 @@ AlgorithmPaintToolbox::~AlgorithmPaintToolbox(){}
         }
     updateButtons();
     this->m_magicWandButton->setChecked(false);
+
+        if (currentView)
+            currentView->receiverWidget()->setFocus(); // bring the focus back to the view.
     }
 
 void AlgorithmPaintToolbox::onStrokeToggled(bool checked)
@@ -801,9 +811,6 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
         if (!seedPlanted)
             setSeedPlanted(true,index,planeIndex,value);
 
-        if (!seedPlanted)
-            setSeedPlanted(true,index,planeIndex,value);
-
         ctiFilter->SetUpper( m_wandUpperThreshold );
         ctiFilter->SetLower( m_wandLowerThreshold );
 
@@ -1063,7 +1070,6 @@ void AlgorithmPaintToolbox::updateButtons()
         m_labelColorWidget->show();
         m_strokeLabelSpinBox->show();
         m_colorLabel->show();
-
         if ( m_paintState == PaintState::Wand ) {
             m_brushSizeSpinBox->hide();
             m_wandThresholdSizeSlider->show();
@@ -1104,6 +1110,12 @@ void AlgorithmPaintToolbox::onUndo()
 
     if (undo_stack->isEmpty())
         return;
+
+    if (seedPlanted)
+    {
+        this->onRemoveSeed();
+        return;
+    }       
 
     if (!redoStacks->contains(currentView))
         redoStacks->insert(currentView,new QStack<list_pair*>());
@@ -1182,7 +1194,7 @@ void AlgorithmPaintToolbox::addToStackIndex(medAbstractView * view)
 }
 
 void AlgorithmPaintToolbox::setCurrentView(medAbstractView * view){
-    currentView = view;   
+    currentView = view;
 }
 
 void AlgorithmPaintToolbox::addBrushSize(int size)
@@ -1201,7 +1213,6 @@ void AlgorithmPaintToolbox::wheelEvent(QWheelEvent * event)
             addBrushSize(-numSteps);
         else 
             addBrushSize(numSteps);
-
     }
 }
 
@@ -1240,6 +1251,8 @@ void AlgorithmPaintToolbox::setSeedPlanted(bool val,MaskType::IndexType index,un
         m_wandInfo->setText("Seed X : " + QString::number(index[x]) + " Y : " + QString::number(index[y]) + " Slice : " + QString::number(index[planeIndex]+1) + " Value : " + QString::number(value)); 
         m_acceptGrowthButton->show();
         m_removeSeedButton->show();
+        acceptGrowth_shortcut->setEnabled(true);
+        removeSeed_shortcut->setEnabled(true);
     }
 }
 
@@ -1249,6 +1262,10 @@ void AlgorithmPaintToolbox::onAcceptGrowth()
     m_wandInfo->setText("Select a pixel in the image to plant the seed");
     m_acceptGrowthButton->hide();
     m_removeSeedButton->hide();
+    acceptGrowth_shortcut->setEnabled(false);
+    removeSeed_shortcut->setEnabled(false);
+    if (currentView)
+            currentView->receiverWidget()->setFocus(); // bring the focus back to the view.
 }
 
 void AlgorithmPaintToolbox::onRemoveSeed()

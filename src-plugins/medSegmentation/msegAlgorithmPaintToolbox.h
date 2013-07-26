@@ -149,7 +149,7 @@ private:
     QSpinBox *m_strokeLabelSpinBox;
     QPushButton * m_acceptGrowthButton;
     QPushButton * m_removeSeedButton;
-    QShortcut *undo_shortcut, *redo_shortcut, *copy_shortcut, *paste_shortcut;
+    QShortcut *undo_shortcut, *redo_shortcut, *copy_shortcut, *paste_shortcut, *acceptGrowth_shortcut, *removeSeed_shortcut;
     
     QLabel *m_colorLabel;
     QLabel * m_wandInfo;
