@@ -935,9 +935,9 @@ void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medA
 
     typedef  MaskType::DirectionType::InternalMatrixType::element_type ElemType;
     itk::Point< ElemType > centerPoint;
-    centerPoint.SetElement(0, newPoint.x());
-    centerPoint.SetElement(1, newPoint.y());
-    centerPoint.SetElement(2, newPoint.z());
+    centerPoint.SetElement(0, (int)(newPoint.x()));
+    centerPoint.SetElement(1, (int)(newPoint.y()));
+    centerPoint.SetElement(2, (int)(newPoint.z()));
 
     const medAbstractViewCoordinates * coords = view->coordinates();
     const QVector3D vup = coords->viewUp();
@@ -947,51 +947,57 @@ void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medA
     vnl_vector_fixed<ElemType, 3> vecVpn(vpn.x(), vpn.y(), vpn.z() );
     vnl_vector_fixed<ElemType, 3> vecRight = vnl_cross_3d(vecVup,vecVpn);
 
-    if ( vup != m_lastVup || vpn != m_lastVpn ) {
-        const MaskType::SpacingType & spacing = m_itkMask->GetSpacing();
+    //if ( vup != m_lastVup || vpn != m_lastVpn ) {
+    //    const MaskType::SpacingType & spacing = m_itkMask->GetSpacing();
 
-        // Rows of the direction matrix are the directions of the image i,j,k pixel directions.
-        const MaskType::DirectionType & direction = m_itkMask->GetDirection();
+    //    // Rows of the direction matrix are the directions of the image i,j,k pixel directions.
+    //    const MaskType::DirectionType & direction = m_itkMask->GetDirection();
 
-        // project spacing onto view.
+    //    // project spacing onto view.
 
-        vnl_matrix_fixed<ElemType,2,3> projMatrix;
-        projMatrix.set_row(0, vecRight );
-        projMatrix.set_row(1, vecVup );
+    //    vnl_matrix_fixed<ElemType,2,3> projMatrix;
+    //    projMatrix.set_row(0, vecRight );
+    //    projMatrix.set_row(1, vecVup );
 
-        projMatrix = projMatrix * direction.GetVnlMatrix(); // (direction.GetTranspose());
+    //    projMatrix = projMatrix * direction.GetVnlMatrix(); // (direction.GetTranspose());
 
-        double sampleSpacing[2];
-        // Compute the total projection of each of the spacings onto the view plane x & y.
-        for (int i = 0; i < 2; i++) //output axis
-        {
-            double s = 0;  // sum squares
-            double r = 0;
-            for (int j = 0; j < 3; j++)
-            {
-                const double elem = projMatrix.get(i,j);
-                const double elem2 = elem*elem;
-                s += elem2*(spacing[j] >= 0 ? spacing[j] : -spacing[j]);
-                r += elem2;
-            }
-            s /= r;
-            sampleSpacing[i] = s;
-        }
+    //    double sampleSpacing[2];
+    //    // Compute the total projection of each of the spacings onto the view plane x & y.
+    //    for (int i = 0; i < 2; i++) //output axis
+    //    {
+    //        double s = 0;  // sum squares
+    //        double r = 0;
+    //        for (int j = 0; j < 3; j++)
+    //        {
+    //            const double elem = projMatrix.get(i,j);
+    //            const double elem2 = elem*elem;
+    //            s += elem2*(spacing[j] >= 0 ? spacing[j] : -spacing[j]);
+    //            r += elem2;
+    //        }
+    //        s /= r;
+    //        sampleSpacing[i] = s;
+    //    }
 
-        // Store result.
-        std::copy( sampleSpacing, sampleSpacing + 2, m_sampleSpacing);
+    //    // Store result.
+    //    std::copy( sampleSpacing, sampleSpacing + 2, m_sampleSpacing);
 
-        //Oversample
-        m_sampleSpacing[0] *= 0.5;
-        m_sampleSpacing[1] *= 0.5;
-        m_lastVup = vup;
-        m_lastVpn = vpn;
-    }
+    //    //Oversample
+    //    m_sampleSpacing[0] *= 0.5;
+    //    m_sampleSpacing[1] *= 0.5;
+    //    m_lastVup = vup;
+    //    m_lastVpn = vpn;
+    //}
 
+    //m_sampleSpacing[0] = 1;
+    //m_sampleSpacing[1] = 1;
     const double radius2 = radius*radius;
+    qDebug() <<  "radius = " << radius;
+    qDebug() <<  "radius2 = " << radius2;
+    const int Nx = /*std::max( 1, (int)std::ceil(*/radius/*/m_sampleSpacing[0]) )*/;
+    const int Ny = /*std::max( 1, (int)std::ceil(*/radius/*/m_sampleSpacing[1]) )*/;
+    qDebug() <<  "Nx = " << Nx;
+    qDebug() <<  "Ny = " << Ny;
 
-    const int Nx = std::max( 1, (int)std::ceil(radius/m_sampleSpacing[0]) );
-    const int Ny = std::max( 1, (int)std::ceil(radius/m_sampleSpacing[1]) );
 
     MaskType::PixelType pxValue;
     switch ( m_paintState ) {
@@ -1005,16 +1011,15 @@ void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medA
 
     MaskType::IndexType index;
     itk::Point<ElemType,3> testPt;
-
-    for ( int y(-Ny); y < Ny; ++y ) {
-        double dy = y*m_sampleSpacing[1];
-        for ( int x(-Nx); x < Nx; ++x ) {
-            double dx = x*m_sampleSpacing[0];
-            if ( dx*dx + dy*dy > radius2 )
+    for ( int y(-Ny); y <= Ny; ++y ) {
+        /*int dy = (int)(y*m_sampleSpacing[1]);*/
+        for ( int x(-Nx); x <= Nx; ++x ) {
+            /*int dx = (int)(x*m_sampleSpacing[0]);*/
+            if ( /*d*/x*/*d*/x + /*d*/y*/*d*/y >= radius2)
                 continue;
 
             for ( int ic(0); ic<3; ++ic) {
-                testPt[ic] = centerPoint[ic] + dx * vecRight[ic] + dy * vecVup[ic];
+                testPt[ic] = centerPoint[ic] + /*d*/x * vecRight[ic] + /*d*/y * vecVup[ic];
             }
 
             bool isInside = m_itkMask->TransformPhysicalPointToIndex( testPt, index );
