@@ -16,6 +16,7 @@
 #include "vtkImageViewExport.h"
 
 #include <vtkInteractorStyleImage.h>
+#include <vtkCircleCursor.h>
 
 /**
    Notes on Nicolas Toussaint changes
@@ -64,6 +65,10 @@ class VTK_IMAGEVIEW_EXPORT vtkInteractorStyleImageView2D : public vtkInteractorS
   vtkSetClampMacro (KeyboardInteraction, int, InteractionTypeNull, InteractionTypePan);
   vtkGetMacro (KeyboardInteraction, int);  
   
+  //vtkSetMacro(CircleCursor,vtkCircleCursor*);
+  vtkGetMacro(CircleCursor,vtkCircleCursor*);
+  vtkGetMacro(CircleCursorActivated,bool);
+
   virtual void OnMouseMove();
   virtual void OnLeftButtonDown();
   virtual void OnLeftButtonUp();
@@ -91,6 +96,8 @@ class VTK_IMAGEVIEW_EXPORT vtkInteractorStyleImageView2D : public vtkInteractorS
   vtkGetMacro (SliceStep, int);
   vtkGetVector2Macro (RequestedPosition, int);
   
+  void CircleCursorOff();
+  void CircleCursorOn();
   
  protected:
   vtkInteractorStyleImageView2D();
@@ -98,6 +105,8 @@ class VTK_IMAGEVIEW_EXPORT vtkInteractorStyleImageView2D : public vtkInteractorS
   
   int SliceStep;
   int RequestedPosition[3];
+  vtkCircleCursor * CircleCursor;
+  bool CircleCursorActivated;
 
  private: 
   vtkInteractorStyleImageView2D(const vtkInteractorStyleImageView2D&);  // Not implemented.

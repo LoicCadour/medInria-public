@@ -26,6 +26,7 @@ set(${PROJECT_NAME}_HEADERS
     vtkImageView3DCroppingBoxCallback.h
     vtkSmartVolumeMapper.h
     medVtkViewBackend.h
+    vtkCircleCursor.h
 )
 
 set(${PROJECT_NAME}_SOURCES
@@ -41,6 +42,7 @@ set(${PROJECT_NAME}_SOURCES
     vtkImageView3DCroppingBoxCallback.cxx
     vtkSmartVolumeMapper.cxx
     medVtkViewBackend.cpp
+    vtkCircleCursor.cxx
 )
 if (VTKINRIA_USE_PRECOMPILED_HEADERS)
     add_precompiled_header(${PROJECT_NAME}_SOURCES_PCH 

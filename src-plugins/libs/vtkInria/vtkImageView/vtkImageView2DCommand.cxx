@@ -56,6 +56,9 @@ vtkImageView2DCommand::Execute(vtkObject*    caller,
     return;
   }
 
+  if (isi->GetCircleCursorActivated())
+      isi->GetCircleCursor()->SetInitialize(true);
+
   // Reset
   if (event == vtkImageView2DCommand::ResetViewerEvent)
   {
@@ -156,7 +159,7 @@ vtkImageView2DCommand::Execute(vtkObject*    caller,
   {
     vtkRenderWindowInteractor *rwi = this->Viewer->GetRenderWindow()->GetInteractor();
 
-    if (rwi->GetKeyCode() == 't')
+  /*  if (rwi->GetKeyCode() == 't')
     {
       this->Viewer->SetSliceOrientation ((this->Viewer->GetSliceOrientation()+1)%3);
       this->Viewer->Render();
@@ -165,7 +168,7 @@ vtkImageView2DCommand::Execute(vtkObject*    caller,
     {
       this->Viewer->SetInterpolate ((this->Viewer->GetInterpolate() + 1)%2);
       this->Viewer->Render();
-    }
+    }*/
 //     else if (rwi->GetKeyCode() == 'c')
 //     {
 //       this->Viewer->SetCursorFollowMouse (!this->Viewer->GetCursorFollowMouse());
@@ -174,19 +177,24 @@ vtkImageView2DCommand::Execute(vtkObject*    caller,
 //     {
 //       this->Viewer->SetShowImageAxis (!this->Viewer->GetShowImageAxis());
 //     }
-
+    if (isi->GetCircleCursorActivated())
+            isi->GetCircleCursor()->SetInitialize(false);
     return;
   }
 
   // Start Slice Move
   if (event == vtkImageView2DCommand::StartSliceMoveEvent)
   {
+    if (isi->GetCircleCursorActivated())
+        isi->GetCircleCursor()->SetInitialize(false);
     return;
   }
 
   // End Slice Move
   if (event == vtkImageView2DCommand::EndSliceMoveEvent)
   {
+    if (isi->GetCircleCursorActivated())
+        isi->GetCircleCursor()->SetInitialize(false);
     return;
   }
 
@@ -201,12 +209,16 @@ vtkImageView2DCommand::Execute(vtkObject*    caller,
 	// Start Slice Move
 	if (event == vtkImageView2DCommand::StartTimeChangeEvent)
 	{
+        if (isi->GetCircleCursorActivated())
+            isi->GetCircleCursor()->SetInitialize(false);
 		return;
 	}
 
 	// End Slice Move
 	if (event == vtkImageView2DCommand::EndTimeChangeEvent)
 	{
+        if (isi->GetCircleCursorActivated())
+            isi->GetCircleCursor()->SetInitialize(false);
 		return;
 	}
 
@@ -241,6 +253,9 @@ vtkImageView2DCommand::Execute(vtkObject*    caller,
   // default move : align cursor and update annotation accordingly
   if( event == vtkImageView2DCommand::DefaultMoveEvent)
   {
+      if (isi->GetCircleCursorActivated())
+          isi->GetCircleCursor()->SetInitialize(false);
+
     vtkRenderWindowInteractor *rwi = this->Viewer->GetInteractor();
     if (!rwi)
       return;

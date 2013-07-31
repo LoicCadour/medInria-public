@@ -206,6 +206,8 @@ public slots: // Menu interface
     void onMenu3DLODTriggered();
     void onMenuZoomTriggered();
     void onMenuWindowLevelTriggered();
+
+    void activateCircleCursor(bool val,unsigned int radius=10);
 public:
     void  enableInteraction();
     void disableInteraction();
