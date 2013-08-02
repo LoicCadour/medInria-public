@@ -69,7 +69,6 @@ public:
                 m_cb->setSeed(posImage);
             m_cb->setPaintState(m_lastPaintState);
             m_paintState = m_lastPaintState;
-                m_cb->addToStackIndex(view);
                 if (mouseEvent->modifiers()==Qt::CTRL)
                 {
                     m_cb->onAcceptGrowth();                
@@ -113,6 +112,16 @@ public:
 
             if (m_paintState != PaintState::Wand)
             {
+            // add current state to undo stack//
+            bool isInside;
+            AlgorithmPaintToolbox::MaskType::IndexType index;
+            unsigned char planeIndex = m_cb->computePlaneIndex(posImage,index,isInside);
+            unsigned int currentSlice = index[planeIndex];
+            QList<int> listIdSlice;
+            listIdSlice.append(currentSlice);
+            m_cb->addSliceToStack(view,planeIndex,listIdSlice);
+            //-------------------------------//
+                
                 this->m_points.push_back(posImage);
             }
             else
@@ -150,7 +159,6 @@ public:
         m_paintState = PaintState::None; //Painting is done
         m_cb->updateStroke(this,view);
         this->m_points.clear();
-            m_cb->addToStackIndex(view);
         return true;
     }
 
@@ -389,10 +397,10 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_copy.first=0;
     m_copy.second=-1;
 
-    undoStacks = new QHash<medAbstractView*,QStack<list_pair*>*>();
-    redoStacks = new QHash<medAbstractView*,QStack<list_pair*>*>();
+    m_undoStacks = new QHash<medAbstractView*,QStack<PairListSlicePlaneId>*>();
+    m_redoStacks = new QHash<medAbstractView*,QStack<PairListSlicePlaneId>*>();
+
     currentView = NULL;
-    listIndexPixel = new list_pair();
     
     //Shortcuts
     connect(undo_shortcut,SIGNAL(activated()),this,SLOT(onUndo()));
@@ -442,13 +450,12 @@ AlgorithmPaintToolbox::~AlgorithmPaintToolbox(){}
         {
             onUndo();
             updateWandRegion(currentView,m_seed);
-            addToStackIndex(currentView);
         updateButtons();
         }
     updateButtons();
     this->m_magicWandButton->setChecked(false);
 
-        if (currentView)
+        if (currentView && currentView->receiverWidget())
             currentView->receiverWidget()->setFocus(); // bring the focus back to the view.
     }
 
@@ -844,7 +851,13 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
                 ++workItr;
                 ++inputItr;
             }
-
+            
+            // add slice to undo stack
+            QList<int> listIdSlice;
+            listIdSlice.append(index[planeIndex]);
+            addSliceToStack(currentView,planeIndex,listIdSlice);
+            //
+            
             ctiFilter->SetInput( workPtr );
             index[planeIndex] = 0;
             ctiFilter->AddSeed( index );
@@ -856,10 +869,7 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
             while (!maskFilterItr.IsAtEnd())
             {
                 if (outFilterItr.Get() != 0)
-                {
                     maskFilterItr.Set(pxValue);
-                    listIndexPixel->append(pair(maskFilterItr.GetIndex(),pxValue));
-                }
 
                 ++outFilterItr;
                 ++maskFilterItr;
@@ -874,12 +884,35 @@ void AlgorithmPaintToolbox::initializeMaskData( medAbstractData * imageData, med
 
             itk::ImageRegionConstIterator <MaskType> outFilterItr (ctiFilter->GetOutput(), tmpPtr->GetLargestPossibleRegion());
             itk::ImageRegionIterator <MaskType> maskFilterItr (m_itkMask, tmpPtr->GetLargestPossibleRegion());
+            
+
+            // Save the current states of slices that are going to be modified by the segmentation = > for undo redo purposes
+            unsigned int idSlice = index[planeIndex];
+            QList<int> listIdSlice;
+            listIdSlice.append(idSlice);
+            while(!outFilterItr.IsAtEnd())
+            {
+                if (outFilterItr.Get() != 0)
+                {
+                    MaskType::IndexType indexOutFilter = outFilterItr.GetIndex();
+                    // save the id of slices that are modified by the 3d mode
+                    if (idSlice!=indexOutFilter[planeIndex])
+                    {
+                        idSlice = indexOutFilter[planeIndex];
+                        listIdSlice.append(idSlice);
+                    }
+                }
+                ++outFilterItr;
+            }
+            addSliceToStack(currentView,planeIndex,listIdSlice); 
+            //
+
+            outFilterItr.GoToBegin();
+
             while (!maskFilterItr.IsAtEnd())
             {
-                if (outFilterItr.Get() != 0){
+                if (outFilterItr.Get() != 0)
                     maskFilterItr.Set(pxValue);
-                    //listIndexPixel->append(pair(maskFilterItr.GetIndex(),pxValue)); // too expensive in 3D => TO IMPROVE
-                }
 
                 ++outFilterItr;
                 ++maskFilterItr;
@@ -1026,7 +1059,6 @@ void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medA
             bool isInside = m_itkMask->TransformPhysicalPointToIndex( testPt, index );
             if ( isInside ) {
                 m_itkMask->SetPixel( index, pxValue );
-                listIndexPixel->append(pair(index,pxValue));
             }
         }
     }
@@ -1107,10 +1139,10 @@ void AlgorithmPaintToolbox::updateMouseInteraction() //Apply the current interac
 
 void AlgorithmPaintToolbox::onUndo()
 {
-    if (currentView==NULL ||  undoStacks==NULL || !undoStacks->contains(currentView))
+    if (!currentView ||  !m_undoStacks || !m_undoStacks->contains(currentView))
         return;
 
-    QStack<list_pair*> * undo_stack = undoStacks->value(currentView);
+    QStack<PairListSlicePlaneId> * undo_stack = m_undoStacks->value(currentView);
 
     if (undo_stack->isEmpty())
         return;
@@ -1121,21 +1153,53 @@ void AlgorithmPaintToolbox::onUndo()
         return;
     }       
 
-    if (!redoStacks->contains(currentView))
-        redoStacks->insert(currentView,new QStack<list_pair*>());
+    if (!m_redoStacks->contains(currentView))
+        m_redoStacks->insert(currentView,new QStack<PairListSlicePlaneId>());
 
-    QStack<list_pair*> * redo_stack = redoStacks->value(currentView);
-    redo_stack->append(undo_stack->pop());
-
-    m_itkMask->FillBuffer( medSegmentationSelectorToolBox::MaskPixelValues::Unset ); // clear mask
-    for(int k =0;k<undo_stack->size();k++)
+    QStack<PairListSlicePlaneId> * redo_stack = m_redoStacks->value(currentView);
+    
+    PairListSlicePlaneId previousState = undo_stack->pop();
+    unsigned char planeIndex = previousState.second;
+    
+    MaskType::RegionType requestedRegion = m_itkMask->GetLargestPossibleRegion();
+    MaskSliceType::IndexType index2d;
+    MaskSliceType::RegionType region;
+    MaskSliceType::RegionType::SizeType size;
+    
+    unsigned int i, j;
+    char direction[2];
+    for (i = 0, j = 0; i < 3; ++i )
     {
-        list_pair * list = undo_stack->at(k);
-        for(int i = 0;i<list->size();i++)
+        if (i != planeIndex)
         {
-            m_itkMask->SetPixel( list->at(i).first, list->at(i).second);    
+            direction[j] = i;
+            j++;
         }
     }
+
+    index2d[ direction[0] ]    = requestedRegion.GetIndex()[ direction[0] ];
+    index2d[ 1- direction[0] ] = requestedRegion.GetIndex()[ direction[1] ];
+    size[ direction[0] ]     = requestedRegion.GetSize()[  direction[0] ];
+    size[ 1- direction[0] ]  = requestedRegion.GetSize()[  direction[1] ];
+
+    region.SetSize(size);
+    region.SetIndex(index2d);
+    
+    QList<SlicePair> list;
+    for(int i = 0;i<previousState.first.length();i++)
+    {
+        unsigned int idSlice = previousState.first[i].second;
+        MaskSliceType::Pointer currentSlice = MaskSliceType::New();
+        currentSlice->SetRegions(region);
+        currentSlice->Allocate();
+        copySliceFromMask3D(currentSlice,planeIndex,direction,idSlice);
+        pasteSliceToMask3D(previousState.first[i].first,previousState.second,direction,idSlice);
+        list.append(SlicePair(currentSlice,idSlice));
+    }
+    PairListSlicePlaneId currentState = PairListSlicePlaneId(list,planeIndex);
+    redo_stack->append(currentState);    
+    //
+
     m_itkMask->Modified();
     m_itkMask->GetPixelContainer()->Modified();
     m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
@@ -1144,55 +1208,135 @@ void AlgorithmPaintToolbox::onUndo()
 
 void AlgorithmPaintToolbox::onRedo()
 {
-    if (currentView==NULL || redoStacks==NULL || !redoStacks->contains(currentView))
+    if (!currentView ||  !m_redoStacks || !m_redoStacks->contains(currentView))
         return;
 
-    QStack<list_pair*> * redo_stack = redoStacks->value(currentView);
-    QStack<list_pair*> * undo_stack = undoStacks->value(currentView);
+    QStack<PairListSlicePlaneId> * redo_stack = m_redoStacks->value(currentView);
+    QStack<PairListSlicePlaneId> * undo_stack = m_undoStacks->value(currentView);
 
     if (redo_stack->isEmpty())
         return;
 
-    undo_stack->append(redo_stack->pop());
-
-    m_itkMask->FillBuffer( medSegmentationSelectorToolBox::MaskPixelValues::Unset ); // clear mask
-
-    for(int k =0;k<undo_stack->size();k++)
+    // Save the current state in the undo_stack
+    PairListSlicePlaneId nextState = redo_stack->pop();
+    unsigned char planeIndex = nextState.second;
+    MaskType::RegionType requestedRegion = m_itkMask->GetLargestPossibleRegion();
+    MaskSliceType::IndexType index2d;
+    MaskSliceType::RegionType region;
+    MaskSliceType::RegionType::SizeType size;
+    
+    unsigned int i, j;
+    char direction[2];
+    for (i = 0, j = 0; i < 3; ++i )
     {
-        list_pair * list = undo_stack->at(k);
-        for(int i = 0;i<list->size();i++)
+        if (i != planeIndex)
         {
-            m_itkMask->SetPixel( list->at(i).first, list->at(i).second);    
+            direction[j] = i;
+            j++;
         }
     }
+
+    index2d[ direction[0] ]    = requestedRegion.GetIndex()[ direction[0] ];
+    index2d[ 1- direction[0] ] = requestedRegion.GetIndex()[ direction[1] ];
+    size[ direction[0] ]     = requestedRegion.GetSize()[  direction[0] ];
+    size[ 1- direction[0] ]  = requestedRegion.GetSize()[  direction[1] ];
+
+    region.SetSize(size);
+    region.SetIndex(index2d);
+
+    QList<SlicePair> list;
+    for(int i = 0;i<nextState.first.length();i++)
+    {
+        unsigned int idSlice = nextState.first[i].second;
+        MaskSliceType::Pointer currentSlice = MaskSliceType::New();
+        currentSlice->SetRegions(region);
+        currentSlice->Allocate();
+        copySliceFromMask3D(currentSlice,planeIndex,direction,idSlice);
+        pasteSliceToMask3D(nextState.first[i].first,nextState.second,direction,idSlice);
+        list.append(SlicePair(currentSlice,idSlice));
+    }
+    PairListSlicePlaneId currentState = PairListSlicePlaneId(list,planeIndex);
+    undo_stack->append(currentState);
+    //
     m_itkMask->Modified();
     m_itkMask->GetPixelContainer()->Modified();
     m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
     m_maskAnnotationData->invokeModified();
 }
 
-void AlgorithmPaintToolbox::addToStackIndex(medAbstractView * view)
+void AlgorithmPaintToolbox::addSliceToStack(medAbstractView * view,const unsigned char planeIndex,QList<int> listIdSlice)
 {
-    //TODO : We need to remove the view from the QHash when it is closed
+    // save the current state
 
-    if (currentView==NULL)
+    if (!currentView)
         return;
+    
+    if(!m_undoStacks->contains(view)) 
+        m_undoStacks->insert(view,new QStack<PairListSlicePlaneId>());
 
-    qDebug() << "view dans table hash : " << undoStacks->contains(view);
-    if (undoStacks->contains(view))
-        undoStacks->value(view)->append(new list_pair(*listIndexPixel));
-    else
+    // copy code
+    MaskType::RegionType requestedRegion = m_itkMask->GetLargestPossibleRegion();
+    MaskSliceType::IndexType index2d;
+    MaskSliceType::RegionType region;
+    MaskSliceType::RegionType::SizeType size;
+    
+    unsigned int i, j;
+    char direction[2];
+    for (i = 0, j = 0; i < 3; ++i )
     {
-        undoStacks->insert(view,new QStack<list_pair*>());
-        undoStacks->value(view)->append(new list_pair(*listIndexPixel));
+        if (i != planeIndex)
+        {
+            direction[j] = i;
+            j++;
+        }
     }
-    listIndexPixel->clear();
-    if (redoStacks->contains(view))
-            redoStacks->value(view)->clear();
+
+    index2d[ direction[0] ]    = requestedRegion.GetIndex()[ direction[0] ];
+    index2d[ 1- direction[0] ] = requestedRegion.GetIndex()[ direction[1] ];
+    size[ direction[0] ]     = requestedRegion.GetSize()[  direction[0] ];
+    size[ 1- direction[0] ]  = requestedRegion.GetSize()[  direction[1] ];
+
+    region.SetSize(size);
+    region.SetIndex(index2d);
+
+
+    QList<SlicePair> list;
+    for(int i = 0;i<listIdSlice.length();i++)
+    {
+        unsigned int idSlice = listIdSlice[i];
+        MaskSliceType::Pointer currentSlice = MaskSliceType::New();
+        currentSlice->SetRegions(region);
+        currentSlice->Allocate();
+        copySliceFromMask3D(currentSlice,planeIndex,direction,idSlice);
+        list.append(SlicePair(currentSlice,idSlice));
+    }
+
+    m_undoStacks->value(view)->append(PairListSlicePlaneId(list,planeIndex));
+    
+    if (m_redoStacks->contains(view))
+            m_redoStacks->value(view)->clear();
+}
+
+void AlgorithmPaintToolbox::onViewClosed()
+{
+    medAbstractView *viewClosed = qobject_cast<medAbstractView*>(QObject::sender());
+    m_undoStacks->value(viewClosed)->clear();
+    m_redoStacks->value(viewClosed)->clear();
+    m_undoStacks->remove(viewClosed);
+    m_redoStacks->remove(viewClosed);
+    if (viewClosed==currentView)
+        currentView = NULL;
 }
 
 void AlgorithmPaintToolbox::setCurrentView(medAbstractView * view){
+    
     currentView = view;
+    
+    if (!m_undoStacks->contains(currentView)){
+        m_redoStacks->insert(currentView,new QStack<PairListSlicePlaneId>());
+        m_undoStacks->insert(currentView,new QStack<PairListSlicePlaneId>());
+        connect(view,SIGNAL(closed()),this,SLOT(onViewClosed()));
+    }
 }
 
 void AlgorithmPaintToolbox::addBrushSize(int size)
@@ -1256,7 +1400,7 @@ void AlgorithmPaintToolbox::onAcceptGrowth()
     m_removeSeedButton->hide();
     acceptGrowth_shortcut->setEnabled(false);
     removeSeed_shortcut->setEnabled(false);
-    if (currentView)
+    if (currentView && currentView->receiverWidget())
             currentView->receiverWidget()->setFocus(); // bring the focus back to the view.
 }
 
@@ -1268,6 +1412,9 @@ void AlgorithmPaintToolbox::onRemoveSeed()
 
 void AlgorithmPaintToolbox::copySliceMask()
 {
+    if (!currentView) // TODO ADD MESSAGE NO CURRENT VIEW DEFINED FOR THE SEGEMENTAION TOOLBOX
+        return;
+    
     if (m_copy.first)
     {
         m_copy.second = -1;
@@ -1285,13 +1432,12 @@ void AlgorithmPaintToolbox::copySliceMask()
     
     int slice = index3D[planeIndex];
 
-    typedef itk::Image<unsigned char,2U> copyMaskType;
-    typedef itk::ImageLinearIteratorWithIndex< copyMaskType > LinearIteratorType;
+    typedef itk::ImageLinearIteratorWithIndex< MaskSliceType > LinearIteratorType;
     typedef itk::ImageSliceIteratorWithIndex< MaskType> SliceIteratorType;
 
-    copyMaskType::RegionType region;
-    copyMaskType::RegionType::SizeType size;
-    copyMaskType::RegionType::IndexType index2d;
+    MaskSliceType::RegionType region;
+    MaskSliceType::RegionType::SizeType size;
+    MaskSliceType::RegionType::IndexType index2d;
 
     MaskType::RegionType requestedRegion = m_itkMask->GetLargestPossibleRegion();
 
@@ -1314,7 +1460,7 @@ void AlgorithmPaintToolbox::copySliceMask()
     region.SetSize(size);
     region.SetIndex(index2d);
 
-    m_copy.first = copyMaskType::New();
+    m_copy.first = MaskSliceType::New();
 
     m_copy.first->SetRegions(region);
     m_copy.first->Allocate();
@@ -1326,7 +1472,7 @@ void AlgorithmPaintToolbox::copySliceMask()
 
 void AlgorithmPaintToolbox::pasteSliceMask()
 {
-   if (!m_copy.first || m_copy.second==-1)  // TODO add message No copy in buffer
+   if (!currentView || !m_copy.first || m_copy.second==-1)  // TODO add message No copy in buffer // TODO ADD MESSAGE NO CURRENT VIEW DEFINED FOR THE SEGEMENTAION TOOLBOX
         return;
 
     MaskType::IndexType index3D;
@@ -1340,11 +1486,9 @@ void AlgorithmPaintToolbox::pasteSliceMask()
     
     int slice = index3D[planeIndex];
 
-    typedef itk::Image<unsigned char,2U> copyMaskType;
-    
-    copyMaskType::RegionType region;
-    copyMaskType::RegionType::SizeType size;
-    copyMaskType::RegionType::IndexType index2d;
+    MaskSliceType::RegionType region;
+    MaskSliceType::RegionType::SizeType size;
+    MaskSliceType::RegionType::IndexType index2d;
 
     unsigned int i, j;
     char direction[2];
@@ -1356,6 +1500,12 @@ void AlgorithmPaintToolbox::pasteSliceMask()
             j++;
         }
     }
+
+    // For undo/redo purposes -------------------------
+    QList<int> listIdSlice;
+    listIdSlice.append(slice);
+    addSliceToStack(currentView,planeIndex,listIdSlice);
+    // -------------------------------------------------
 
     pasteSliceToMask3D(m_copy.first,planeIndex,direction,slice);
 
@@ -1404,7 +1554,7 @@ char AlgorithmPaintToolbox::computePlaneIndex(const QVector3D & vec,MaskType::In
     return planeIndex;
 }
 
-void AlgorithmPaintToolbox::copySliceFromMask3D(itk::Image<unsigned char,2>::Pointer copy,const char planeIndex,const char * direction,const int slice)
+void AlgorithmPaintToolbox::copySliceFromMask3D(itk::Image<unsigned char,2>::Pointer copy,const char planeIndex,const char * direction,const unsigned int slice)
 {
     typedef itk::ImageLinearIteratorWithIndex< itk::Image<unsigned char,2> > LinearIteratorType;
     typedef itk::ImageSliceIteratorWithIndex< MaskType> SliceIteratorType;
@@ -1437,7 +1587,7 @@ void AlgorithmPaintToolbox::copySliceFromMask3D(itk::Image<unsigned char,2>::Poi
     }
 }
 
-void AlgorithmPaintToolbox::pasteSliceToMask3D(const itk::Image<unsigned char,2>::Pointer image2D,const char planeIndex,const char * direction,const int slice)
+void AlgorithmPaintToolbox::pasteSliceToMask3D(const itk::Image<unsigned char,2>::Pointer image2D,const char planeIndex,const char * direction,const unsigned int slice)
 {
     typedef itk::ImageLinearIteratorWithIndex< itk::Image<unsigned char,2> > LinearIteratorType;
     typedef itk::ImageSliceIteratorWithIndex< MaskType> SliceIteratorType;

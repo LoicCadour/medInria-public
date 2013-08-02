@@ -200,7 +200,7 @@ void v3dViewObserver::Execute ( vtkObject *caller, unsigned long event, void *ca
 
     break;
 
-            view->activateCircleCursor(true,30);
+//            view->activateCircleCursor(true,30);
     }
 }
 

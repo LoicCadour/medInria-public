@@ -56,8 +56,9 @@ class MEDVIEWSEGMENTATIONPLUGIN_EXPORT AlgorithmPaintToolbox : public medSegment
 public:
 
     typedef itk::Image<unsigned char, 3> MaskType;
-    typedef QPair<MaskType::IndexType,unsigned char> pair;
-    typedef QList<pair> list_pair;
+    typedef itk::Image<unsigned char,2> MaskSliceType;
+    typedef QPair<MaskSliceType::Pointer,unsigned int> SlicePair;
+    typedef QPair<QList<SlicePair>,unsigned char> PairListSlicePlaneId;
 
     AlgorithmPaintToolbox( QWidget *parent );
     ~AlgorithmPaintToolbox();
@@ -106,7 +107,8 @@ public slots:
 
     void onUndo();
     void onRedo();
-    void addToStackIndex(medAbstractView * view);
+    void addSliceToStack(medAbstractView * view,const unsigned char planeIndex,QList<int> listIdSlice);
+    void onViewClosed();
 
     void wheelEvent(QWheelEvent * event);
     void onAcceptGrowth();
@@ -138,8 +140,8 @@ protected:
 
     char computePlaneIndex(const QVector3D &,MaskType::IndexType & ,bool& isInside);
 
-    void copySliceFromMask3D(itk::Image<unsigned char,2>::Pointer copy,const char planeIndex,const char * direction,const int slice);
-    void pasteSliceToMask3D(itk::Image<unsigned char,2>::Pointer image2D,const char planeIndex,const char * direction,const int slice);
+    void copySliceFromMask3D(itk::Image<unsigned char,2>::Pointer copy,const char planeIndex,const char * direction,const unsigned int slice);
+    void pasteSliceToMask3D(itk::Image<unsigned char,2>::Pointer image2D,const char planeIndex,const char * direction,const unsigned int slice);
 
 private:
     typedef dtkSmartPointer<medSeedPointAnnotationData> SeedPoint;
@@ -184,11 +186,10 @@ private:
     medImageMaskAnnotationData::ColorMapType m_labelColorMap;
     
     MaskType::Pointer m_itkMask;
-    QPair<itk::Image<unsigned char,2>::Pointer,char> m_copy;
+    QPair<MaskSliceType::Pointer,char> m_copy;
 
     // undo_redo_feature's attributes
-    list_pair * listIndexPixel;
-    QHash<medAbstractView*,QStack<list_pair*>*> * undoStacks, * redoStacks;
+    QHash<medAbstractView*,QStack<PairListSlicePlaneId>*> * m_undoStacks,*m_redoStacks;
     medAbstractView * currentView;
 
     template <typename IMAGE> void RunConnectedFilter (MaskType::IndexType &index, unsigned int planeIndex);
