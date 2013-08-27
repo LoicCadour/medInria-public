@@ -45,10 +45,6 @@ struct PaintState {
     enum E{ None, Wand, Stroke, DeleteStroke };
 };
 
-    struct PaintState {
-        enum E{ None, Wand, Stroke, DeleteStroke, BoundaryStroke };
-    };
-
 //! Segmentation toolbox to allow manual painting of pixels
 class MEDVIEWSEGMENTATIONPLUGIN_EXPORT AlgorithmPaintToolbox : public medSegmentationAbstractToolBox
 {
@@ -78,10 +74,7 @@ public:
     /** \param trObj : Provide an object for the tr() function. If NULL qApp will be used. */
     static QString s_name(const QObject * trObj =  NULL);
 
-    inline void forcePaintState(PaintState::E state){m_paintState = state;}
-    inline PaintState::E paintState(){return m_paintState;}
-
-    inline void setPaintState( PaintState::E value){m_paintState = value;}
+    inline void setPaintState(PaintState::E value){m_paintState = value;}
     inline PaintState::E paintState(){return m_paintState;}
     void setCurrentView(medAbstractView * view);
 
@@ -92,6 +85,8 @@ public:
 public slots:
     void onStrokeToggled(bool);
     void onMagicWandToggled(bool);
+    void onStrokePressed();
+    void onMagicWandPressed();
 
     void onApplyButtonClicked();
     void onClearMaskClicked();
@@ -110,7 +105,6 @@ public slots:
     void addSliceToStack(medAbstractView * view,const unsigned char planeIndex,QList<int> listIdSlice);
     void onViewClosed();
 
-    void wheelEvent(QWheelEvent * event);
     void onAcceptGrowth();
     void onRemoveSeed();
 
@@ -119,8 +113,7 @@ public slots:
 
 protected:
     friend class ClickAndMoveEventFilter;
-    friend class ClickEventFilter;
-
+    
     void addStroke( medAbstractView *view, const QVector3D &vec );
     void setData( dtkAbstractData *data );
 
