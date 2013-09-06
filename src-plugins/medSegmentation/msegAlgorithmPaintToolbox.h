@@ -103,13 +103,17 @@ public slots:
     void onUndo();
     void onRedo();
     void addSliceToStack(medAbstractView * view,const unsigned char planeIndex,QList<int> listIdSlice);
+    //void saveCurrentStateForCursor(medAbstractView * view,const unsigned char planeIndex,unsigned int idSlice);
     void onViewClosed();
 
-    void onAcceptGrowth();
+    void onNewSeed();
     void onRemoveSeed();
 
     void copySliceMask();
     void pasteSliceMask();
+
+    void onAddBrushSize();
+    void onReduceBrushSize();
 
 protected:
     friend class ClickAndMoveEventFilter;
@@ -136,15 +140,17 @@ protected:
     void copySliceFromMask3D(itk::Image<unsigned char,2>::Pointer copy,const char planeIndex,const char * direction,const unsigned int slice);
     void pasteSliceToMask3D(itk::Image<unsigned char,2>::Pointer image2D,const char planeIndex,const char * direction,const unsigned int slice);
 
+    void removeCursorDisplay();
+
 private:
     typedef dtkSmartPointer<medSeedPointAnnotationData> SeedPoint;
 
     QPushButton *m_strokeButton;
     QPushButton *m_labelColorWidget;
     QSpinBox *m_strokeLabelSpinBox;
-    QPushButton * m_acceptGrowthButton;
+    QPushButton * m_newSeedButton;
     QPushButton * m_removeSeedButton;
-    QShortcut *undo_shortcut, *redo_shortcut, *copy_shortcut, *paste_shortcut, *acceptGrowth_shortcut, *removeSeed_shortcut;
+    QShortcut *undo_shortcut, *redo_shortcut, *copy_shortcut, *paste_shortcut, *newSeed_shortcut, *removeSeed_shortcut, *addBrushSize_shortcut, *reduceBrushSize_shortcut;
     
     QLabel *m_colorLabel;
     QLabel * m_wandInfo;
@@ -158,6 +164,7 @@ private:
     QSlider *m_wandUpperThresholdSlider, *m_wandLowerThresholdSlider;
     QDoubleSpinBox *m_wandUpperThresholdSpinBox , * m_wandLowerThresholdSpinBox;
     QCheckBox *m_wand3DCheckbox;
+    QTime wandTimer;
 
     bool seedPlanted;
     QVector3D m_seed;
@@ -169,7 +176,7 @@ private:
 
     QPushButton *m_clearMaskButton;
 
-    dtkSmartPointer< medViewEventFilter > m_viewFilter;
+    dtkSmartPointer< ClickAndMoveEventFilter > m_viewFilter;
 
     dtkSmartPointer<medImageMaskAnnotationData> m_maskAnnotationData;
 
@@ -184,6 +191,7 @@ private:
     // undo_redo_feature's attributes
     QHash<medAbstractView*,QStack<PairListSlicePlaneId>*> * m_undoStacks,*m_redoStacks;
     medAbstractView * currentView;
+    medAbstractView * viewCopied;
 
     template <typename IMAGE> void RunConnectedFilter (MaskType::IndexType &index, unsigned int planeIndex);
     template <typename IMAGE> void GenerateMinMaxValuesFromImage ();
@@ -197,6 +205,12 @@ private:
     unsigned int m_strokeLabel;
 
     PaintState::E m_paintState;
+    bool cursorOn;
+    QList<QPair<MaskType::IndexType,unsigned char>> * cursorPixels;
+    unsigned int currentPlaneIndex; //plane Index of the current/last operation
+    unsigned int currentIdSlice; // current slice;
+    bool undoRedoCopyPasteModeOn;
+    bool cursorJustReactivated;
 };
 
 } // namespace mseg

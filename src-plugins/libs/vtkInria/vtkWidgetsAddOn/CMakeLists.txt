@@ -20,6 +20,8 @@ vtkOrientationAnnotation.cxx
 vtkOrientedBoxWidget.cxx
 vtkRulerWidget.cxx
 vtkInteractorStyleTrackballCamera2.cxx
+#vtkBrushWidget.cxx
+#vtkBrushRepresentation.cxx
 )
 
 set(${PROJECT_NAME}_LIBS
