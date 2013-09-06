@@ -110,6 +110,7 @@ medAbstractView::medAbstractView(medAbstractView *parent) : dtkAbstractView(pare
     // image interaction
     this->addProperty ("MouseInteraction",      QStringList() << "Zooming" << "Windowing" << "Slicing" << "Measuring");
 
+    this->addProperty("vtkWidget",QStringList() << "None" << "ContourWidget" ); 
     // do not set properties, leave it to subclass
 }
 

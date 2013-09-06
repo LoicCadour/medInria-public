@@ -249,9 +249,9 @@ public:
 
     virtual bool enterEvent(medAbstractView *view, QEvent *event)
     {
-        //if (m_cb->getCursorOn())
-            /*if (m_paintState != PaintState::DeleteStroke)
-                view->setProperty("Cursor","None");*/
+        if (m_cb->getCursorOn())
+            if (m_paintState != PaintState::DeleteStroke)
+                view->setProperty("Cursor","None");
 
         //m_cb->setCurrentView(view);
         dtkAbstractData * viewData = medSegmentationSelectorToolBox::viewData( view );
@@ -296,9 +296,17 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_magicWandButton->setToolTip(tr("Magic wand to automatically paint similar voxels."));
     m_magicWandButton->setCheckable(true);
 
+    /* TO ADD IN A NEW PLUGIN BEZIER CURVE PLUGIN OR WHATEVER */
+    bezierCurve = new QPushButton(tr("Bezier Curve"),displayWidget);
+    bezierCurve->setToolTip(tr("activate the bezier curve widget"));
+    bezierCurve->setCheckable(true);
+    connect(bezierCurve,SIGNAL(toggled(bool)),this,SLOT(activateBezierCurve(bool)));
+    /*--------------------------------(-_-)*---------------HEAD SHOT--------------*/
+
     QHBoxLayout * ButtonLayout = new QHBoxLayout();
     ButtonLayout->addWidget( m_strokeButton );
     ButtonLayout->addWidget( m_magicWandButton );
+    ButtonLayout->addWidget(bezierCurve);
     layout->addLayout( ButtonLayout );
 
     QHBoxLayout * brushSizeLayout = new QHBoxLayout();
@@ -1829,11 +1837,27 @@ void AlgorithmPaintToolbox::onReduceBrushSize()
 void AlgorithmPaintToolbox::setCursorOn(bool value)
 {
     cursorOn = value;
-    /*if (value)
+    if (value)
         if (m_paintState != PaintState::DeleteStroke)
             currentView->setProperty("Cursor","None");  
     else
-        currentView->setProperty("Cursor","Normal");*/
+        currentView->setProperty("Cursor","Normal");
+}
+
+void AlgorithmPaintToolbox::activateBezierCurve(bool checked)
+{
+    if (checked)
+    {
+            setCursorOn(false);
+            m_magicWandButton->setChecked(false);
+            m_strokeButton->setChecked(false);
+    }
+
+    if (currentView)
+        if (checked)
+            currentView->setProperty("vtkWidget","ContourWidget");
+        else
+            currentView->setProperty("vtkWidget","None");
 }
 
 } // namespace mseg

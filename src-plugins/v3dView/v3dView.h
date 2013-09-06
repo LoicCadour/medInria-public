@@ -187,6 +187,7 @@ public slots:
     void onPositionLinkedPropertySet        (const QString &value);
     void onWindowingLinkedPropertySet       (const QString &value);
     void onDepthPeelingPropertySet          (const QString &value);
+    void onVtkWidgetPropertySet             (const QString &value);
 
 public slots:
     void setSlider                          ( int value );
@@ -207,7 +208,6 @@ public slots: // Menu interface
     void onMenuZoomTriggered();
     void onMenuWindowLevelTriggered();
 
-    void activateCircleCursor(bool val,unsigned int radius=10);
 public:
     void  enableInteraction();
     void disableInteraction();
