@@ -207,7 +207,7 @@ private:
 
     PaintState::E m_paintState;
     bool cursorOn;
-    QList<QPair<MaskType::IndexType,unsigned char>> * cursorPixels;
+    QList<QPair<MaskType::IndexType,unsigned char> > * cursorPixels;
     unsigned int currentPlaneIndex; //plane Index of the current/last operation
     unsigned int currentIdSlice; // current slice;
     bool undoRedoCopyPasteModeOn;

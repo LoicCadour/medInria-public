@@ -492,7 +492,7 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
 
     currentView = NULL;
     cursorOn = false;
-    cursorPixels = new QList<QPair<MaskType::IndexType,unsigned char>>();
+    cursorPixels = new QList<QPair<MaskType::IndexType,unsigned char> >();
     currentPlaneIndex = 0;
     currentIdSlice = 0;
     undoRedoCopyPasteModeOn = false;
