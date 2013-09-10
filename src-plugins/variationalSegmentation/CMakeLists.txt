@@ -36,17 +36,11 @@ find_package(dtk REQUIRED)
 include(${dtk_USE_FILE})
 include(dtkPlugin)
 
-find_package(medInria REQUIRED)
-include(${medInria_USE_FILE})
+find_package(ITK REQUIRED)
+include(${ITK_USE_FILE})
 
-#find_package(ITK REQUIRED)
-#include(${ITK_USE_FILE})
-
-#find_package(VTK REQUIRED)
-#include(${VTK_USE_FILE})
-
-find_package(vtkINRIA3D REQUIRED)
-include(${vtkINRIA3D_USE_FILE})
+find_package(VTK REQUIRED)
+include(${VTK_USE_FILE})
 
 find_package(CPSTK REQUIRED)
 include(${CPSTK_USE_FILE})
