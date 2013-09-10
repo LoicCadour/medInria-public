@@ -44,6 +44,7 @@ public:
     medViewPropertiesToolBox *viewPropertiesToolBox;
 
     medSegmentationSelectorToolBox *segmentationToolBox;
+    medToolBox * meshToolBox;
 };
 
 // /////////////////////////////////////////////////////////////////
@@ -80,6 +81,7 @@ medWorkspace(parent), d(new medSegmentationWorkspacePrivate)
     // -- View toolbox --
 
     d->viewPropertiesToolBox = new medViewPropertiesToolBox(parent);
+    d->meshToolBox           = medToolBoxFactory::instance()->createToolBox("medMeshToolsToolBox", parent);
 
 
     connect ( this, SIGNAL(layoutModeChanged(const QString &)),
@@ -90,6 +92,8 @@ medWorkspace(parent), d(new medSegmentationWorkspacePrivate)
     this->addToolBox( d->layoutToolBox );
     this->addToolBox( d->viewPropertiesToolBox );
     this->addToolBox( d->segmentationToolBox );
+    this->addToolBox( d->meshToolBox );
+
 }
 
 medSegmentationWorkspace::~medSegmentationWorkspace(void)
