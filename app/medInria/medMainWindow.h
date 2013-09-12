@@ -134,6 +134,8 @@ private slots:
      */
     void showMaximized();
 
+    void updateMemoryUsageLabel();
+
 protected:
     void closeEvent(QCloseEvent *event);
 
