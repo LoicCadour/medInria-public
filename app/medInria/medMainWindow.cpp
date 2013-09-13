@@ -111,7 +111,6 @@ public:
     QToolButton*              fullscreenButton;
     QLabel *                  memoryUsageLabel;
     QTimer *                  memoryTimer; // used to display memory usage
-    size_t                    ram;
     QList<QString>            importUuids;
 
     medQuickAccessMenu * quickAccessWidget;
@@ -251,7 +250,6 @@ medMainWindow::medMainWindow ( QWidget *parent ) : QMainWindow ( parent ), d ( n
     // Memory Usage Label 's Widgets
     d->memoryUsageLabel = new QLabel(this);
     d->memoryTimer = new QTimer();
-    d->ram = medDataManager::getTotalSizeOfPhysicalRam();
     connect(d->memoryTimer,SIGNAL(timeout()),this,SLOT(updateMemoryUsageLabel()));
     d->memoryTimer->start();
 
@@ -963,19 +961,14 @@ void medMainWindow::registerToFactories()
 
 void medMainWindow::updateMemoryUsageLabel()
 {
-    
     size_t memoryUsage = medDataManager::getProcessMemoryUsage();
     size_t memoryAvailable = medDataManager::getAvailablePhysicalRam();
 
     double percentage = memoryUsage * (100/(double)(memoryAvailable+memoryUsage));
-    qDebug() << memoryAvailable;
-    qDebug() << memoryUsage;
-    qDebug() << 100/(double)(memoryAvailable+memoryUsage);
-    qDebug() << percentage;
+    
     d->memoryUsageLabel->setText("Percentage of memory : " + QString::number(percentage,'g',2) + "%");
     d->memoryUsageLabel->setToolTip("Memory Usage : " + QString::number(memoryUsage/1024) + "KB");
 }
-
 bool medMainWindow::eventFilter(QObject * obj, QEvent *ev)
 {
     if (ev->type() == QEvent::KeyPress)
