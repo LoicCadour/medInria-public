@@ -90,6 +90,8 @@ public:
 
     QWidget *receiverWidget();
     QWidget *widget();
+    void * getView2D();
+    void * getRenderWindow();
 
     void close();
 
