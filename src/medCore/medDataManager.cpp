@@ -1050,7 +1050,7 @@ size_t medDataManager::getAvailablePhysicalRam()
 #else
     struct sysinfo info;
     if ( ! sysinfo( &info ) )
-        return info.freeram * info.mem_unit;
+        return info.bufferram * info.mem_unit;
     else
         return 0;
 #endif
