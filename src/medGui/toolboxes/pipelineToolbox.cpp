@@ -24,11 +24,9 @@ public:
 pipelineToolBox::pipelineToolBox(QWidget *parent) : medToolBox(parent), d(new pipelineToolBoxPrivate)
 {
     QWidget *customPage = new QWidget(this);
-    this->addWidget(customPage);
-    this->setTitle(tr("Steps"));
 
+    QLabel *label = new QLabel("Step description :");
     d->stepDescription = new QLabel();
-
 
     d->previousButton = new QPushButton("Previous", customPage);
     d->previousButton->setDisabled(true);
@@ -37,9 +35,20 @@ pipelineToolBox::pipelineToolBox(QWidget *parent) : medToolBox(parent), d(new pi
     d->nextButton = new QPushButton("Next", customPage);
     connect(d->nextButton, SIGNAL(clicked()), this, SLOT(goToNextStep()));
 
-    QHBoxLayout *layout = new QHBoxLayout(customPage);
-    layout->addWidget(d->previousButton);
-    layout->addWidget(d->nextButton);
+    QHBoxLayout *buttonsLayout = new QHBoxLayout;
+    buttonsLayout->addWidget(d->previousButton);
+    buttonsLayout->addWidget(d->nextButton);
+
+    // Principal layout
+    QVBoxLayout *layout = new QVBoxLayout(customPage);
+    layout->addWidget(label);
+    layout->addWidget(d->stepDescription);
+    layout->addLayout(buttonsLayout);
+
+    customPage->setLayout(layout);
+
+    this->setTitle(tr("Pipeline for segmentation of myocardial fat"));
+    this->addWidget(customPage);
 }
 
 pipelineToolBox::~pipelineToolBox(void)
@@ -67,4 +76,9 @@ QPushButton* pipelineToolBox::getNextButton()
 QPushButton* pipelineToolBox::getPreviousButton()
 {
     return d->previousButton;
+}
+
+void pipelineToolBox::setLabel(QString text)
+{
+    d->stepDescription->setText(text);
 }
