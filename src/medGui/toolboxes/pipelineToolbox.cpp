@@ -18,14 +18,14 @@ class pipelineToolBoxPrivate
 {
 public:
     QPushButton *nextButton, *previousButton;
-    QLabel *stepDescription;
+    QLabel *stepDescription, *stepTitle;
 };
 
 pipelineToolBox::pipelineToolBox(QWidget *parent) : medToolBox(parent), d(new pipelineToolBoxPrivate)
 {
     QWidget *customPage = new QWidget(this);
 
-    QLabel *label = new QLabel("Step description :");
+    d->stepTitle = new QLabel();
     d->stepDescription = new QLabel();
 
     d->previousButton = new QPushButton("Previous", customPage);
@@ -41,7 +41,7 @@ pipelineToolBox::pipelineToolBox(QWidget *parent) : medToolBox(parent), d(new pi
 
     // Principal layout
     QVBoxLayout *layout = new QVBoxLayout(customPage);
-    layout->addWidget(label);
+    layout->addWidget(d->stepTitle);
     layout->addWidget(d->stepDescription);
     layout->addLayout(buttonsLayout);
 
@@ -78,7 +78,12 @@ QPushButton* pipelineToolBox::getPreviousButton()
     return d->previousButton;
 }
 
-void pipelineToolBox::setLabel(QString text)
+void pipelineToolBox::setDescription(QString text)
 {
     d->stepDescription->setText(text);
+}
+
+void pipelineToolBox::setLabel(QString title)
+{
+    d->stepTitle->setText(title);
 }

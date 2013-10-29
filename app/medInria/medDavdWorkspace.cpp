@@ -31,7 +31,6 @@ class medDavdWorkspacePrivate
 {
 public:
     //medVisualizationLayoutToolBox *layoutToolBox;
-    //medTimeLineToolBox *timeToolBox;
     medViewPropertiesToolBox *viewPropertiesToolBox;
     medSegmentationSelectorToolBox *segmentationToolbox;
     medFilteringSelectorToolBox *morphoSelectorToolBox;
@@ -41,7 +40,6 @@ public:
    
     QList<medToolBox*> toolboxes;
     QList<QString> stepDescriptions;
-    QString currentStepDesciption;
 
 };
 
@@ -70,21 +68,25 @@ medDavdWorkspace::medDavdWorkspace(QWidget *parent) : medWorkspace(parent), d(ne
     connect (d->pipelineToolbox, SIGNAL(nextClicked()),
              this,             SLOT(goToNextStep()));
 
-    d->tb1 = new medToolBox(parent);
-    d->tb1->setTitle("1. Definition of the Region of Interest");
-    QString step1Description = " Trace de la droite";
+
 
 
     d->segmentationToolbox   = new medSegmentationSelectorToolBox(this, parent);
     d->segmentationToolbox->hide();
+
+    d->tb1 = new medToolBox(parent);
+    d->tb1->setTitle("1. Definition of the Volume of Interest");
+    d->tb1->header()->blockSignals(true); //prevent the user from minimizing the toolbox
+    QString step1Description = "Define the tricuspid and pulmonary planes";
+    
+    medSegmentationAbstractToolBox *bezierSegToolBox = 
+        qobject_cast<medSegmentationAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("bezierCurveToolBox", d->segmentationToolbox));
+    bezierSegToolBox->setTitle("2. Healthy inter-ventricular septum definition");
+    QString step2Description = "On short axis images, draw a 3 cm2 region of interest in healthy \n inter-ventricular septum";
     
     medSegmentationAbstractToolBox *paintSegToolBox = 
         qobject_cast<medSegmentationAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("mseg::AlgorithmPaintToolbox", d->segmentationToolbox));
-    paintSegToolBox->setTitle("2. Healthy inter-ventricular septum definition");
-    QString step2Description = "On short axis images, draw a 3 cm2 region of interest in healthy \n inter-ventricular septum";
-
-    d->tb2 = new medToolBox(parent);
-    d->tb2->setTitle("3. RV endocardium segmentation");
+    paintSegToolBox->setTitle("3. RV endocardium segmentation");
     QString step3Description = " You can change the automatically calculated thresholds \n(3SD above mean healthy myocardial density) for the region growing.";
 
     d->tb3 = new medToolBox(parent);
@@ -93,47 +95,45 @@ medDavdWorkspace::medDavdWorkspace(QWidget *parent) : medWorkspace(parent), d(ne
     medFilteringAbstractToolBox *morphoToolBox = 
         qobject_cast<medFilteringAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("itkMorphologicalFilters", d->morphoSelectorToolBox));*/
     d->tb3->setTitle("4. RV free wall layer segmentation");
-    QString step4Description = " A 2-mm thick RV free wall is derived from \n the last segmentation using a dilation operator.";
+    QString step4Description = " A 2-mm thick RV free wall is derived from \nthe last segmentation using a dilation operator.";
 
     d->tb4 = new medToolBox(parent);
     d->tb4->setTitle("5. Fat density pixels segmentation");
-    QString step5Description = " Myocardial fat is segmented on the histogram as \n pixels with density < 10 Hounsfield Units.";
+    QString step5Description = " Myocardial fat is segmented on the histogram as \npixels with density < 10 Hounsfield Units.";
 
-    d->tb5 = new medToolBox(parent);
-    d->tb5->setTitle("6. 3D fat distribution model");
-    QString step6Description = " Segmented images are then used to compute patient-specific \n 3D models displaying fat distribution. ";
+    medToolBox *meshToolBox =medToolBoxFactory::instance()->createToolBox("medMeshToolsToolBox", parent);
+    meshToolBox->setTitle("6. 3D fat distribution model");
+    QString step6Description = " Segmented images are then used to compute patient-specific \n3D models displaying fat distribution. ";
 
     // initialization
     //d->layoutToolBox->switchMinimize();
     //d->viewPropertiesToolBox->switchMinimize();
-    //d->segmentationToolbox->switchMinimize();
-    paintSegToolBox->switchMinimize();
+    bezierSegToolBox->switchMinimize();
     //d->tb1->switchMinimize();
-    d->tb2->switchMinimize();
+    paintSegToolBox->switchMinimize();
     d->tb3->switchMinimize();
     d->tb4->switchMinimize();
-    d->tb5->switchMinimize();
+    meshToolBox->switchMinimize();
 
     //this->addToolBox( d->layoutToolBox );
     this->addToolBox( d->viewPropertiesToolBox );
     this->addToolBox( d->pipelineToolbox );
-    //this->addToolBox( d->segmentationToolbox );
     this->addToolBox( d->tb1 );
-    this->addToolBox( paintSegToolBox );
-    this->addToolBox( d->tb2);
+    this->addToolBox( bezierSegToolBox );
+    this->addToolBox( paintSegToolBox);
     this->addToolBox( d->tb3);
     this->addToolBox( d->tb4);
-    this->addToolBox( d->tb5);
+    this->addToolBox( meshToolBox);
 
-    d->toolboxes<<d->tb1<<paintSegToolBox<<d->tb2<<d->tb3<<d->tb4<<d->tb5;
+    d->toolboxes<<d->tb1<<bezierSegToolBox<<paintSegToolBox<<d->tb3<<d->tb4<<meshToolBox;
     for(int i=1;i<d->toolboxes.size();i++)
         d->toolboxes[i]->header()->blockSignals(true);
     d->stepDescriptions<<step1Description<<step2Description<<step3Description<<step4Description<<step5Description<<step6Description;
 
     d->step =0;
 
-    d->currentStepDesciption = d->stepDescriptions[d->step];
-    d->pipelineToolbox->setLabel(d->currentStepDesciption);
+    d->pipelineToolbox->setDescription(d->stepDescriptions[d->step]);
+    d->pipelineToolbox->setLabel(d->toolboxes[d->step]->header()->title());
 }
 
 void medDavdWorkspace::setupViewContainerStack()
@@ -182,11 +182,11 @@ void medDavdWorkspace::goToNextStep(){
         d->pipelineToolbox->getPreviousButton()->setDisabled(false);
         d->toolboxes[d->step]->switchMinimize(); //minimize current
         //d->toolboxes[d->step]->setDisabled(true);
-        d->toolboxes[d->step]->header()->blockSignals(true);
+        d->toolboxes[d->step]->header()->blockSignals(true); //prevent the user from minimizing the toolbox
         d->step++;
         d->toolboxes[d->step]->switchMinimize();
-        d->toolboxes[d->step]->header()->blockSignals(false);
-        d->pipelineToolbox->setLabel(d->stepDescriptions[d->step]);
+        d->pipelineToolbox->setDescription(d->stepDescriptions[d->step]);
+        d->pipelineToolbox->setLabel(d->toolboxes[d->step]->header()->title());
     }
     if (d->step == d->toolboxes.size()-1)
         d->pipelineToolbox->getNextButton()->setDisabled(true);
@@ -199,8 +199,8 @@ void medDavdWorkspace::goToPreviousStep(){
         d->toolboxes[d->step]->header()->blockSignals(true);
         d->step--;
         d->toolboxes[d->step]->switchMinimize();
-        d->toolboxes[d->step]->header()->blockSignals(false);
-        d->pipelineToolbox->setLabel(d->stepDescriptions[d->step]);
+        d->pipelineToolbox->setDescription(d->stepDescriptions[d->step]);
+        d->pipelineToolbox->setLabel(d->toolboxes[d->step]->header()->title());
     }
     if(d->step == 0)
         d->pipelineToolbox->getPreviousButton()->setDisabled(true);

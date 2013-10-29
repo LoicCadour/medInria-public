@@ -28,6 +28,7 @@ public:
 
     QPushButton *getNextButton();
     QPushButton *getPreviousButton();
+    void setDescription(QString);
     void setLabel(QString);
 
 signals:

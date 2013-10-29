@@ -33,7 +33,6 @@ public:
     virtual QString identifier()  const;
     virtual QString description() const;
     static bool isUsable();
-    //QString updateDescription(){return d->currentStepDesciption;}
 
 public slots:
     /**
