@@ -31,6 +31,7 @@ set(${PROJECT_NAME}_HEADERS_MOC
   medRegistrationWorkspace.h
   medSegmentationWorkspace.h
   medFilteringWorkspace.h
+  medDavdWorkspace.h
   medPacsDataSource.h
   medFileSystemDataSource.h
   medDatabaseDataSource.h
@@ -71,6 +72,7 @@ set(${PROJECT_NAME}_SOURCES
   medRegistrationWorkspace.cpp
   medSegmentationWorkspace.cpp
   medFilteringWorkspace.cpp
+  medDavdWorkspace.cpp
   medPacsDataSource.cpp
   medFileSystemDataSource.cpp
   medDatabaseDataSource.cpp
@@ -145,7 +147,9 @@ target_link_libraries(${PROJECT_NAME}
   medGui
   medCore
   medSql
-  medPacs)
+  medPacs
+  #medSegmentationPlugin
+  )
 
 # Include header files for Visual Studio.
 source_group("Header Files" REGULAR_EXPRESSION .*\\.h\$)

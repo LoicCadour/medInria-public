@@ -27,6 +27,7 @@ set(${PROJECT_NAME}_DEVEL_HEADERS_MOC
   toolboxes/medSegmentationAbstractToolBox.h
   toolboxes/medSegmentationSelectorToolBox.h
   toolboxes/medToolBox.h
+  toolboxes/pipelineToolBox.h
   commonWidgets/medSliderSpinboxPair.h
 )
 
@@ -117,6 +118,7 @@ set(${PROJECT_NAME}_HEADERS_MOC
   toolboxes/medCompositeDataSetImporterSelectorToolBox.h
   toolboxes/medCompositeDataSetImporterAbstractToolBox.h
   toolboxes/medActionsToolBox.h
+  toolboxes/pipelineToolBox.h
 
 
   # viewContainers:
@@ -232,6 +234,7 @@ set(${PROJECT_NAME}_SOURCES
   toolboxes/medCompositeDataSetImporterSelectorToolBox.cpp
   toolboxes/medCompositeDataSetImporterAbstractToolBox.cpp
   toolboxes/medActionsToolBox.cpp
+  toolboxes/pipelineToolBox.cpp
 
 
   # viewContainers:
