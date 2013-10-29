@@ -45,7 +45,6 @@ public slots:
     void goToPreviousStep();
     void goToNextStep();
 
-
 private:
     medDavdWorkspacePrivate *d;
 };

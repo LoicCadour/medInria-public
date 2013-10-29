@@ -20,6 +20,8 @@
 #include <medVisualizationLayoutToolBox.h>
 #include <medSegmentationSelectorToolBox.h>
 #include <medSegmentationAbstractToolbox.h>
+#include <medFilteringSelectorToolBox.h>
+#include <medFilteringAbstractToolBox.h>
 #include <medToolboxFactory.h>
 #include <pipelineToolBox.h>
 #include <medSettingsManager.h>
@@ -32,6 +34,7 @@ public:
     //medTimeLineToolBox *timeToolBox;
     medViewPropertiesToolBox *viewPropertiesToolBox;
     medSegmentationSelectorToolBox *segmentationToolbox;
+    medFilteringSelectorToolBox *morphoSelectorToolBox;
     pipelineToolBox *pipelineToolbox;
     medToolBox *tb1, *tb2, *tb3, *tb4, *tb5;
     unsigned char step;
@@ -55,7 +58,8 @@ medDavdWorkspace::medDavdWorkspace(QWidget *parent) : medWorkspace(parent), d(ne
     //         this,             SIGNAL(layoutSplit(int,int)));
 
     //connect(this,SIGNAL(setLayoutTab(const QString &)), d->layoutToolBox, SLOT(setTab(const QString &)));
-
+    connect ( stackedViewContainers(), SIGNAL(currentChanged(const QString &)),
+        this, SLOT(connectToolboxesToCurrentContainer(const QString &)));
 
     // -- View toolbox --
     d->viewPropertiesToolBox = new medViewPropertiesToolBox(parent);
@@ -83,7 +87,11 @@ medDavdWorkspace::medDavdWorkspace(QWidget *parent) : medWorkspace(parent), d(ne
     d->tb2->setTitle("3. RV endocardium segmentation");
     QString step3Description = " You can change the automatically calculated thresholds \n(3SD above mean healthy myocardial density) for the region growing.";
 
-    d->tb3 = new medToolBox(parent);    
+    d->tb3 = new medToolBox(parent);
+    /*d->morphoSelectorToolBox   = new medFilteringSelectorToolBox(parent);
+    d->morphoSelectorToolBox->hide();
+    medFilteringAbstractToolBox *morphoToolBox = 
+        qobject_cast<medFilteringAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("itkMorphologicalFilters", d->morphoSelectorToolBox));*/
     d->tb3->setTitle("4. RV free wall layer segmentation");
     QString step4Description = " A 2-mm thick RV free wall is derived from \n the last segmentation using a dilation operator.";
 
@@ -94,7 +102,6 @@ medDavdWorkspace::medDavdWorkspace(QWidget *parent) : medWorkspace(parent), d(ne
     d->tb5 = new medToolBox(parent);
     d->tb5->setTitle("6. 3D fat distribution model");
     QString step6Description = " Segmented images are then used to compute patient-specific \n 3D models displaying fat distribution. ";
-
 
     // initialization
     //d->layoutToolBox->switchMinimize();
@@ -119,7 +126,8 @@ medDavdWorkspace::medDavdWorkspace(QWidget *parent) : medWorkspace(parent), d(ne
     this->addToolBox( d->tb5);
 
     d->toolboxes<<d->tb1<<paintSegToolBox<<d->tb2<<d->tb3<<d->tb4<<d->tb5;
-    for(int i=1;i<d->toolboxes.size();i++)d->toolboxes[i]->header()->blockSignals(true);
+    for(int i=1;i<d->toolboxes.size();i++)
+        d->toolboxes[i]->header()->blockSignals(true);
     d->stepDescriptions<<step1Description<<step2Description<<step3Description<<step4Description<<step5Description<<step6Description;
 
     d->step =0;
@@ -147,6 +155,7 @@ void medDavdWorkspace::connectToolboxesToCurrentContainer(const QString &name)
     //connect(stackedViewContainers()->container(name),
     //        SIGNAL(viewRemoved(dtkAbstractView*)),
     //        d->timeToolBox, SLOT(onViewRemoved(dtkAbstractView*)));
+    //connect(this->stackedViewContainers()->container(name),SIGNAL(droppedInput(medDataIndex)), d->morphoSelectorToolBox,SLOT(onInputSelected(medDataIndex)));
 }
 
 medDavdWorkspace::~medDavdWorkspace(void)

@@ -35,6 +35,7 @@
 #include <medFilteringSelectorToolBox.h>
 #include <medFilteringAbstractToolBox.h>
 #include <medProgressionStack.h>
+#include <fstream>
 
 #include "itkFiltersProcessBase.h"
 
@@ -161,6 +162,7 @@ void itkMorphologicalFiltersToolBox::clear()
 
 void itkMorphologicalFiltersToolBox::update ( dtkAbstractView* view )
 {
+    qDebug() << "ca marche bloup";
     if ( !view )
     {
         clear();
@@ -171,7 +173,6 @@ void itkMorphologicalFiltersToolBox::update ( dtkAbstractView* view )
         {
             return;
         }
-
         QString identifier = this->parentToolBox()->data()->identifier();
 
         if ( identifier == "itkDataImageChar3" )

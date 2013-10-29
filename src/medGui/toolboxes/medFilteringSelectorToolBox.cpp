@@ -156,7 +156,7 @@ void medFilteringSelectorToolBox::onToolBoxChosen ( int index )
 
 
 void medFilteringSelectorToolBox::onInputSelected ( const medDataIndex& index )
-{
+{qDebug()<<"onInputSelected";
     if ( !index.isValid() )
         return;
 
