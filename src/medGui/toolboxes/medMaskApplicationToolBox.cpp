@@ -31,19 +31,13 @@
 class medMaskApplicationToolBoxPrivate
 {
 public:
-    //QListWidget  *bundlingList;
-    QTreeView  *bundlingList;
     QStandardItemModel *bundlingModel;
     QPushButton  *bundlingButtonVdt;
-    QPushButton  *bundlingButtonTag;
     QPushButton  *bundlingButtonRst;
     QCheckBox    *bundlingShowCheckBox;
     QCheckBox    *bundleBoxCheckBox;
     QPushButton  *bundlingButtonAdd;
     QComboBox    *roiComboBox;
-    QRadioButton *andButton;
-    QRadioButton *notButton;
-    QRadioButton *nullButton;
     medDropSite *dropOrOpenRoi;
     medDropSite *dropOrOpenRoi2;
 
@@ -63,7 +57,7 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolB
     d->dropOrOpenRoi2 = new medDropSite(bundlingPage);
     d->dropOrOpenRoi2->setToolTip(tr("INPUT 2"));
     d->dropOrOpenRoi2->setText(tr("INPUT 2"));
-    d->dropOrOpenRoi2->setCanAutomaticallyChangeAppereance(false);
+    d->dropOrOpenRoi2->setCanAutomaticallyChangeAppereance(true);
 
     QPushButton *clearRoiButton = new QPushButton("Clear ROI", bundlingPage);
     clearRoiButton->setToolTip(tr("Clear previously loaded ROIs."));
@@ -73,33 +67,10 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolB
     d->roiComboBox->setCurrentIndex(0);
     d->roiComboBox->setToolTip(tr("Select a ROI to modify how its interaction with the fibers affects whether they are displayed."));
 
-    QGroupBox *boolGroup = new QGroupBox(bundlingPage);
-    boolGroup->setStyleSheet("border:0;");
-    boolGroup->setContentsMargins(0, 0, 0, 0);
-    boolGroup->setAlignment(Qt::AlignHCenter);
-
-    d->andButton  = new QRadioButton(tr("AND"), bundlingPage);
-    d->andButton->setToolTip(tr("If \"AND\" is selected fibers will need to overlap with this ROI to be displayed."));
-    d->andButton->setChecked(true);
-    d->notButton  = new QRadioButton(tr("NOT"), bundlingPage);
-    d->notButton->setToolTip(tr("If \"NOT\" is selected fibers overlapping with this ROI will not be displayed."));
-    d->nullButton = new QRadioButton(tr("NULL"), bundlingPage);
-    d->nullButton->setToolTip(tr("If \"NULL\" is selected this ROI won't be taken into account."));
-
-    QHBoxLayout *boolLayout = new QHBoxLayout;
-    boolLayout->setContentsMargins(0, 0, 0, 0);
-    boolLayout->addWidget(d->andButton);
-    boolLayout->addWidget(d->notButton);
-    boolLayout->addWidget(d->nullButton);
-
-    boolGroup->setLayout(boolLayout);
 
     QHBoxLayout *roiLayout = new QHBoxLayout;
     roiLayout->addWidget(d->roiComboBox);
-    roiLayout->addWidget(boolGroup);
 
-    d->bundlingButtonTag = new QPushButton("Tag", bundlingPage);
-    d->bundlingButtonTag->setToolTip(tr("Tag the currently shown bundle to let medInria memorize it and another, new bundling box, will appear.\nThis new box will also isolate fibers but will also consider the previously \"tagged\" fibers."));
     d->bundlingButtonAdd = new QPushButton("Add", bundlingPage);
     d->bundlingButtonAdd->setToolTip(tr("Select to either include the fibers that overlap with the bundling box, or to include the ones that do not overlap."));
     d->bundlingButtonRst = new QPushButton("Reset", bundlingPage);
@@ -109,23 +80,15 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolB
     d->bundlingButtonAdd->setCheckable(true);
 
     QHBoxLayout *bundlingButtonsLayout = new QHBoxLayout;
-    bundlingButtonsLayout->addWidget(d->bundlingButtonTag);
     bundlingButtonsLayout->addWidget(d->bundlingButtonAdd);
     bundlingButtonsLayout->addWidget(d->bundlingButtonRst);
     bundlingButtonsLayout->addWidget(d->bundlingButtonVdt);
 
-    // d->bundlingList = new QListWidget(bundlingPage);
 
     d->bundlingModel = new QStandardItemModel(0, 1, bundlingPage);
     d->bundlingModel->setHeaderData(0, Qt::Horizontal, tr("Fiber bundles"));
 
     // QItemSelectionModel *selectionModel = new QItemSelectionModel(d->bundlingModel);
-
-    d->bundlingList = new QTreeView(bundlingPage);
-    d->bundlingList->setAlternatingRowColors(true);
-    d->bundlingList->setMinimumHeight(150);
-    d->bundlingList->setModel (d->bundlingModel);
-    // d->bundlingList->setSelectionModel(selectionModel);
 
     d->bundlingShowCheckBox = new QCheckBox("Show all bundles", bundlingPage);
     d->bundlingShowCheckBox->setChecked(true);
@@ -144,7 +107,6 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolB
     bundlingLayout->addLayout(roiLayout);
     bundlingLayout->addWidget(d->bundleBoxCheckBox);
     bundlingLayout->addLayout(bundlingButtonsLayout);
-    bundlingLayout->addWidget(d->bundlingList);
     bundlingLayout->addWidget(d->bundlingShowCheckBox);
 
     connect (d->bundlingButtonVdt,     SIGNAL(clicked(void)),            this, SLOT (onBundlingButtonVdtClicked()));
@@ -152,18 +114,16 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolB
     connect (d->bundlingButtonAdd,     SIGNAL(toggled(bool)),            this, SLOT (onBundlingButtonAndToggled(bool)));
 
     connect (d->bundlingShowCheckBox,  SIGNAL(toggled(bool)),            this, SLOT (onBundlingShowCheckBoxToggled (bool)));
-    connect (d->bundlingButtonTag,     SIGNAL(clicked(void)),            this, SIGNAL (fiberSelectionTagged(void)));
     connect (d->bundlingButtonRst,     SIGNAL(clicked(void)),            this, SIGNAL (fiberSelectionReset(void)));
 
     connect (d->bundlingModel, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onBundlingItemChanged(QStandardItem*)));
 
     connect (d->dropOrOpenRoi, SIGNAL(objectDropped(const medDataIndex&)), this, SLOT(onRoiImported(const medDataIndex&)));
     connect (d->dropOrOpenRoi, SIGNAL(clicked()),                          this, SLOT(onDropSiteClicked()));
+    connect (d->dropOrOpenRoi2, SIGNAL(objectDropped(const medDataIndex&)), this, SLOT(onImageImported(const medDataIndex&)));
+    connect (d->dropOrOpenRoi2, SIGNAL(clicked()),                          this, SLOT(onDropSiteClicked()));
     connect (clearRoiButton,   SIGNAL(clicked()),                          this, SLOT(onClearRoiButtonClicked()));
     connect (d->roiComboBox,   SIGNAL(currentIndexChanged(int)),           this, SLOT(onRoiComboIndexChanged(int)));
-    connect (d->andButton,     SIGNAL(toggled(bool)),                      this, SLOT(onAddButtonToggled(bool)));
-    connect (d->notButton,     SIGNAL(toggled(bool)),                      this, SLOT(onNotButtonToggled(bool)));
-    connect (d->nullButton,    SIGNAL(toggled(bool)),                      this, SLOT(onNullButtonToggled(bool)));
 
     this->setTitle("MaskApplication");
     this->addWidget(bundlingPage);
@@ -189,7 +149,6 @@ void medMaskApplicationToolBox::setData(dtkAbstractData *data)
 
     d->data = data;
 
-    //d->bundlingList->clear();
     //d->bundlingModel->clear();
     d->bundlingModel->removeRows(0, d->bundlingModel->rowCount(QModelIndex()), QModelIndex());
 
@@ -215,7 +174,6 @@ void medMaskApplicationToolBox::onBundlingButtonVdtClicked()
     QString text = tr("Fiber bundle #") + QString::number(d->bundlingModel->rowCount()+1);
 
     //if (ok && !text.isEmpty()) {
-    // if (!d->bundlingList->contains (name)) // should popup a warning
     QColor color = QColor::fromHsv(qrand()%360, 255, 210);
 
     emit fiberSelectionValidated (text, color);
@@ -243,7 +201,6 @@ void medMaskApplicationToolBox::addBundle (const QString &name, const QColor &co
     if(!d->data)
         return;
   */
-    //d->bundlingList->addItem (name);
 
     //d->bundlingModel->removeRows(0, d->bundlingModel->rowCount(QModelIndex()), QModelIndex());
 
@@ -315,19 +272,17 @@ void medMaskApplicationToolBox::addBundle (const QString &name, const QColor &co
                               color, Qt::DecorationRole);
 
 
-    //d->bundlingList->update();
 }
 
 void medMaskApplicationToolBox::onRoiImported(const medDataIndex& index)
 {
     dtkSmartPointer<dtkAbstractData> data = medDataManager::instance()->data(index);
-
+    qDebug()<<" data->identifier() : "<<data->identifier()<<endl;
     // we accept only ROIs (itkDataImageUChar3)
-    if (!data || !d->view || data->identifier() != "itkDataImageUChar3")
+    if (!data /*|| !d->view */|| data->identifier() != "itkDataImageUChar3")
     {
         return;
     }
-
     // put the thumbnail in the medDropSite as well
     // (code copied from @medDatabasePreviewItem)
     medAbstractDbController* dbc = medDataManager::instance()->controllerForDataSource(index.dataSourceId());
@@ -344,9 +299,9 @@ void medMaskApplicationToolBox::onRoiImported(const medDataIndex& index)
             shouldSkipLoading = true;
         }
     }
-
     if (!shouldSkipLoading) {
         medImageFileLoader *loader = new medImageFileLoader(thumbpath);
+
         connect(loader, SIGNAL(completed(const QImage&)), this, SLOT(setImage(const QImage&)));
         QThreadPool::globalInstance()->start(loader);
     }
@@ -355,6 +310,38 @@ void medMaskApplicationToolBox::onRoiImported(const medDataIndex& index)
     //{
     //    interactor->setROI(data);
     //    d->view->update();
+    //}
+}
+
+void medMaskApplicationToolBox::onImageImported(const medDataIndex& index)
+{
+    //dtkSmartPointer<dtkAbstractData> data = medDataManager::instance()->data(index);
+    //qDebug()<<" data->identifier() : "<<data->identifier()<<endl;
+    //if (!data)
+    //{
+    //    return;
+    //}
+    //// put the thumbnail in the medDropSite as well
+    //// (code copied from @medDatabasePreviewItem)
+    //medAbstractDbController* dbc = medDataManager::instance()->controllerForDataSource(index.dataSourceId());
+    //QString thumbpath = dbc->metaData(index, medMetaDataKeys::ThumbnailPath);
+
+    //bool shouldSkipLoading = false;
+    //if ( thumbpath.isEmpty() )
+    //{
+    //    // first try to get it from controller
+    //    QImage thumbImage = dbc->thumbnail(index);
+    //    if (!thumbImage.isNull())
+    //    {
+    //        d->dropOrOpenRoi2->setPixmap(QPixmap::fromImage(thumbImage));
+    //        shouldSkipLoading = true;
+    //    }
+    //}
+    //if (!shouldSkipLoading) {
+    //    medImageFileLoader *loader = new medImageFileLoader(thumbpath);
+
+    //    connect(loader, SIGNAL(completed(const QImage&)), this, SLOT(setImage(const QImage&))); SLOT A MODIFIER
+    //    QThreadPool::globalInstance()->start(loader);
     //}
 }
 
@@ -408,47 +395,6 @@ void medMaskApplicationToolBox::onRoiComboIndexChanged (int value)
     //d->view->update();
 }
 
-void medMaskApplicationToolBox::onAddButtonToggled (bool value)
-{
-    //if (!d->view)
-    //    return;
-
-    //if (medAbstractViewFiberInteractor *interactor = qobject_cast<medAbstractViewFiberInteractor*>(d->view->interactor ("v3dViewFiberInteractor"))) {
-    //    int roi = d->roiComboBox->currentIndex();
-    //    if (value)
-    //        interactor->setRoiBoolean(roi+1, 2);
-    //}
-
-    //d->view->update();
-}
-
-void medMaskApplicationToolBox::onNotButtonToggled (bool value)
-{
-    //if (!d->view)
-    //    return;
-
-    //if (medAbstractViewFiberInteractor *interactor = qobject_cast<medAbstractViewFiberInteractor*>(d->view->interactor ("v3dViewFiberInteractor"))) {
-    //    int roi = d->roiComboBox->currentIndex();
-    //    if (value)
-    //        interactor->setRoiBoolean(roi+1, 1);
-    //}
-
-    //d->view->update();
-}
-
-void medMaskApplicationToolBox::onNullButtonToggled (bool value)
-{
-    //if (!d->view)
-    //    return;
-
-    //if (medAbstractViewFiberInteractor *interactor = qobject_cast<medAbstractViewFiberInteractor*>(d->view->interactor ("v3dViewFiberInteractor"))) {
-    //    int roi = d->roiComboBox->currentIndex();
-    //    if (value)
-    //        interactor->setRoiBoolean(roi+1, 0);
-    //}
-
-    //d->view->update();
-}
 
 void medMaskApplicationToolBox::clear(void)
 {
@@ -562,4 +508,32 @@ void medMaskApplicationToolBox::onDropSiteClicked()
 void medMaskApplicationToolBox::setImage(const QImage& thumbnail)
 {
     d->dropOrOpenRoi->setPixmap(QPixmap::fromImage(thumbnail));
+}
+
+void medMaskApplicationToolBox::CreateHalfMask(ImageType::Pointer image, ImageType::Pointer &mask)
+{
+  ImageType::RegionType region = image->GetLargestPossibleRegion();
+ 
+  mask->SetRegions(region);
+  mask->Allocate();
+ 
+  ImageType::SizeType regionSize = region.GetSize();
+ 
+  itk::ImageRegionIterator<ImageType> imageIterator(mask,region);
+ 
+  // Make the left half of the mask white and the right half black
+  while(!imageIterator.IsAtEnd())
+  {
+     if(imageIterator.GetIndex()[0] > static_cast<ImageType::IndexValueType>(regionSize[0]) / 2)
+        {
+        imageIterator.Set(0);
+        }
+      else
+        {
+        imageIterator.Set(255);
+        }
+ 
+    ++imageIterator;
+  }
+ 
 }

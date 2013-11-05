@@ -16,11 +16,18 @@
 #include "medToolBox.h"
 
 #include "medGuiExport.h"
+#include "itkImage.h"
+#include "itkImageFileReader.h"
+#include "itkMaskImageFilter.h"
+#include "itkImageRegionIterator.h"
+//#include "QuickView.h"
 
 class dtkAbstractView;
 class dtkAbstractData;
 class medMaskApplicationToolBoxPrivate;
 class medDataIndex;
+
+typedef itk::Image<unsigned char, 2>  ImageType;
 
 /**
   * @class medMaskApplicationToolBox
@@ -71,6 +78,8 @@ signals:
       */
     void bundlingBoxBooleanOperatorChanged (int value);
 
+    void CreateHalfMask(ImageType::Pointer image, ImageType::Pointer &mask);
+
 protected slots:
 
     /**
@@ -94,6 +103,7 @@ protected slots:
     /** Slot called when external ROI image finishes being imported. */
     virtual void onRoiImported(const medDataIndex &index);
 
+    virtual void onImageImported(const medDataIndex &index);
     /**
      * Slot called when the @meDropSite is clicked.
      * Will open a @QFileDialog so the user can choose
@@ -114,9 +124,6 @@ protected slots:
 
     virtual void onClearRoiButtonClicked();
     virtual void onRoiComboIndexChanged  (int value);
-    virtual void onAddButtonToggled      (bool value);
-    virtual void onNotButtonToggled      (bool value);
-    virtual void onNullButtonToggled     (bool value);
 
     virtual void onBundlingItemChanged (QStandardItem *item);
 

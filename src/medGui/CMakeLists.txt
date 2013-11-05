@@ -255,6 +255,9 @@ add_definitions(${QT_DEFINITIONS})
 add_definitions(-DQT_SHARED)
 add_definitions(-DQT_NO_DEBUG)
 
+find_package(ITK REQUIRED)
+include(${ITK_USE_FILE})
+
 qt4_wrap_cpp(${PROJECT_NAME}_SOURCES_MOC ${${PROJECT_NAME}_HEADERS_MOC})
 qt4_add_RESOURCES(${PROJECT_NAME}_SOURCES_QRC ${${PROJECT_NAME}_RESOURCES})
 
@@ -279,6 +282,7 @@ target_link_libraries(${PROJECT_NAME}
   dtkGui
   dtkLog
   medCore
+  ${ITK_LIBRARIES}
 )
 
 # Include header files for Visual Studio.
