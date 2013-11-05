@@ -45,6 +45,8 @@ include(${VTK_USE_FILE})
 find_package(CPSTK REQUIRED)
 include(${CPSTK_USE_FILE})
 
+find_package(TTK REQUIRED)
+include(${TTK_USE_FILE})
 
 ## #################################################################
 ## Input
@@ -81,6 +83,8 @@ target_link_libraries(${PROJECT_NAME}
   dtkLog
   dtkCore
   medCore
+  medGui
+  v3dViewPlugin
   vtkCommon
   vtkGraphics
   vtkFiltering
