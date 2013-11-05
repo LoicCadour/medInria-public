@@ -29,6 +29,8 @@
 #include <vtkRenderWindow.h>
 #include <vtkRenderer.h>
 #include <itkCastImageFilter.h>
+#include <itkResampleImagefilter.h>
+#include <algorithm> 
 
 namespace mseg {
 
@@ -260,7 +262,7 @@ void VarSegToolBox::update(dtkAbstractView * view)
         typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
         CasterType::Pointer caster = CasterType::New();
         caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(data->data())));
-        caster->Update();
+        caster->Update(); // terribly expensive in term of memory look for alternative
         image = caster->GetOutput();
     }
     else if (data->identifier() == "itkDataImageUShort3")
@@ -272,16 +274,16 @@ void VarSegToolBox::update(dtkAbstractView * view)
         caster->Update();
         image = caster->GetOutput();
     }
-    else if (data->identifier() == "itkDataImageFloat3")
+    else if (data->identifier() == "itkDataImageDouble3")
     {
-        typedef itk::Image<float, 3> InputImage;
+        typedef itk::Image<double, 3> InputImage;
         typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
         CasterType::Pointer caster = CasterType::New();
         caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(data->data())));
         caster->Update();
         image = caster->GetOutput();
     }
-    else if (data->identifier() == "itkDataImageDouble3")
+    else if (data->identifier() == "itkDataImageFloat3")
     {
         image = dynamic_cast< ImageType*>((itk::Object*)(data->data()));
     }
@@ -290,9 +292,84 @@ void VarSegToolBox::update(dtkAbstractView * view)
         qDebug() << "Failed : type " << data->identifier();
     }
 
-    this->controller->SetInput(image);
+    //itk::ChangeInformationImageFilter<itk::Image<float,3> > * infofilter = itk::ChangeInformationImageFilter<itk::Image<float,3> >::New();
+    ImageType::Pointer imagetest;
+    ImageType::SizeType imageSize = image->GetLargestPossibleRegion().GetSize(); ;
+    ImageType::SpacingType imageSpacing  = image->GetSpacing();
+
+    qDebug() << imageSize[0] << " " << imageSize[1] << " " << imageSize[2] ;
+    double res = 50;
+    ImageType::IndexType corner= {{0,0,0}};;
+    double smallestSpacing = std::min(imageSpacing[0], std::min(imageSpacing[1], imageSpacing[2]));
+    double mSpacing[3];
+    for (unsigned int i = 0; i < 3; i++)
+        //mSpacing[i] = 100 * smallestSpacing / res;
+        mSpacing[i] = 100 * imageSpacing[i] / res;
+
+    int mDim[3];
+    for (unsigned int i = 0; i < 3; i++)
+        mDim[i] = (int) (imageSize[i] * imageSpacing[i] / mSpacing[i]);
+
+
+    ImageType::SpacingType NewSpacing;
+    ImageType::SizeType NewSize;
+    NewSpacing[0] = mSpacing[0];NewSpacing[1] = mSpacing[1];NewSpacing[2] = mSpacing[2];
+    NewSize[0] = mDim[0];NewSize[1] = mDim[1];NewSize[2] = mDim[2];
+    ImageType::RegionType region(corner,NewSize);
+    imagetest = ImageType::New();
+    imagetest->SetRegions(region);
+    imagetest->Allocate();
+    imagetest->SetDirection(image->GetDirection());
+    imagetest->SetOrigin(image->GetOrigin());
+    imagetest->SetSpacing(NewSpacing);
+    
+    this->controller->SetInput(imagetest);
     v->view2d()->AddDataSet (controller->GetOutput());
     v->view3d()->AddDataSet (controller->GetOutput());
+
+  //   int returnValue = 0;
+  //int res = this->GetResolution();
+
+  //// Get image information
+  //int    dim[3];
+  //double spacing[3];
+  //double origin[3];
+  //this->Image->GetImageData()->GetDimensions(dim);
+  //this->Image->GetImageData()->GetSpacing(spacing);
+  //this->Image->GetImageData()->GetOrigin(origin);
+
+  //double smallestSpacing = min(spacing[0], min(spacing[1], spacing[2]));
+  //double mSpacing[3];
+  //for (unsigned int i = 0; i < 3; i++)
+  //  mSpacing[i] = 100 * smallestSpacing / res;
+
+  //int mDim[3];
+  //for (unsigned int i = 0; i < 3; i++)
+  //  mDim[i] = (int) (dim[i] * spacing[i] / mSpacing[i]);
+
+  //yav::VariationalFunction* vFun = new yav::VariationalFunction;
+  //if ( !vFun->SetSampleDimensions(mDim[0], mDim[1], mDim[2]) )
+  //{
+  //  vtkKWPopupErrorMessage(this,"Invalid model dimensions. Please change the resolution\n");
+  //  delete vFun;
+  //  return -1;
+  //}
+
+  //if ( !vFun->SetModelBounds(0, dim[0] * spacing[0], 
+		//	     0, dim[1] * spacing[1], 
+		//	     0, dim[2] * spacing[2]) )
+  //{
+  //  vtkKWPopupErrorMessage(this,"Invalid model bounds. Please change the resolution\n");
+  //  delete vFun;
+  //  return -1;
+  //}
+
+  //// Create the implicit image
+  //yav::Inrimage* iFun = 
+  //  new yav::Inrimage(mDim[0], mDim[1], mDim[2], yav::Inrimage::WT_FLOAT,
+		//      1, VM_INTERLACED,
+		//      fabs(mSpacing[0]), fabs(mSpacing[1]), fabs(mSpacing[2]));
+
 }
 
 

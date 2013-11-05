@@ -123,6 +123,7 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
   if ( event == vtkCommand::EndInteractionEvent )
   {
     vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (caller);
+    
     if (landmark->GetInteractor()->GetControlKey())
     {
       /**************  Landmark deletion  **************/
@@ -168,13 +169,16 @@ vtkLandmarkSegmentationController::vtkLandmarkSegmentationController()
   m_Converter->SetInput (m_Filter->GetOutput());
   vtkImageData* tmp = vtkImageData::New();
   this->SurfaceExtractor->SetInput (tmp);
+  /*this->SurfaceExtractor->SetComputeGradients(0);
+  this->SurfaceExtractor->SetComputeNormals(0);*/
   this->SurfaceExtractor->SetValue (0, 0.0);
   this->SurfaceExtractor->Update();
   this->SetOutput (this->SurfaceExtractor->GetOutput());
-  this->Mapper->SetInput (this->SurfaceExtractor->GetOutput());
+  this->Mapper->SetInputConnection (this->SurfaceExtractor->GetOutputPort());
   this->Actor->SetMapper (this->Mapper);
-
-  this->LandmarkRadius = 1.5;
+  
+  
+  this->LandmarkRadius = 4;
   tmp->Delete();
 }
 
@@ -232,8 +236,8 @@ void vtkLandmarkSegmentationController::SetInput(ImageType::Pointer input)
   m_Input = input;
   m_Filter->SetInput (m_Input);
   
-  typename ImageType::DirectionType directions = input->GetDirection();
-  typename ImageType::PointType origin = input->GetOrigin();
+  ImageType::DirectionType directions = input->GetDirection();
+  ImageType::PointType origin = input->GetOrigin();
   vtkMatrix4x4 *matrix = vtkMatrix4x4::New();
   matrix->Identity();
   for (int i=0; i<3; i++)
@@ -467,7 +471,7 @@ int vtkLandmarkSegmentationController::RequestData(
 {
   vtkInformation *outInfo = outputVector->GetInformationObject(0);
   vtkPolyData *output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
-  m_Filter->Update();
+  m_Filter->Update(); 
   m_Converter->Update();
   this->SurfaceExtractor->Update();
   vtkPolyData* data = this->SurfaceExtractor->GetOutput();
