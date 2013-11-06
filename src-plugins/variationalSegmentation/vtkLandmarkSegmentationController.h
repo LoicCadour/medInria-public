@@ -45,7 +45,7 @@ public:
   vtkTypeRevisionMacro(vtkLandmarkSegmentationController, vtkPolyDataAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
   
-  typedef float ScalarType;
+  typedef double ScalarType;
   typedef itk::Image<ScalarType, 3> ImageType;
   typedef itk::Image<int, 3> BooleanImageType;
   typedef itk::VariationalFunctionImageToImageFilter<ImageType> FilterType;
