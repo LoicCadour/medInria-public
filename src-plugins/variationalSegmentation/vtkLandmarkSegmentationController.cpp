@@ -104,11 +104,11 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
 	  type = -1;
 	  break;
 	case vtkCommand::LeftButtonPressEvent:
-	  type = 1;
+	  type = 0;
 	  break;
 	case vtkCommand::MiddleButtonPressEvent:
 	default:
-	  type = 0;
+	  type = 1;
 	  break;
     }
     
@@ -169,8 +169,6 @@ vtkLandmarkSegmentationController::vtkLandmarkSegmentationController()
   m_Converter->SetInput (m_Filter->GetOutput());
   vtkImageData* tmp = vtkImageData::New();
   this->SurfaceExtractor->SetInput (tmp);
-  /*this->SurfaceExtractor->SetComputeGradients(0);
-  this->SurfaceExtractor->SetComputeNormals(0);*/
   this->SurfaceExtractor->SetValue (0, 0.0);
   this->SurfaceExtractor->Update();
   this->SetOutput (this->SurfaceExtractor->GetOutput());
@@ -178,7 +176,7 @@ vtkLandmarkSegmentationController::vtkLandmarkSegmentationController()
   this->Actor->SetMapper (this->Mapper);
   
   
-  this->LandmarkRadius = 4;
+  this->LandmarkRadius = 2;
   tmp->Delete();
 }
 
@@ -255,7 +253,7 @@ void vtkLandmarkSegmentationController::SetInput(ImageType::Pointer input)
   this->SurfaceExtractor->SetInput (m_Converter->GetOutput());
   this->Modified();
   double minspacing = std::min(input->GetSpacing()[0], std::min(input->GetSpacing()[1], input->GetSpacing()[2]));
-  this->LandmarkRadius = minspacing/2.0;
+  this->LandmarkRadius = minspacing/2;
 }
 
 //----------------------------------------------------------------------------

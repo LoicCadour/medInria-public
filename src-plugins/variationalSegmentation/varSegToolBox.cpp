@@ -169,7 +169,19 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
 
     QVBoxLayout * layout = new QVBoxLayout(displayWidget);
 
+    QLabel * inside = new QLabel(QString("Inside VOI : Shift + right mouse button"),displayWidget);
+    QLabel * outside = new QLabel(QString("On VOI : Shift + left mouse button"),displayWidget);
+    QLabel * on = new QLabel(QString("Outside VOI : Shift + middle mouse button"),displayWidget);
+
+    layout->addWidget(inside);
+    layout->addWidget(outside);
+    layout->addWidget(on);
+    
+
     controller = vtkLandmarkSegmentationController::New();
+
+    
+
 }
 
 VarSegToolBox::~VarSegToolBox()
@@ -298,13 +310,13 @@ void VarSegToolBox::update(dtkAbstractView * view)
     ImageType::SpacingType imageSpacing  = image->GetSpacing();
 
     qDebug() << imageSize[0] << " " << imageSize[1] << " " << imageSize[2] ;
-    double res = 50;
+    double res = 20;
     ImageType::IndexType corner= {{0,0,0}};;
     double smallestSpacing = std::min(imageSpacing[0], std::min(imageSpacing[1], imageSpacing[2]));
     double mSpacing[3];
     for (unsigned int i = 0; i < 3; i++)
-        //mSpacing[i] = 100 * smallestSpacing / res;
-        mSpacing[i] = 100 * imageSpacing[i] / res;
+        mSpacing[i] = 100 * smallestSpacing / res;
+        //mSpacing[i] = 100 * imageSpacing[i] / res;
 
     int mDim[3];
     for (unsigned int i = 0; i < 3; i++)
