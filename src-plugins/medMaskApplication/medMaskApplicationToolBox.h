@@ -13,45 +13,39 @@
 
 #pragma once
 
+#include <medFilteringAbstractToolBox.h>
+
+#include "medMaskApplicationPluginExport.h"
 #include "medToolBox.h"
 
 #include "medGuiExport.h"
-#include "itkImage.h"
-#include "itkImageFileReader.h"
-#include "itkMaskImageFilter.h"
-#include "itkImageRegionIterator.h"
-//#include "QuickView.h"
+#include <medDataManager.h>
 
-class dtkAbstractView;
-class dtkAbstractData;
+
+
 class medMaskApplicationToolBoxPrivate;
-class medDataIndex;
 
-typedef itk::Image<unsigned char, 2>  ImageType;
-
-/**
-  * @class medMaskApplicationToolBox
-  * @author Pierre Fillard
-  * @brief Toolbox to extract bundle from fibers and to compute statistics of those
-  * This toolbox allows to perform fiber bundling. It must be used with subclasses
-  * of @class medAbstractViewFiberInteractor. It allows to bundle fibers (i.e.,
-  * declare groups of fibers as belonging to the same anatomical bundle), name
-  * and color bundles, and compute and display FA, ADC and length statistics.
-  */
-class MEDGUI_EXPORT medMaskApplicationToolBox : public medToolBox
+class MEDMASKAPPLICATIONPLUGIN_EXPORT medMaskApplicationToolBox : public medFilteringAbstractToolBox
 {
     Q_OBJECT
+    
 public:
-     medMaskApplicationToolBox(QWidget *parent);
+    medMaskApplicationToolBox(QWidget *parent = 0);
     ~medMaskApplicationToolBox();
+    
+    dtkAbstractData *processOutput();
+    
+    static bool registered();
+    dtkPlugin * plugin();
 
     /**
-      * Set input fibers as a dtkAbstractData object. Subclass should
-      * inherit it and cass it into proper fiber data type.
-      */
+    * Set input fibers as a dtkAbstractData object. Subclass should
+    * inherit it and cass it into proper fiber data type.
+    */
     virtual void setData(dtkAbstractData *data);
-
+    
 signals:
+
     /**
       * This signal is emitted when the user want to bundle fibers on screen.
       * @param name Name of the bundle
@@ -77,8 +71,13 @@ signals:
       * @param value Value of the ROI to be changed
       */
     void bundlingBoxBooleanOperatorChanged (int value);
+    void success();
+    void failure();
+    
+    public slots:
+    void run();
 
-    void CreateHalfMask(ImageType::Pointer image, ImageType::Pointer &mask);
+
 
 protected slots:
 
@@ -126,11 +125,9 @@ protected slots:
     virtual void onRoiComboIndexChanged  (int value);
 
     virtual void onBundlingItemChanged (QStandardItem *item);
-
+    
 private:
     medMaskApplicationToolBoxPrivate *d;
-
 };
-
 
 

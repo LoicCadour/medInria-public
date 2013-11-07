@@ -13,6 +13,7 @@
 
 project(medGui)
 
+
 ## #################################################################
 ## Sources
 ## #################################################################
@@ -27,7 +28,6 @@ set(${PROJECT_NAME}_DEVEL_HEADERS_MOC
   toolboxes/medSegmentationAbstractToolBox.h
   toolboxes/medSegmentationSelectorToolBox.h
   toolboxes/medToolBox.h
-  toolboxes/medMaskApplicationToolBox.h
   commonWidgets/medSliderSpinboxPair.h
 )
 
@@ -118,7 +118,6 @@ set(${PROJECT_NAME}_HEADERS_MOC
   toolboxes/medCompositeDataSetImporterSelectorToolBox.h
   toolboxes/medCompositeDataSetImporterAbstractToolBox.h
   toolboxes/medActionsToolBox.h
-  toolboxes/medMaskApplicationToolBox.h
 
 
   # viewContainers:
@@ -139,6 +138,7 @@ set(${PROJECT_NAME}_HEADERS
   database/medDatabaseNavigatorController.h
   database/medDatabasePreviewController.h
   ${${PROJECT_NAME}_HEADERS_MOC}
+  
   )
 
 set(${PROJECT_NAME}_SOURCES
@@ -234,7 +234,6 @@ set(${PROJECT_NAME}_SOURCES
   toolboxes/medCompositeDataSetImporterSelectorToolBox.cpp
   toolboxes/medCompositeDataSetImporterAbstractToolBox.cpp
   toolboxes/medActionsToolBox.cpp
-  toolboxes/medMaskApplicationToolBox.cpp
 
 
   # viewContainers:
@@ -255,8 +254,6 @@ add_definitions(${QT_DEFINITIONS})
 add_definitions(-DQT_SHARED)
 add_definitions(-DQT_NO_DEBUG)
 
-find_package(ITK REQUIRED)
-include(${ITK_USE_FILE})
 
 qt4_wrap_cpp(${PROJECT_NAME}_SOURCES_MOC ${${PROJECT_NAME}_HEADERS_MOC})
 qt4_add_RESOURCES(${PROJECT_NAME}_SOURCES_QRC ${${PROJECT_NAME}_RESOURCES})
@@ -282,7 +279,6 @@ target_link_libraries(${PROJECT_NAME}
   dtkGui
   dtkLog
   medCore
-  ${ITK_LIBRARIES}
 )
 
 # Include header files for Visual Studio.

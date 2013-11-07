@@ -82,6 +82,7 @@ set(PLUGIN_LIST
   itkDataSHImage                 ON
   itkDataSHImageWriter           ON
   itkDataSHImageReader           ON
+  medMaskApplication             ON
   )
 
 if (MEDINRIA-PLUGINS_BUILD_EXAMPLES)

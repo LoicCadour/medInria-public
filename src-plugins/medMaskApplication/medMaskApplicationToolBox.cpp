@@ -11,26 +11,43 @@
 
 =========================================================================*/
 
+#include "medMaskApplication.h"
 #include "medMaskApplicationToolBox.h"
 
-#include <dtkCore/dtkAbstractData.h>
+#include <QtGui>
+
 #include <dtkCore/dtkAbstractDataFactory.h>
-#include <dtkCore/dtkAbstractView.h>
+#include <dtkCore/dtkAbstractData.h>
+#include <dtkCore/dtkAbstractProcessFactory.h>
+#include <dtkCore/dtkAbstractProcess.h>
+#include <dtkCore/dtkAbstractViewFactory.h>
 #include <dtkCore/dtkAbstractViewInteractor.h>
 #include <dtkCore/dtkSmartPointer.h>
 
+#include <medAbstractView.h>
+#include <medRunnableProcess.h>
+#include <medJobManager.h>
+
+#include <medAbstractDataImage.h>
+
+#include <medToolBoxFactory.h>
+#include <medFilteringSelectorToolBox.h>
+#include <medProgressionStack.h>
+#include <medPluginManager.h>
 #include <medDataManager.h>
 #include <medAbstractDbController.h>
 #include <medDbControllerFactory.h>
-#include <medAbstractViewFiberInteractor.h>
-#include <medMessageController.h>
-#include <medDropSite.h>
 #include <medMetaDataKeys.h>
+#include <medDropSite.h>
+#include <medAbstractViewFiberInteractor.h>
 #include <medImageFileLoader.h>
 
 class medMaskApplicationToolBoxPrivate
 {
 public:
+    
+    dtkSmartPointer <dtkAbstractProcess> process;
+    medProgressionStack * progression_stack;
     QStandardItemModel *bundlingModel;
     QPushButton  *bundlingButtonVdt;
     QPushButton  *bundlingButtonRst;
@@ -45,23 +62,23 @@ public:
     dtkSmartPointer<dtkAbstractData> data;
 };
 
-medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolBox(parent), d(new medMaskApplicationToolBoxPrivate)
+medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medFilteringAbstractToolBox(parent), d(new medMaskApplicationToolBoxPrivate)
 {
-    QWidget *bundlingPage = new QWidget(this);
-
-    d->dropOrOpenRoi = new medDropSite(bundlingPage);
+    QWidget *widget = new QWidget(this);
+    
+        d->dropOrOpenRoi = new medDropSite(widget);
     d->dropOrOpenRoi->setToolTip(tr("Once you are viewing fibers, click here to open a ROI or drag-and-drop one from the database."));
     d->dropOrOpenRoi->setText(tr("Once you are viewing fibers\nclick here to open a ROI\nor drag-and-drop one\nfrom the database."));
     d->dropOrOpenRoi->setCanAutomaticallyChangeAppereance(false);
 
-    d->dropOrOpenRoi2 = new medDropSite(bundlingPage);
+    d->dropOrOpenRoi2 = new medDropSite(widget);
     d->dropOrOpenRoi2->setToolTip(tr("INPUT 2"));
     d->dropOrOpenRoi2->setText(tr("INPUT 2"));
     d->dropOrOpenRoi2->setCanAutomaticallyChangeAppereance(true);
 
-    QPushButton *clearRoiButton = new QPushButton("Clear ROI", bundlingPage);
+    QPushButton *clearRoiButton = new QPushButton("Clear ROI", widget);
     clearRoiButton->setToolTip(tr("Clear previously loaded ROIs."));
-    d->roiComboBox = new QComboBox(bundlingPage);
+    d->roiComboBox = new QComboBox(widget);
     for (int i=0; i<255; i++)
         d->roiComboBox->addItem(tr("ROI ")+QString::number(i+1));
     d->roiComboBox->setCurrentIndex(0);
@@ -71,11 +88,11 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolB
     QHBoxLayout *roiLayout = new QHBoxLayout;
     roiLayout->addWidget(d->roiComboBox);
 
-    d->bundlingButtonAdd = new QPushButton("Add", bundlingPage);
+    d->bundlingButtonAdd = new QPushButton("Add", widget);
     d->bundlingButtonAdd->setToolTip(tr("Select to either include the fibers that overlap with the bundling box, or to include the ones that do not overlap."));
-    d->bundlingButtonRst = new QPushButton("Reset", bundlingPage);
+    d->bundlingButtonRst = new QPushButton("Reset", widget);
     d->bundlingButtonRst->setToolTip(tr("Reset all previously tagged bundling boxes."));
-    d->bundlingButtonVdt = new QPushButton("Validate", bundlingPage);
+    d->bundlingButtonVdt = new QPushButton("Validate", widget);
     d->bundlingButtonVdt->setToolTip(tr("Save the current shown bundle and show useful information about it."));
     d->bundlingButtonAdd->setCheckable(true);
 
@@ -85,15 +102,15 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolB
     bundlingButtonsLayout->addWidget(d->bundlingButtonVdt);
 
 
-    d->bundlingModel = new QStandardItemModel(0, 1, bundlingPage);
+    d->bundlingModel = new QStandardItemModel(0, 1, widget);
     d->bundlingModel->setHeaderData(0, Qt::Horizontal, tr("Fiber bundles"));
 
     // QItemSelectionModel *selectionModel = new QItemSelectionModel(d->bundlingModel);
 
-    d->bundlingShowCheckBox = new QCheckBox("Show all bundles", bundlingPage);
+    d->bundlingShowCheckBox = new QCheckBox("Show all bundles", widget);
     d->bundlingShowCheckBox->setChecked(true);
     d->bundlingShowCheckBox->setToolTip(tr("Uncheck if you do not want the previously validated bundles to be displayed."));
-    d->bundleBoxCheckBox = new QCheckBox("Activate bundling box", bundlingPage);
+    d->bundleBoxCheckBox = new QCheckBox("Activate bundling box", widget);
     d->bundleBoxCheckBox->setToolTip(tr("Select to activate and show the fiber bundling box on the screen."));
 
     QVBoxLayout *roiButtonLayout = new QVBoxLayout;
@@ -102,7 +119,7 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolB
     roiButtonLayout->addWidget (clearRoiButton);
     roiButtonLayout->setAlignment(Qt::AlignCenter);
 
-    QVBoxLayout *bundlingLayout = new QVBoxLayout(bundlingPage);
+    QVBoxLayout *bundlingLayout = new QVBoxLayout(widget);
     bundlingLayout->addLayout(roiButtonLayout);
     bundlingLayout->addLayout(roiLayout);
     bundlingLayout->addWidget(d->bundleBoxCheckBox);
@@ -126,14 +143,84 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medToolB
     connect (d->roiComboBox,   SIGNAL(currentIndexChanged(int)),           this, SLOT(onRoiComboIndexChanged(int)));
 
     this->setTitle("MaskApplication");
-    this->addWidget(bundlingPage);
+    this->addWidget(widget);
+
+    QPushButton *runButton = new QPushButton(tr("Run"), this);
+    
+    // progression stack
+    d->progression_stack = new medProgressionStack(widget);
+    QHBoxLayout *progressStackLayout = new QHBoxLayout;
+    progressStackLayout->addWidget(d->progression_stack);
+    
+    this->addWidget(runButton);
+    this->addWidget(d->progression_stack);
+    
+    connect(runButton, SIGNAL(clicked()), this, SLOT(run()));
 }
 
 medMaskApplicationToolBox::~medMaskApplicationToolBox()
 {
     delete d;
+    
     d = NULL;
 }
+
+bool medMaskApplicationToolBox::registered()
+{
+    return medToolBoxFactory::instance()->
+    registerToolBox<medMaskApplicationToolBox>("medMaskApplicationToolBox",
+                               tr("Friendly name"),
+                               tr("short tooltip description"),
+                               QStringList()<< "filtering");
+}
+
+dtkPlugin* medMaskApplicationToolBox::plugin()
+{
+    medPluginManager* pm = medPluginManager::instance();
+    dtkPlugin* plugin = pm->plugin ( "medMaskApplicationPlugin" );
+    return plugin;
+}
+
+dtkAbstractData* medMaskApplicationToolBox::processOutput()
+{
+    if(!d->process)
+        return NULL;
+    
+    return d->process->output();
+}
+
+void medMaskApplicationToolBox::run()
+{
+    if(!this->parentToolBox())
+        return;
+    
+    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("medMaskApplication");
+    
+    if(!this->parentToolBox()->data())
+        return;
+    
+    d->process->setInput(this->parentToolBox()->data());
+    
+    // Set your parameters here
+    
+    medRunnableProcess *runProcess = new medRunnableProcess;
+    runProcess->setProcess (d->process);
+    
+    d->progression_stack->addJobItem(runProcess, "Progress:");
+    
+    d->progression_stack->disableCancel(runProcess);
+    
+    connect (runProcess, SIGNAL (success  (QObject*)),  this, SIGNAL (success ()));
+    connect (runProcess, SIGNAL (failure  (QObject*)),  this, SIGNAL (failure ()));
+    connect (runProcess, SIGNAL (cancelled (QObject*)),  this, SIGNAL (failure ()));
+    
+    connect (runProcess, SIGNAL(activate(QObject*,bool)),
+             d->progression_stack, SLOT(setActive(QObject*,bool)));
+    
+    medJobManager::instance()->registerJobItem(runProcess);
+    QThreadPool::globalInstance()->start(dynamic_cast<QRunnable*>(runProcess));
+}
+
 
 void medMaskApplicationToolBox::setData(dtkAbstractData *data)
 {
@@ -394,8 +481,6 @@ void medMaskApplicationToolBox::onRoiComboIndexChanged (int value)
 
     //d->view->update();
 }
-
-
 void medMaskApplicationToolBox::clear(void)
 {
     // clear ROIs and related GUI elements
@@ -460,7 +545,6 @@ void medMaskApplicationToolBox::update(dtkAbstractView *view)
         this->setData (interactor->data());
     }
 }
-
 void medMaskApplicationToolBox::onBundlingItemChanged(QStandardItem *item)
 {
     //if (d->view) {
@@ -508,32 +592,4 @@ void medMaskApplicationToolBox::onDropSiteClicked()
 void medMaskApplicationToolBox::setImage(const QImage& thumbnail)
 {
     d->dropOrOpenRoi->setPixmap(QPixmap::fromImage(thumbnail));
-}
-
-void medMaskApplicationToolBox::CreateHalfMask(ImageType::Pointer image, ImageType::Pointer &mask)
-{
-  ImageType::RegionType region = image->GetLargestPossibleRegion();
- 
-  mask->SetRegions(region);
-  mask->Allocate();
- 
-  ImageType::SizeType regionSize = region.GetSize();
- 
-  itk::ImageRegionIterator<ImageType> imageIterator(mask,region);
- 
-  // Make the left half of the mask white and the right half black
-  while(!imageIterator.IsAtEnd())
-  {
-     if(imageIterator.GetIndex()[0] > static_cast<ImageType::IndexValueType>(regionSize[0]) / 2)
-        {
-        imageIterator.Set(0);
-        }
-      else
-        {
-        imageIterator.Set(255);
-        }
- 
-    ++imageIterator;
-  }
- 
 }

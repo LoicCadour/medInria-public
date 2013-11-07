@@ -19,7 +19,9 @@
 #include <medTimeLineToolBox.h>
 #include <medVisualizationLayoutToolBox.h>
 #include <medSettingsManager.h>
-#include <medMaskApplicationToolBox.h>
+#include <medFilteringAbstractToolBox.h>
+#include <medToolBoxFactory.h>
+//#include <medMaskApplicationToolBox.h>
 
 class medVisualizationWorkspacePrivate
 {
@@ -27,7 +29,7 @@ public:
     medVisualizationLayoutToolBox *layoutToolBox;
     medTimeLineToolBox *timeToolBox;
     medViewPropertiesToolBox *viewPropertiesToolBox;
-    medMaskApplicationToolBox *maskApplicatioToolBox;
+    //medMaskApplicationToolBox *maskApplicatioToolBox;
 };
 
 medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medWorkspace(parent), d(new medVisualizationWorkspacePrivate)
@@ -47,15 +49,15 @@ medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medWorks
     this->addToolBox( d->layoutToolBox );
 
     // -- View toolbox --
-
+    medFilteringAbstractToolBox *maskApplicatioToolBox = qobject_cast<medFilteringAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("medMaskApplicationToolBox", parent));
     d->viewPropertiesToolBox = new medViewPropertiesToolBox(parent);
     d->timeToolBox           = new medTimeLineToolBox(parent);
-    d->maskApplicatioToolBox = new medMaskApplicationToolBox(parent);
+    //d->maskApplicatioToolBox = new medMaskApplicationToolBox(parent);
 
 
     this->addToolBox( d->viewPropertiesToolBox );
     this->addToolBox( d->timeToolBox );
-    this->addToolBox( d->maskApplicatioToolBox );
+    this->addToolBox( maskApplicatioToolBox );
 
     connect ( this, SIGNAL(layoutModeChanged(const QString&)),
               d->timeToolBox, SLOT(onStopButton()));
