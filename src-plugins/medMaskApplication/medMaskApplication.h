@@ -25,7 +25,8 @@
 
 class medMaskApplicationPrivate;
 
-typedef itk::Image<unsigned char, 2>  ImageType;
+typedef itk::Image<unsigned short, 3>  ImageType;
+typedef itk::Image<unsigned char, 3>  MaskType;
 
 class MEDMASKAPPLICATIONPLUGIN_EXPORT medMaskApplication : public dtkAbstractProcess
 {
@@ -42,8 +43,8 @@ public:
 public slots:
     
     //! Input data to the plugin is set through here
-    void setInput(dtkAbstractData *data);
-    
+    void setInput(dtkAbstractData *data, int channel);
+
     //! Parameters are set through here, channel allows to handle multiple parameters
     void setParameter(double  data, int channel);
     

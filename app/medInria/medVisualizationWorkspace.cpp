@@ -21,7 +21,6 @@
 #include <medSettingsManager.h>
 #include <medFilteringAbstractToolBox.h>
 #include <medToolBoxFactory.h>
-//#include <medMaskApplicationToolBox.h>
 
 class medVisualizationWorkspacePrivate
 {
@@ -29,7 +28,6 @@ public:
     medVisualizationLayoutToolBox *layoutToolBox;
     medTimeLineToolBox *timeToolBox;
     medViewPropertiesToolBox *viewPropertiesToolBox;
-    //medMaskApplicationToolBox *maskApplicatioToolBox;
 };
 
 medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medWorkspace(parent), d(new medVisualizationWorkspacePrivate)
@@ -52,7 +50,6 @@ medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medWorks
     medFilteringAbstractToolBox *maskApplicatioToolBox = qobject_cast<medFilteringAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("medMaskApplicationToolBox", parent));
     d->viewPropertiesToolBox = new medViewPropertiesToolBox(parent);
     d->timeToolBox           = new medTimeLineToolBox(parent);
-    //d->maskApplicatioToolBox = new medMaskApplicationToolBox(parent);
 
 
     this->addToolBox( d->viewPropertiesToolBox );

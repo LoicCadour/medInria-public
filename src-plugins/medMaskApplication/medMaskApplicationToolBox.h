@@ -46,31 +46,6 @@ public:
     
 signals:
 
-    /**
-      * This signal is emitted when the user want to bundle fibers on screen.
-      * @param name Name of the bundle
-      * @param color Color of the bundle
-      */
-    void fiberSelectionValidated (const QString &name, const QColor &color);
-
-    /**
-      * This signal is emitted when the user wants to navigate into the
-      * subset of visible fibers (usefull for recursive fiber bundling).
-      */
-    void fiberSelectionTagged();
-
-    /**
-      * This signal is emitted when the user wants to reset the fiber
-      * navigation to the entire set of fibers.
-      */
-    void fiberSelectionReset();
-
-    /**
-      * This signal is emitted when the user wants to change the
-      * boolean meaning of a ROI.
-      * @param value Value of the ROI to be changed
-      */
-    void bundlingBoxBooleanOperatorChanged (int value);
     void success();
     void failure();
     
@@ -94,11 +69,6 @@ protected slots:
      */
     virtual void clear();
 
-    /**
-      * Add a bundle (identified by a name and a color) to the list of bundles.
-      */
-    virtual void addBundle (const QString &name, const QColor &color);
-
     /** Slot called when external ROI image finishes being imported. */
     virtual void onRoiImported(const medDataIndex &index);
 
@@ -115,17 +85,9 @@ protected slots:
      */
     void setImage(const QImage& thumbnail);
 
-    // internal method, doc to come
-    virtual void onBundlingButtonVdtClicked();
-    virtual void onBundlingButtonAndToggled (bool);
-    virtual void onBundleBoxCheckBoxToggled (bool);
-    virtual void onBundlingShowCheckBoxToggled (bool);
-
     virtual void onClearRoiButtonClicked();
-    virtual void onRoiComboIndexChanged  (int value);
+    virtual void onClearInputButtonClicked();
 
-    virtual void onBundlingItemChanged (QStandardItem *item);
-    
 private:
     medMaskApplicationToolBoxPrivate *d;
 };
