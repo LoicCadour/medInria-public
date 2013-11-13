@@ -49,7 +49,6 @@ public:
     
     dtkSmartPointer <dtkAbstractProcess> process;
     medProgressionStack * progression_stack;
-    QStandardItemModel *bundlingModel;
     medDropSite *dropOrOpenRoi;
     medDropSite *dropOrOpenRoi2;
 
@@ -63,24 +62,19 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medFilte
     QWidget *widget = new QWidget(this);
     
         d->dropOrOpenRoi = new medDropSite(widget);
-    d->dropOrOpenRoi->setToolTip(tr("MASK."));
-    d->dropOrOpenRoi->setText(tr("MASK."));
+    d->dropOrOpenRoi->setToolTip(tr("Drop the binary mask"));
+    d->dropOrOpenRoi->setText(tr("Drop the mask"));
     d->dropOrOpenRoi->setCanAutomaticallyChangeAppereance(false);
 
     d->dropOrOpenRoi2 = new medDropSite(widget);
-    d->dropOrOpenRoi2->setToolTip(tr("INPUT 2"));
-    d->dropOrOpenRoi2->setText(tr("INPUT 2"));
+    d->dropOrOpenRoi2->setToolTip(tr("Drop the image"));
+    d->dropOrOpenRoi2->setText(tr("Drop the image"));
     d->dropOrOpenRoi2->setCanAutomaticallyChangeAppereance(true);
 
-    QPushButton *clearRoiButton = new QPushButton("Clear ROI", widget);
-    clearRoiButton->setToolTip(tr("Clear previously loaded ROIs."));
-    QPushButton *clearInputButton = new QPushButton("Clear Input", widget);
-    clearInputButton->setToolTip(tr("Clear previously loaded input."));
-
-    d->bundlingModel = new QStandardItemModel(0, 1, widget);
-    d->bundlingModel->setHeaderData(0, Qt::Horizontal, tr("Fiber bundles"));
-
-    // QItemSelectionModel *selectionModel = new QItemSelectionModel(d->bundlingModel);
+    QPushButton *clearRoiButton = new QPushButton("Clear mask", widget);
+    clearRoiButton->setToolTip(tr("Clear previously loaded mask."));
+    QPushButton *clearInputButton = new QPushButton("Clear Image", widget);
+    clearInputButton->setToolTip(tr("Clear previously loaded image."));
 
     QVBoxLayout *roiButtonLayout = new QVBoxLayout;
     roiButtonLayout->addWidget(d->dropOrOpenRoi);
@@ -100,7 +94,7 @@ medMaskApplicationToolBox::medMaskApplicationToolBox(QWidget *parent) : medFilte
     connect (clearInputButton,   SIGNAL(clicked()),                          this, SLOT(onClearInputButtonClicked()));
 
 
-    this->setTitle("MaskApplication");
+    this->setTitle("Mask Application");
     this->addWidget(widget);
 
     QPushButton *runButton = new QPushButton(tr("Run"), this);
@@ -127,8 +121,8 @@ bool medMaskApplicationToolBox::registered()
 {
     return medToolBoxFactory::instance()->
     registerToolBox<medMaskApplicationToolBox>("medMaskApplicationToolBox",
-                               tr("Friendly name"),
-                               tr("short tooltip description"),
+                               tr("Mask Application"),
+                               tr("Apply a mask to an image"),
                                QStringList()<< "filtering");
 }
 
@@ -183,22 +177,6 @@ void medMaskApplicationToolBox::run()
 
 }
 
-
-void medMaskApplicationToolBox::setData(dtkAbstractData *data)
-{
-    if (!data)
-        return;
-
-    if (data->identifier()!="v3dDataFibers") {
-        return;
-    }
-
-    if (d->data==data)
-        return;
-
-    d->data = data;
-}
-
 void medMaskApplicationToolBox::onRoiImported(const medDataIndex& index)
 {
     dtkSmartPointer<dtkAbstractData> data = medDataManager::instance()->data(index);
@@ -237,7 +215,6 @@ void medMaskApplicationToolBox::onRoiImported(const medDataIndex& index)
         return;
 
     d->process->setInput(data, 0);
-    qDebug()<<"GET THE MASK ! "<<endl;
 }
 
 void medMaskApplicationToolBox::onImageImported(const medDataIndex& index)
@@ -255,28 +232,26 @@ void medMaskApplicationToolBox::onImageImported(const medDataIndex& index)
     if (!d->process)
         return;
 
-    d->process->setInput(data, 1);qDebug()<<"GET THE INPUT ! "<<endl;
+    d->process->setInput(data, 1);
 
 }
 
 void medMaskApplicationToolBox::onClearRoiButtonClicked(void)
 {
     d->dropOrOpenRoi->clear();
-    d->dropOrOpenRoi->setText(tr("MASK."));
+    d->dropOrOpenRoi->setText(tr("Drop the mask"));
 }
 
 void medMaskApplicationToolBox::onClearInputButtonClicked(void)
 {
     d->dropOrOpenRoi2->clear();
-    d->dropOrOpenRoi2->setText(tr("INPUT."));
+    d->dropOrOpenRoi2->setText(tr("Drop the image"));
 }
 
 void medMaskApplicationToolBox::clear(void)
 {
     // clear ROIs and related GUI elements
     onClearRoiButtonClicked();
-
-    d->bundlingModel->removeRows(0, d->bundlingModel->rowCount(QModelIndex()), QModelIndex());
 
     d->view = 0;
     d->data = 0;
@@ -323,17 +298,17 @@ void medMaskApplicationToolBox::update(dtkAbstractView *view)
 
 void medMaskApplicationToolBox::onDropSiteClicked()
 {
-    if (!d->view)
-        return;
+    //if (!d->view)
+    //    return;
 
-    QString roiFileName = QFileDialog::getOpenFileName(this, tr("Open ROI"), "", tr("Image file (*.*)"));
+    //QString roiFileName = QFileDialog::getOpenFileName(this, tr("Open ROI"), "", tr("Image file (*.*)"));
 
-    if (roiFileName.isEmpty())
-        return;
+    //if (roiFileName.isEmpty())
+    //    return;
 
-    medDataManager* mdm = medDataManager::instance();
-    connect(mdm, SIGNAL(dataAdded(const medDataIndex &)), this, SLOT(onRoiImported(const medDataIndex &)));
-    mdm->importNonPersistent(roiFileName);
+    //medDataManager* mdm = medDataManager::instance();
+    //connect(mdm, SIGNAL(dataAdded(const medDataIndex &)), this, SLOT(onRoiImported(const medDataIndex &)));
+    //mdm->importNonPersistent(roiFileName);
 }
 
 void medMaskApplicationToolBox::setImage(const QImage& thumbnail)

@@ -46,8 +46,14 @@ class medMaskApplicationPrivate
         typedef itk::MaskImageFilter< ImageType,  MaskType> MaskFilterType;
         MaskFilterType::Pointer maskFilter = MaskFilterType::New();
 
-        maskFilter->SetInput(dynamic_cast<ImageType *> ( ( itk::Object* ) ( input->data() ) ));
-        maskFilter->SetMaskImage(dynamic_cast<MaskType *> ( ( itk::Object* ) ( mask->data() ) ));
+        typename ImageType::Pointer imgInput = dynamic_cast<ImageType *> ( ( itk::Object* ) ( input->data() )) ;
+        typename MaskType::Pointer maskInput = dynamic_cast<MaskType *> ( ( itk::Object* ) ( mask->data() )) ;
+        
+        maskInput->SetOrigin(imgInput->GetOrigin());
+        maskInput->SetSpacing(imgInput->GetSpacing());
+
+        maskFilter->SetInput(imgInput);
+        maskFilter->SetMaskImage(maskInput);
 
         //Outside values set to the lowest reachable value
         maskFilter->SetOutsideValue(std::numeric_limits<PixelType>::min());
@@ -97,15 +103,13 @@ void medMaskApplication::setInput ( dtkAbstractData *data, int channel)
     {
         QString identifier = data->identifier();
         d->mask = data;
-        qDebug()<<"MASK SET !!"<<endl;
     }
 
     if ( channel == 1 )
     {
-        QString identifier = data->identifier();qDebug()<<"identifier : "<<identifier<<endl;
+        QString identifier = data->identifier();
         d->output = dtkAbstractDataFactory::instance()->createSmartPointer ( identifier );
         d->input = data;
-        qDebug()<<"INPUT SET !!IN id :"<<d->input->identifier()<<endl;
     }
 }
 

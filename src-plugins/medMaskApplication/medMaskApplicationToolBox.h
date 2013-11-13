@@ -37,12 +37,6 @@ public:
     
     static bool registered();
     dtkPlugin * plugin();
-
-    /**
-    * Set input fibers as a dtkAbstractData object. Subclass should
-    * inherit it and cass it into proper fiber data type.
-    */
-    virtual void setData(dtkAbstractData *data);
     
 signals:
 
