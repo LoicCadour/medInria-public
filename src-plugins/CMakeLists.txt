@@ -82,6 +82,7 @@ set(PLUGIN_LIST
   itkDataSHImage                 ON
   itkDataSHImageWriter           ON
   itkDataSHImageReader           ON
+  medBinaryOperation			 ON
   )
 
 if (MEDINRIA-PLUGINS_BUILD_EXAMPLES)
