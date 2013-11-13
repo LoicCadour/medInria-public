@@ -52,15 +52,18 @@ public:
     medDropSite *siteB;
 
     dtkSmartPointer<dtkAbstractView> view;
-    dtkSmartPointer<dtkAbstractData> data;
-    dtkSmartPointer<dtkAbstractData> mask;
+    dtkSmartPointer<dtkAbstractData> inputA;
+    dtkSmartPointer<dtkAbstractData> inputB;
+
+    QRadioButton *xorButton;
+    QRadioButton *andButton;
 };
 
 medBinaryOperationToolBox::medBinaryOperationToolBox(QWidget *parent) : medFilteringAbstractToolBox(parent), d(new medBinaryOperationToolBoxPrivate)
 {
     QWidget *widget = new QWidget(this);
     
-        d->siteA = new medDropSite(widget);
+    d->siteA = new medDropSite(widget);
     d->siteA->setToolTip(tr("Drop a binary mask"));
     d->siteA->setText(tr("Drop a mask"));
     d->siteA->setCanAutomaticallyChangeAppereance(false);
@@ -75,11 +78,20 @@ medBinaryOperationToolBox::medBinaryOperationToolBox(QWidget *parent) : medFilte
     QPushButton *clearInputButton = new QPushButton("Clear", widget);
     clearInputButton->setToolTip(tr("Clear previously loaded ROI."));
 
+    d->xorButton  = new QRadioButton(tr("XOR"), widget);
+    d->xorButton->setToolTip(tr("If \"XOR\" is selected fibers will need to overlap with this ROI to be displayed."));
+    d->xorButton->setChecked(true);
+
+    d->andButton  = new QRadioButton(tr("AND"), widget);
+    d->andButton->setToolTip(tr("If \"AND\" is selected fibers will need to overlap with this ROI to be displayed."));
+
     QVBoxLayout *roiButtonLayout = new QVBoxLayout;
     roiButtonLayout->addWidget(d->siteA);
     roiButtonLayout->addWidget (clearRoiButton);
     roiButtonLayout->addWidget(d->siteB);
     roiButtonLayout->addWidget (clearInputButton);
+    roiButtonLayout->addWidget(d->xorButton);
+    roiButtonLayout->addWidget(d->andButton);
     roiButtonLayout->setAlignment(Qt::AlignCenter);
 
     QVBoxLayout *bundlingLayout = new QVBoxLayout(widget);
@@ -91,12 +103,14 @@ medBinaryOperationToolBox::medBinaryOperationToolBox(QWidget *parent) : medFilte
     connect (d->siteB, SIGNAL(clicked()),                          this, SLOT(onDropSiteClicked()));
     connect (clearRoiButton,   SIGNAL(clicked()),                          this, SLOT(onClearRoiButtonClicked()));
     connect (clearInputButton,   SIGNAL(clicked()),                          this, SLOT(onClearInputButtonClicked()));
+    connect (d->xorButton,     SIGNAL(toggled(bool)),                      this, SLOT(onXorButtonToggled(bool)));
+    connect (d->andButton,     SIGNAL(toggled(bool)),                      this, SLOT(onAndButtonToggled(bool)));
 
-
+    this->onXorButtonToggled(true);
     this->setTitle("Binary Operation");
     this->addWidget(widget);
 
-    QPushButton *runButton = new QPushButton(tr("XOR"), this);
+    QPushButton *runButton = new QPushButton(tr("Run"), this);
     
     // progression stack
     d->progression_stack = new medProgressionStack(widget);
@@ -140,6 +154,16 @@ dtkAbstractData* medBinaryOperationToolBox::processOutput()
     return d->process->output();
 }
 
+void medBinaryOperationToolBox::onXorButtonToggled(bool value)
+{
+    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("medBinaryOperation");
+}
+
+void medBinaryOperationToolBox::onAndButtonToggled(bool value)
+{
+    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("itkAndOperator");
+}
+
 void medBinaryOperationToolBox::run()
 {
     //if(!this->parentToolBox())
@@ -148,13 +172,11 @@ void medBinaryOperationToolBox::run()
     if (!d->process)
         d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("medBinaryOperation");
     
+    d->process->setInput ( d->inputA, 0 );
+    d->process->setInput ( d->inputB, 1 );
+
     //if(!this->parentToolBox()->data())
     //    return;
-    //if(!d->process)
-    //    return;
-    //d->process->setInput(d->mask, 0);
-    //d->process->setInput(d->data, 1);
-    // Set your parameters here
     
     medRunnableProcess *runProcess = new medRunnableProcess;
     runProcess->setProcess (d->process);
@@ -204,33 +226,40 @@ void medBinaryOperationToolBox::onRoiImported(const medDataIndex& index)
         connect(loader, SIGNAL(completed(const QImage&)), this, SLOT(setImage(const QImage&)));
         QThreadPool::globalInstance()->start(loader);
     }
-    if(!d->process)
-        d->process= dtkAbstractProcessFactory::instance()->create("medBinaryOperation");
-
-    d->mask = data;
-    if (!d->process)
-        return;
-
-    d->process->setInput(data, 0);
-    //d->process->setInput(data, 1);
+    d->inputB = data;
 }
 
 void medBinaryOperationToolBox::onImageImported(const medDataIndex& index)
 {
     dtkSmartPointer<dtkAbstractData> data = medDataManager::instance()->data(index);
-
-    if (!data)
+    // we accept only ROIs (itkDataImageUChar3)
+    if (!data || data->identifier() != "itkDataImageUChar3")
+    {
         return;
-    
-    if(!d->process)
-        d->process= dtkAbstractProcessFactory::instance()->create("medBinaryOperation");
+    }
+    // put the thumbnail in the medDropSite as well
+    // (code copied from @medDatabasePreviewItem)
+    medAbstractDbController* dbc = medDataManager::instance()->controllerForDataSource(index.dataSourceId());
+    QString thumbpath = dbc->metaData(index, medMetaDataKeys::ThumbnailPath);
 
-    d->data = data;
-    
-    if (!d->process)
-        return;
+    bool shouldSkipLoading = false;
+    if ( thumbpath.isEmpty() )
+    {
+        // first try to get it from controller
+        QImage thumbImage = dbc->thumbnail(index);
+        if (!thumbImage.isNull())
+        {
+            d->siteA->setPixmap(QPixmap::fromImage(thumbImage));
+            shouldSkipLoading = true;
+        }
+    }
+    if (!shouldSkipLoading) {
+        medImageFileLoader *loader = new medImageFileLoader(thumbpath);
 
-    d->process->setInput(data, 1);
+        connect(loader, SIGNAL(completed(const QImage&)), this, SLOT(setImage(const QImage&)));
+        QThreadPool::globalInstance()->start(loader);
+    }
+    d->inputA = data;
 }
 
 void medBinaryOperationToolBox::onClearRoiButtonClicked(void)
@@ -251,7 +280,8 @@ void medBinaryOperationToolBox::clear(void)
     onClearRoiButtonClicked();
 
     d->view = 0;
-    d->data = 0;
+    d->inputA = 0;
+    d->inputB = 0;
 }
 
 void medBinaryOperationToolBox::update(dtkAbstractView *view)
@@ -270,14 +300,14 @@ void medBinaryOperationToolBox::update(dtkAbstractView *view)
 
     //if (!view) {
     //    d->view = 0;
-    //    d->data = 0;
+    //    d->inputA = 0;
     //    return;
     //}
 
     ///*
     //if (view->property ("Orientation")!="3D") { // only interaction with 3D views is authorized
     //    d->view = 0;
-    //    d->data = 0;
+    //    d->inputA = 0;
     //    return;
     //}
     //*/
