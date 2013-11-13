@@ -174,7 +174,25 @@ void medMaskApplicationToolBox::run()
     medJobManager::instance()->registerJobItem(runProcess);
     QThreadPool::globalInstance()->start(dynamic_cast<QRunnable*>(runProcess));
 
+    QString newSeriesDescription = d->data->metadata ( medMetaDataKeys::SeriesDescription.key() );
+    newSeriesDescription += " with mask :" + d->mask->metadata ( medMetaDataKeys::SeriesDescription.key() );
 
+    dtkSmartPointer <dtkAbstractData> output = processOutput();
+    setOutputMetadata(d->data, output);
+    output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
+    medDataManager::instance()->importNonPersistent(output);
+}
+
+void medMaskApplicationToolBox::setOutputMetadata(const dtkAbstractData * inputData, dtkAbstractData * outputData)
+{
+    Q_ASSERT(outputData && inputData);
+    QStringList metaDataToCopy;
+    metaDataToCopy
+        << medMetaDataKeys::PatientName.key()
+        << medMetaDataKeys::StudyDescription.key();
+    foreach( const QString & key, metaDataToCopy ) {
+        outputData->setMetaData(key, inputData->metadatas(key));
+    }
 }
 
 void medMaskApplicationToolBox::onRoiImported(const medDataIndex& index)

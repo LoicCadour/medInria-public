@@ -37,7 +37,7 @@ public:
     
     static bool registered();
     dtkPlugin * plugin();
-    
+    void setOutputMetadata(const dtkAbstractData * inputData, dtkAbstractData * outputData);
 signals:
 
     void success();

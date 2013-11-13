@@ -65,11 +65,7 @@ class medMaskApplicationPrivate
         maskFilter->Update();
 
         output->setData(maskFilter->GetOutput());
-        QString newSeriesDescription = input->metadata ( medMetaDataKeys::SeriesDescription.key() );
-        newSeriesDescription += " with mask :" + mask->metadata ( medMetaDataKeys::SeriesDescription.key() );
 
-        output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-        medDataManager::instance()->importNonPersistent(output);
         return EXIT_SUCCESS;
     }
 };
