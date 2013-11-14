@@ -48,6 +48,7 @@ set(${PROJECT_NAME}_HEADERS_MOC
   medBinaryOperationToolBox.h
   medBinaryOperation.h
   itkAndOperator.h
+  itkOrOperator.h
   )
 
 set(${PROJECT_NAME}_HEADERS
@@ -57,7 +58,9 @@ set(${PROJECT_NAME}_SOURCES
   medBinaryOperationPlugin.cpp
   medBinaryOperationToolBox.cpp
   medBinaryOperation.cpp
-  itkAndOperator.cpp)
+  itkAndOperator.cpp
+  itkOrOperator.cpp
+  )
 
 ## #################################################################
 ## Build rules

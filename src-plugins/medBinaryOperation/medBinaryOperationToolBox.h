@@ -79,6 +79,7 @@ protected slots:
     virtual void onClearInputButtonClicked();
     void onXorButtonToggled(bool);
     void onAndButtonToggled(bool);
+    void onOrButtonToggled(bool);
 
     
 private:

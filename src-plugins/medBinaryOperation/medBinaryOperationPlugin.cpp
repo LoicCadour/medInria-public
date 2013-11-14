@@ -16,6 +16,7 @@
 #include "medBinaryOperationToolBox.h"
 
 #include "itkAndOperator.h"
+#include "itkOrOperator.h"
 
 #include <dtkLog/dtkLog.h>
 
@@ -55,6 +56,9 @@ bool medBinaryOperationPlugin::initialize()
 
     if(!itkAndOperator::registered())
         dtkWarn() << "Unable to register itkAndOperator type";
+
+    if(!itkOrOperator::registered())
+        dtkWarn() << "Unable to register itkOrOperator type";
     
     if ( !medBinaryOperationToolBox::registered() )
         dtkWarn() << "Unable to register medBinaryOperation toolbox";

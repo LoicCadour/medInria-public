@@ -57,6 +57,7 @@ public:
 
     QRadioButton *xorButton;
     QRadioButton *andButton;
+    QRadioButton *orButton;
 };
 
 medBinaryOperationToolBox::medBinaryOperationToolBox(QWidget *parent) : medFilteringAbstractToolBox(parent), d(new medBinaryOperationToolBoxPrivate)
@@ -85,6 +86,9 @@ medBinaryOperationToolBox::medBinaryOperationToolBox(QWidget *parent) : medFilte
     d->andButton  = new QRadioButton(tr("AND"), widget);
     d->andButton->setToolTip(tr("If \"AND\" is selected fibers will need to overlap with this ROI to be displayed."));
 
+    d->orButton  = new QRadioButton(tr("OR"), widget);
+    d->orButton->setToolTip(tr("If \"OR\" is selected fibers will need to overlap with this ROI to be displayed."));
+
     QVBoxLayout *roiButtonLayout = new QVBoxLayout;
     roiButtonLayout->addWidget(d->siteA);
     roiButtonLayout->addWidget (clearRoiButton);
@@ -92,6 +96,7 @@ medBinaryOperationToolBox::medBinaryOperationToolBox(QWidget *parent) : medFilte
     roiButtonLayout->addWidget (clearInputButton);
     roiButtonLayout->addWidget(d->xorButton);
     roiButtonLayout->addWidget(d->andButton);
+    roiButtonLayout->addWidget(d->orButton);
     roiButtonLayout->setAlignment(Qt::AlignCenter);
 
     QVBoxLayout *bundlingLayout = new QVBoxLayout(widget);
@@ -105,6 +110,7 @@ medBinaryOperationToolBox::medBinaryOperationToolBox(QWidget *parent) : medFilte
     connect (clearInputButton,   SIGNAL(clicked()),                          this, SLOT(onClearInputButtonClicked()));
     connect (d->xorButton,     SIGNAL(toggled(bool)),                      this, SLOT(onXorButtonToggled(bool)));
     connect (d->andButton,     SIGNAL(toggled(bool)),                      this, SLOT(onAndButtonToggled(bool)));
+    connect (d->orButton,     SIGNAL(toggled(bool)),                      this, SLOT(onOrButtonToggled(bool)));
 
     this->onXorButtonToggled(true);
     this->setTitle("Binary Operation");
@@ -162,6 +168,11 @@ void medBinaryOperationToolBox::onXorButtonToggled(bool value)
 void medBinaryOperationToolBox::onAndButtonToggled(bool value)
 {
     d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("itkAndOperator");
+}
+
+void medBinaryOperationToolBox::onOrButtonToggled(bool value)
+{
+    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("itkOrOperator");
 }
 
 void medBinaryOperationToolBox::run()
@@ -226,7 +237,7 @@ void medBinaryOperationToolBox::onRoiImported(const medDataIndex& index)
         connect(loader, SIGNAL(completed(const QImage&)), this, SLOT(setImage(const QImage&)));
         QThreadPool::globalInstance()->start(loader);
     }
-    d->inputB = data;
+    d->inputA = data;
 }
 
 void medBinaryOperationToolBox::onImageImported(const medDataIndex& index)
@@ -237,29 +248,8 @@ void medBinaryOperationToolBox::onImageImported(const medDataIndex& index)
     {
         return;
     }
-    // put the thumbnail in the medDropSite as well
-    // (code copied from @medDatabasePreviewItem)
-    medAbstractDbController* dbc = medDataManager::instance()->controllerForDataSource(index.dataSourceId());
-    QString thumbpath = dbc->metaData(index, medMetaDataKeys::ThumbnailPath);
 
-    bool shouldSkipLoading = false;
-    if ( thumbpath.isEmpty() )
-    {
-        // first try to get it from controller
-        QImage thumbImage = dbc->thumbnail(index);
-        if (!thumbImage.isNull())
-        {
-            d->siteA->setPixmap(QPixmap::fromImage(thumbImage));
-            shouldSkipLoading = true;
-        }
-    }
-    if (!shouldSkipLoading) {
-        medImageFileLoader *loader = new medImageFileLoader(thumbpath);
-
-        connect(loader, SIGNAL(completed(const QImage&)), this, SLOT(setImage(const QImage&)));
-        QThreadPool::globalInstance()->start(loader);
-    }
-    d->inputA = data;
+    d->inputB = data;
 }
 
 void medBinaryOperationToolBox::onClearRoiButtonClicked(void)
