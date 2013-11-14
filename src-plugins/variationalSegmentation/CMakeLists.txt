@@ -84,7 +84,6 @@ target_link_libraries(${PROJECT_NAME}
   dtkCore
   medCore
   medGui
-  v3dViewPlugin
   vtkCommon
   vtkGraphics
   vtkFiltering

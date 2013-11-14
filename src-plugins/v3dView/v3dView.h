@@ -95,6 +95,13 @@ public:
 
     // access method to internal members for v3dView**Interactor classes
 
+     /**
+     * Returns pointers to internal instances of vtkImageView2D/3D.
+     */
+    void *getView2D();
+    void *getView3D();
+    void *getRenderWindow();
+
     /**
      * Returns pointers to internal instances of vtkImageView2D/3D.
      */
