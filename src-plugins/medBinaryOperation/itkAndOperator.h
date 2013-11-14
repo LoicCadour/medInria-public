@@ -21,9 +21,6 @@
 
 class itkAndOperatorPrivate;
 
-typedef itk::Image<unsigned short, 3>  ImageType;
-typedef itk::Image<unsigned char, 3>  MaskType;
-
 class MEDBINARYOPERATIONPLUGIN_EXPORT itkAndOperator : public dtkAbstractProcess
 {
     Q_OBJECT

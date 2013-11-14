@@ -19,15 +19,15 @@
 
 #include "itkImage.h"
 
-class itkOrOperatorPrivate;
+class itkXorOperatorPrivate;
 
-class MEDBINARYOPERATIONPLUGIN_EXPORT itkOrOperator : public dtkAbstractProcess
+class MEDBINARYOPERATIONPLUGIN_EXPORT itkXorOperator : public dtkAbstractProcess
 {
     Q_OBJECT
     
 public:
-    itkOrOperator();
-    virtual ~itkOrOperator();
+    itkXorOperator();
+    virtual ~itkXorOperator();
     
     virtual QString description() const;
     
@@ -52,9 +52,9 @@ public slots:
     
     
 private:
-    itkOrOperatorPrivate *d;
+    itkXorOperatorPrivate *d;
 };
 
-dtkAbstractProcess *createitkOrOperator();
+dtkAbstractProcess *createitkXorOperator();
 
 
