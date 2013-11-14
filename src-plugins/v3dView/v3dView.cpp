@@ -817,6 +817,22 @@ vtkImageView3D *v3dView::view3d()
     return d->view3d;
 }
 
+void * v3dView::getView2D()
+{
+    return d->view2d;
+}
+
+void * v3dView::getView3D()
+{
+    return d->view3d;
+}
+
+void * v3dView::getRenderWindow()
+{
+    return d->renWin;
+}
+
+
 vtkImageView *v3dView::currentView()
 {
     return d->currentView;

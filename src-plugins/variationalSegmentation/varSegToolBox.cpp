@@ -218,8 +218,8 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
 {
     if (key != "Orientation")
         return;
-    v3dView * v = qobject_cast<v3dView*>(this->sender());
-    vtkRenderWindowInteractor * interactor = v->interactor();
+    medAbstractView * v = qobject_cast<medAbstractView*>(this->sender());
+    vtkRenderWindowInteractor * interactor = static_cast<vtkRenderWindow*>(v->getRenderWindow())->GetInteractor();
 
     vtkCollection* landmarks = this->controller->GetTotalLandmarkCollection();
     landmarks->InitTraversal();
@@ -248,7 +248,7 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
 
 void VarSegToolBox::update(dtkAbstractView * view)
 {
-    v3dView * v = qobject_cast<v3dView*>(view);
+    medAbstractView * v = qobject_cast<medAbstractView*>(view);
 
     if (this->controller->GetInteractorCollection())
         return;
@@ -256,7 +256,7 @@ void VarSegToolBox::update(dtkAbstractView * view)
     connect(view, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)));
 
     vtkCollection* interactorcollection = vtkCollection::New();
-    interactorcollection->AddItem(v->interactor());
+    interactorcollection->AddItem(static_cast<vtkRenderWindow*>(v->getRenderWindow())->GetInteractor());
     this->controller->SetInteractorCollection(interactorcollection);
     interactorcollection->Delete();
 
@@ -336,8 +336,8 @@ void VarSegToolBox::update(dtkAbstractView * view)
     imagetest->SetSpacing(NewSpacing);
     
     this->controller->SetInput(imagetest);
-    v->view2d()->AddDataSet (controller->GetOutput());
-    v->view3d()->AddDataSet (controller->GetOutput());
+    static_cast<vtkImageView2D*>(v->getView2D())->AddDataSet (controller->GetOutput());
+    static_cast<vtkImageView3D*>(v->getView3D())->AddDataSet (controller->GetOutput());
 
   //   int returnValue = 0;
   //int res = this->GetResolution();
