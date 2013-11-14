@@ -35,6 +35,9 @@ public:
     virtual QString description() const;
     
     static bool registered();
+
+    void setOutputMetadata(const dtkAbstractData * inputData, dtkAbstractData * outputData);
+
     
 public slots:
     

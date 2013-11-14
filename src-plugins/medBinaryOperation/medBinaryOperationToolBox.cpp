@@ -11,7 +11,6 @@
 
 =========================================================================*/
 
-#include "medBinaryOperation.h"
 #include "medBinaryOperationToolBox.h"
 
 #include <QtGui>
@@ -162,7 +161,7 @@ dtkAbstractData* medBinaryOperationToolBox::processOutput()
 
 void medBinaryOperationToolBox::onXorButtonToggled(bool value)
 {
-    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("medBinaryOperation");
+    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("itkXorOperator");
 }
 
 void medBinaryOperationToolBox::onAndButtonToggled(bool value)
@@ -181,7 +180,7 @@ void medBinaryOperationToolBox::run()
     //    return;
     
     if (!d->process)
-        d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("medBinaryOperation");
+        d->process = dtkAbstractProcessFactory::instance()->createSmartPointer("itkXorOperator");
     
     d->process->setInput ( d->inputA, 0 );
     d->process->setInput ( d->inputB, 1 );

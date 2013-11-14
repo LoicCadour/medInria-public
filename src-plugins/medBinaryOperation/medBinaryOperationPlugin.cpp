@@ -11,7 +11,7 @@
 
 =========================================================================*/
 
-#include "medBinaryOperation.h"
+#include "itkXorOperator.h"
 #include "medBinaryOperationPlugin.h"
 #include "medBinaryOperationToolBox.h"
 
@@ -51,8 +51,8 @@ medBinaryOperationPlugin::~medBinaryOperationPlugin()
 
 bool medBinaryOperationPlugin::initialize()
 {
-    if(!medBinaryOperation::registered())
-        dtkWarn() << "Unable to register medBinaryOperation type";
+    if(!itkXorOperator::registered())
+        dtkWarn() << "Unable to register itkXorOperator type";
 
     if(!itkAndOperator::registered())
         dtkWarn() << "Unable to register itkAndOperator type";

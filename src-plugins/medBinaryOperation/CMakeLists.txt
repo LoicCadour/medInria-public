@@ -46,7 +46,7 @@ include(${ITK_USE_FILE})
 set(${PROJECT_NAME}_HEADERS_MOC
   medBinaryOperationPlugin.h
   medBinaryOperationToolBox.h
-  medBinaryOperation.h
+  itkXorOperator.h
   itkAndOperator.h
   itkOrOperator.h
   )
@@ -57,7 +57,7 @@ set(${PROJECT_NAME}_HEADERS
 set(${PROJECT_NAME}_SOURCES
   medBinaryOperationPlugin.cpp
   medBinaryOperationToolBox.cpp
-  medBinaryOperation.cpp
+  itkXorOperator.cpp
   itkAndOperator.cpp
   itkOrOperator.cpp
   )

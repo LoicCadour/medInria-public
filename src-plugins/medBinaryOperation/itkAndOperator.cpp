@@ -100,13 +100,28 @@ int itkAndOperator::update()
     andFilter->Update();
 
     d->output->setData(andFilter->GetOutput());
+
+    setOutputMetadata(d->inputA, d->output);
     QString newSeriesDescription = d->inputA->metadata ( medMetaDataKeys::SeriesDescription.key() );
     newSeriesDescription += " AND " + d->inputB->metadata ( medMetaDataKeys::SeriesDescription.key() );
-
     d->output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
     medDataManager::instance()->importNonPersistent(d->output);
     return EXIT_SUCCESS;
 }        
+
+void itkAndOperator::setOutputMetadata(const dtkAbstractData * inputData, dtkAbstractData * outputData)
+{
+    Q_ASSERT(outputData && inputData);
+
+    QStringList metaDataToCopy;
+    metaDataToCopy 
+        << medMetaDataKeys::PatientName.key()
+        << medMetaDataKeys::StudyDescription.key();
+
+    foreach( const QString & key, metaDataToCopy ) {
+        outputData->setMetaData(key, inputData->metadatas(key));
+    }
+}
 
 dtkAbstractData * itkAndOperator::output()
 {
