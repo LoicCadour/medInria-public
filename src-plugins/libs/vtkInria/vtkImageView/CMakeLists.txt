@@ -27,6 +27,7 @@ set(${PROJECT_NAME}_HEADERS
     vtkSmartVolumeMapper.h
     medVtkViewBackend.h
     vtkInriaInteractorStyleRubberBandZoom.h
+    medVtkViewBackend.h
 )
 
 set(${PROJECT_NAME}_SOURCES
@@ -43,6 +44,7 @@ set(${PROJECT_NAME}_SOURCES
     vtkSmartVolumeMapper.cxx
     medVtkViewBackend.cpp
     vtkInriaInteractorStyleRubberBandZoom.cxx
+    medVtkViewBackend.cpp
 )
 if (VTKINRIA_USE_PRECOMPILED_HEADERS)
     add_precompiled_header(${PROJECT_NAME}_SOURCES_PCH 
