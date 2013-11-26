@@ -40,6 +40,7 @@ if(NOT DCMTK_FOUND AND NOT DCMTK_DIR)
   mark_as_advanced(DCMTK_DIR)
 endif()
 
+
 foreach(lib
     dcmdata
     dcmimage
@@ -56,24 +57,46 @@ foreach(lib
     ijg8
     oflog
     ofstd)
+    
 
-  find_library(DCMTK_${lib}_LIBRARY
-    ${lib}
-    PATHS
-    ${DCMTK_DIR}/${lib}/libsrc
-    ${DCMTK_DIR}/${lib}/libsrc/Release
-    ${DCMTK_DIR}/${lib}/libsrc/Debug
-    ${DCMTK_DIR}/${lib}/Release
-    ${DCMTK_DIR}/${lib}/Debug
-    ${DCMTK_DIR}/lib)
+foreach(config Debug Release RelWithDebInfo MinSizeRel)
+	string(TOUPPER ${config} config_upper)
 
-  mark_as_advanced(DCMTK_${lib}_LIBRARY)
+	find_library(DCMTK_${lib}_${config}_LIBRARY
+	${lib}
+	PATHS
+        ${DCMTK_DIR}/${config}
+        ${DCMTK_DIR}/${config}/lib
+        ${DCMTK_DIR}/${lib}/libsrc
+        ${DCMTK_DIR}/${lib}/libsrc/${config}
+        ${DCMTK_DIR}/${lib}/${config}
+        ${DCMTK_DIR}/lib)
+        
+    if (DCMTK_${lib}_${config}_LIBRARY)
+        get_filename_component(lib_filename ${DCMTK_${lib}_${config}_LIBRARY} NAME_WE)
+        get_filename_component(lib_directory ${DCMTK_${lib}_${config}_LIBRARY} PATH)
+            
+        if (NOT DCMTK_${lib}_ADDED)
+            set(DCMTK_${lib}_ADDED ON)
+            add_library(${lib_filename} STATIC IMPORTED)
+            list(APPEND DCMTK_LIBRARIES ${lib_filename})
+        endif()
+        list(APPEND DCMTK_${lib}_LIBRARIES ${DCMTK_${lib}_${config}_LIBRARY})
+        
+        set_property(TARGET ${lib_filename} APPEND PROPERTY IMPORTED_CONFIGURATIONS ${config_upper})
+        
+        set_target_properties(${lib_filename} PROPERTIES
+          IMPORTED_LOCATION_${config_upper} ${DCMTK_${lib}_${config}_LIBRARY}
+          )
+    endif()
+    
 
-  if(DCMTK_${lib}_LIBRARY)
-    list(APPEND DCMTK_LIBRARIES ${DCMTK_${lib}_LIBRARY})
-  endif()
+  mark_as_advanced(DCMTK_${lib}_${config}_LIBRARY)
 
 endforeach()
+
+endforeach()
+
 
 # foreach(libname TIFF ZLIB LIBICONV JPEG)
 #   find_package(${libname} REQUIRED)
@@ -110,7 +133,10 @@ foreach(dir
     dcmsr
     dcmtls
     ofstd)
-  find_path(DCMTK_${dir}_INCLUDE_DIR
+
+foreach(config Debug Release RelWithDebInfo MinSizeRel)
+
+    find_path(DCMTK_${dir}_INCLUDE_DIR
     ${DCMTK_${dir}_TEST_HEADER}
     PATHS
     ${DCMTK_DIR}/${dir}/include
@@ -118,6 +144,11 @@ foreach(dir
     ${DCMTK_DIR}/include/${dir}
     ${DCMTK_DIR}/include/dcmtk/${dir}
     ${DCMTK_DIR}/${dir}/include/dcmtk/${dir}
+    ${DCMTK_DIR}/${config}/${dir}/include
+    ${DCMTK_DIR}/${config}/${dir}
+    ${DCMTK_DIR}/${config}/include/${dir}
+    ${DCMTK_DIR}/${config}/include/dcmtk/${dir}
+    ${DCMTK_DIR}/${config}/${dir}/include/dcmtk/${dir}
     )
   mark_as_advanced(DCMTK_${dir}_INCLUDE_DIR)
 
@@ -135,7 +166,11 @@ foreach(dir
     list(APPEND
       DCMTK_INCLUDE_DIRS
       ${DCMTK_${dir}_INCLUDE_DIR})
+    break()
   endif()
+ 
+endforeach() 
+  
 endforeach()
 
 
@@ -156,11 +191,11 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(DCMTK DEFAULT_MSG
   DCMTK_config_INCLUDE_DIR
   DCMTK_ofstd_INCLUDE_DIR
-  DCMTK_ofstd_LIBRARY
+  DCMTK_ofstd_LIBRARIES
   DCMTK_dcmdata_INCLUDE_DIR
-  DCMTK_dcmdata_LIBRARY
+  DCMTK_dcmdata_LIBRARIES
   DCMTK_dcmimgle_INCLUDE_DIR
-  DCMTK_dcmimgle_LIBRARY)
+  DCMTK_dcmimgle_LIBRARIES)
 
 # Compatibility: This variable is deprecated
 set(DCMTK_INCLUDE_DIR ${DCMTK_INCLUDE_DIRS})
