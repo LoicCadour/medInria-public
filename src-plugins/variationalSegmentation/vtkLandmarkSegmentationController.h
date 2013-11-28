@@ -6,11 +6,13 @@
 
 #include <itkVariationalFunctionImageToImageFilter.h>
 #include <itkImageToVTKImageFilter.h>
+#include <vtkLandmarkManager.h>
+#include <vtkImageView2D.h>
+#include <vtkImageView3D.h>
 
 class vtkMatrixToLinearTransform;
 class vtkContourFilter;
 class vtkLandmarkWidget;
-class vtkRendererCollection;
 class vtkCollection;
 class vtkLandmarkSegmentationController;
 class vtkPolyDataMapper;
@@ -61,8 +63,6 @@ public:
   
   void SetInteractorCollection (vtkCollection* arg);
   vtkGetObjectMacro (InteractorCollection, vtkCollection);
-  void SetRendererCollection (vtkRendererCollection* arg);
-  vtkGetObjectMacro (RendererCollection, vtkRendererCollection);
 
   vtkGetObjectMacro (LandmarkCollection, vtkCollection);
   vtkGetObjectMacro (TotalLandmarkCollection, vtkCollection);
@@ -79,6 +79,9 @@ public:
   
   vtkLandmarkWidget* AddConstraint (double* pos, int type);
   void RemoveConstraint (vtkLandmarkWidget* arg);
+
+  void setView2D(vtkImageView2D*);
+  void setView3D(vtkImageView3D*);
   
  protected:
   vtkLandmarkSegmentationController();
@@ -89,7 +92,6 @@ public:
 		    vtkInformationVector *outputVector);
   
   void LinkInteractions (void);
-
   
 private:
   vtkLandmarkSegmentationController(const vtkLandmarkSegmentationController&);  // Not implemented.
@@ -107,9 +109,11 @@ private:
   vtkLandmarkSegmentationControllerCommand* Command;
   vtkPolyDataMapper*          Mapper;
   vtkActor*                   Actor;
+  double                      LandmarkRadius;
+  vtkImageView2D * view2d;
+  vtkImageView3D * view3d;
 
-  vtkRendererCollection*      RendererCollection;
-  double LandmarkRadius;
+  vtkLandmarkManager * m_crossLandmarkManager;
 
 };
 

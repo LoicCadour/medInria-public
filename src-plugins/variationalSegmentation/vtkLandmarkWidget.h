@@ -2,6 +2,7 @@
 #define _vtk_LandmarkWidget_h_
 
 #include <vtkSphereWidget.h>
+#include <vtkLandmark.h>
 #include <vtkCommand.h>
 #include <vtkSetGet.h>
 
@@ -39,6 +40,7 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
   vtkGetObjectMacro(HandleActor, vtkActor);
 
   virtual void SetEnabled(int);
+  vtkLandmark * getCrossLandmark();
  protected:
   vtkLandmarkWidget();
   ~vtkLandmarkWidget();
@@ -46,6 +48,7 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
  private:
   vtkLandmarkWidgetCommand* Command;
   double Value;
+  vtkLandmark * crossLandmark;
   
 };
 //ETX

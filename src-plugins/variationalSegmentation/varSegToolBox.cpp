@@ -17,7 +17,6 @@
 #include <dtkCore/dtkSmartPointer.h>
 #include <dtkCore/dtkGlobal.h>
 
-#include "../../v3dView/v3dView.h"
 #include "vtkImageView2D.h"
 #include "vtkImageView3D.h"
 
@@ -218,6 +217,7 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
 {
     if (key != "Orientation")
         return;
+    
     medAbstractView * v = qobject_cast<medAbstractView*>(this->sender());
     vtkRenderWindowInteractor * interactor = static_cast<vtkRenderWindow*>(v->getRenderWindow())->GetInteractor();
 
@@ -336,6 +336,8 @@ void VarSegToolBox::update(dtkAbstractView * view)
     imagetest->SetSpacing(NewSpacing);
     
     this->controller->SetInput(imagetest);
+    this->controller->setView2D(static_cast<vtkImageView2D*>(v->getView2D()));
+    this->controller->setView3D(static_cast<vtkImageView3D*>(v->getView3D()));
     static_cast<vtkImageView2D*>(v->getView2D())->AddDataSet (controller->GetOutput());
     static_cast<vtkImageView3D*>(v->getView3D())->AddDataSet (controller->GetOutput());
 

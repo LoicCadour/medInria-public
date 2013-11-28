@@ -23,6 +23,7 @@
 #include <vtkRendererCollection.h>
 #include <vtkFloatArray.h>
 #include <vtkPointData.h>
+#include <vtkLandmarkManager.h>
 
 vtkCxxRevisionMacro(vtkLandmarkSegmentationController, "$Revision: 1315 $");
 vtkStandardNewMacro(vtkLandmarkSegmentationController);
@@ -123,7 +124,6 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
   if ( event == vtkCommand::EndInteractionEvent )
   {
     vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (caller);
-    
     if (landmark->GetInteractor()->GetControlKey())
     {
       /**************  Landmark deletion  **************/
@@ -154,7 +154,6 @@ vtkLandmarkSegmentationController::vtkLandmarkSegmentationController()
   this->SetNumberOfInputPorts(0);
   m_Input                    = NULL;
   this->InteractorCollection = NULL;
-  this->RendererCollection   = NULL;
   this->Enabled              = 0;
   m_Filter                 = FilterType::New();
   m_Converter              = ConverterType::New();
@@ -172,11 +171,14 @@ vtkLandmarkSegmentationController::vtkLandmarkSegmentationController()
   this->SurfaceExtractor->SetValue (0, 0.0);
   this->SurfaceExtractor->Update();
   this->SetOutput (this->SurfaceExtractor->GetOutput());
-  this->Mapper->SetInputConnection (this->SurfaceExtractor->GetOutputPort());
+  this->Mapper->SetInput (this->SurfaceExtractor->GetOutput());
   this->Actor->SetMapper (this->Mapper);
   
-  
-  this->LandmarkRadius = 2;
+  m_crossLandmarkManager = vtkLandmarkManager::New();
+  this->view2d = 0;
+  this->view3d = 0;
+
+  this->LandmarkRadius = 1.5;
   tmp->Delete();
 }
 
@@ -189,8 +191,6 @@ vtkLandmarkSegmentationController::~vtkLandmarkSegmentationController()
   this->Command->Delete();
   if (this->InteractorCollection)
     this->InteractorCollection->UnRegister(this);
-  if (this->RendererCollection)
-      this->RendererCollection->UnRegister(this);
   this->Mapper->Delete();
   this->Actor->Delete();
   this->TotalLandmarkCollection->Delete();
@@ -212,19 +212,6 @@ void vtkLandmarkSegmentationController::SetInteractorCollection (vtkCollection* 
   this->InteractorCollection = arg;
   if (this->InteractorCollection)
     this->InteractorCollection->Register(this);
-  this->SetEnabled (this->GetEnabled());
-}
-
-//----------------------------------------------------------------------------
-void vtkLandmarkSegmentationController::SetRendererCollection (vtkRendererCollection* arg)
-{
-  if (arg == this->RendererCollection)
-    return;
-  if (this->RendererCollection)
-    this->RendererCollection->UnRegister(this);
-  this->RendererCollection = arg;
-  if (this->RendererCollection)
-    this->RendererCollection->Register(this);
   this->SetEnabled (this->GetEnabled());
 }
 
@@ -302,6 +289,8 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
   while(item)
   {
     vtkLandmarkWidget* l = vtkLandmarkWidget::New();
+    l->getCrossLandmark()->SetPosition(pos);
+    m_crossLandmarkManager->AddLandmark(l->getCrossLandmark());
     l->ScaleOff();
     l->SetCenter (pos);
     l->SetRadius (this->LandmarkRadius);
@@ -315,7 +304,6 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
     this->GetTotalLandmarkCollection()->AddItem (l);
     if (!initial_landmark)
       initial_landmark = l;
-
     l->Delete();
     item = vtkRenderWindowInteractor::SafeDownCast (this->GetInteractorCollection()->GetNextItemAsObject());
   }
@@ -442,19 +430,19 @@ void vtkLandmarkSegmentationController::LinkInteractions ( void)
 	l2 = vtkLandmarkWidget::SafeDownCast (collection->GetItemAsObject(id2));
 	
 	if (l1 != l2)
-    {
-      if (!l1->HasObserver(vtkCommand::InteractionEvent, l2->GetCommand()))
+	{
+	  if (!l1->HasObserver(vtkCommand::InteractionEvent, l2->GetCommand()))
 	    l1->AddObserver(vtkCommand::InteractionEvent, l2->GetCommand());
-      if (!l1->HasObserver(vtkCommand::EnableEvent, l2->GetCommand()))
-        l1->AddObserver(vtkCommand::EnableEvent,      l2->GetCommand());
-      if (!l1->HasObserver(vtkCommand::DisableEvent, l2->GetCommand()))
-        l1->AddObserver(vtkCommand::DisableEvent,     l2->GetCommand());
+	  if (!l1->HasObserver(vtkCommand::EnableEvent, l2->GetCommand()))
+	    l1->AddObserver(vtkCommand::EnableEvent,      l2->GetCommand());
+	  if (!l1->HasObserver(vtkCommand::DisableEvent, l2->GetCommand()))
+	    l1->AddObserver(vtkCommand::DisableEvent,     l2->GetCommand());
 	  if (!l2->HasObserver(vtkCommand::InteractionEvent, l1->GetCommand()))
 	    l2->AddObserver(vtkCommand::InteractionEvent, l1->GetCommand());
-      if (!l2->HasObserver(vtkCommand::EnableEvent, l1->GetCommand()))
-        l2->AddObserver(vtkCommand::EnableEvent,      l1->GetCommand());
-      if (!l2->HasObserver(vtkCommand::DisableEvent, l1->GetCommand()))
-        l2->AddObserver(vtkCommand::DisableEvent,     l1->GetCommand());
+	  if (!l2->HasObserver(vtkCommand::EnableEvent, l1->GetCommand()))
+	    l2->AddObserver(vtkCommand::EnableEvent,      l1->GetCommand());
+	  if (!l2->HasObserver(vtkCommand::DisableEvent, l1->GetCommand()))
+	    l2->AddObserver(vtkCommand::DisableEvent,     l1->GetCommand());
 	}  
       }    
     }
@@ -469,9 +457,19 @@ int vtkLandmarkSegmentationController::RequestData(
 {
   vtkInformation *outInfo = outputVector->GetInformationObject(0);
   vtkPolyData *output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
-  m_Filter->Update(); 
+
+  //try
+  //{
+  m_Filter->Update();
   m_Converter->Update();
+  //} catch (itk::ExceptionObject &e)
+  /*{
+    std::cerr << e << std::endl;
+    return 0;
+  }*/
+  
   this->SurfaceExtractor->Update();
+
   vtkPolyData* data = this->SurfaceExtractor->GetOutput();
   vtkPoints* newpoints = vtkPoints::New();
   if (data->GetPoints()) this->Transformer->TransformPoints (data->GetPoints(), newpoints);
@@ -480,4 +478,16 @@ int vtkLandmarkSegmentationController::RequestData(
   output->SetPoints (data->GetPoints());
   output->SetPolys (data->GetPolys());
   return 1;
+}
+
+void vtkLandmarkSegmentationController::setView2D(vtkImageView2D *view)
+{
+    m_crossLandmarkManager->RemoveView(this->view2d);
+    this->view2d = view;
+    m_crossLandmarkManager->AddView(view);
+}
+
+void vtkLandmarkSegmentationController::setView3D(vtkImageView3D *view)
+{
+    this->view3d = view;
 }

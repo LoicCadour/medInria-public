@@ -75,7 +75,7 @@ namespace itk
     void PrintSelf(std::ostream& os, Indent indent) const;
 
     void BeforeThreadedGenerateData(void);
-    void ThreadedGenerateData(const OutputImageRegionType &outputRegionForThread, int threadId);
+    void ThreadedGenerateData(const OutputImageRegionType &outputRegionForThread, ThreadIdType threadId);
 
     InternalMatrixType EstimateConstraintMatrix (ConstraintListType constraints);
     ScalarType EstimatePhi (VectorType r);
@@ -92,7 +92,7 @@ namespace itk
 } // end namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#include "itkVariationalFunctionImageToImageFilter.hpp"
+#include "itkVariationalFunctionImageToImageFilter.txx"
 #endif
   
 #endif
