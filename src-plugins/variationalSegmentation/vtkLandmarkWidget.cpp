@@ -70,6 +70,8 @@ vtkLandmarkWidget::vtkLandmarkWidget()
   this->Command = vtkLandmarkWidgetCommand::New();
   this->Command->SetLandmark (this);
   this->Value = 0.0;
+  this->crossLandmark = vtkLandmark::New();
+  //this->crossLandmark->se
 }
 
 vtkLandmarkWidget::~vtkLandmarkWidget()
@@ -109,6 +111,7 @@ void vtkLandmarkWidgetCommand::SetLandmark (vtkSphereWidget* l)
 void vtkLandmarkWidget::SetEnabled( int val)
 {
   Superclass::SetEnabled( val);
+  
 //  vtkRenderWindowInteractor *i = this->Interactor;
 //  if (!i || !i->GetRenderWindow())
 //      return;
@@ -127,4 +130,9 @@ void vtkLandmarkWidget::SetEnabled( int val)
 //      std::cout<<"adding actor "<<actor<<" to renderer : "<<r<<std::endl;
 //      actor->Delete();
 //  }
+}
+
+vtkLandmark * vtkLandmarkWidget::getCrossLandmark()
+{
+    return this->crossLandmark;
 }

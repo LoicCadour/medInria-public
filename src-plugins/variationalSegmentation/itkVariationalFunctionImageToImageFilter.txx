@@ -86,7 +86,7 @@ namespace itk
   // ThreadedGenerateData
   template <class TInputImage>
   void VariationalFunctionImageToImageFilter<TInputImage>
-  ::ThreadedGenerateData(const OutputImageRegionType& outputRegionForThread, int threadId)
+  ::ThreadedGenerateData(const OutputImageRegionType& outputRegionForThread, ThreadIdType threadId)
   {
     typename ImageType::Pointer output = this->GetOutput();
 
