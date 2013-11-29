@@ -36,6 +36,7 @@ public:
     virtual ~itkFiltersDilateProcessPrivate(void) {}
     
     int radius[3];
+    double radiusMm[3];
     bool isRadiusInPixels;
     int radiusInPixels;
 

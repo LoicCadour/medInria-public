@@ -33,6 +33,11 @@ itkFiltersDilateProcess::itkFiltersDilateProcess(itkFiltersDilateProcess *parent
     d->radius[0] = 0;
     d->radius[1] = 0;
     d->radius[2] = 0;
+
+    d->radiusMm[0] = 0;
+    d->radiusMm[1] = 0;
+    d->radiusMm[2] = 0;
+
     d->isRadiusInPixels = false;
     d->radiusInPixels = 0;
     d->description = tr("ITK Dilate filter");
@@ -72,20 +77,20 @@ void itkFiltersDilateProcess::setParameter(int data, int channel)
         d->radius[2] = data;
         d->isRadiusInPixels = true;
     }
+
+    itk::Image<unsigned char, 3> *image = dynamic_cast<itk::Image<unsigned char, 3> *> ( ( itk::Object* ) ( d->input->data() ) );
+
+
     if (channel == 0) //data is in mm
     {
-        itk::Image<unsigned char, 3> *image = dynamic_cast<itk::Image<unsigned char, 3> *> ( ( itk::Object* ) ( d->input->data() ) );
-        double radius2[3];
-        for (int i=0; i<image->GetSpacing().Size(); i++)
-            radius2[i] = data/image->GetSpacing()[i];
-
         for (int i=0; i<image->GetSpacing().Size(); i++)
             d->radius[i] = floor((data/image->GetSpacing()[i])+0.5); //rounding
 
-        qDebug()<<"RADIUS2   :  "<<radius2[0]<<" "<<radius2[1]<<" "<<radius2[2]<<endl;
         d->isRadiusInPixels = false;
     }
-    qDebug()<<"RADIUS   :  "<<d->radius[0]<<" "<<d->radius[1]<<" "<<d->radius[2]<<endl;
+
+    for (int i=0; i<image->GetSpacing().Size(); i++)
+            d->radiusMm[i] = d->radius[i] * image->GetSpacing()[i];
 }
 
 //-------------------------------------------------------------------------------------------
@@ -154,7 +159,9 @@ int itkFiltersDilateProcess::update ( void )
     else
         unit = "mm";
     QString newSeriesDescription = d->input->metadata ( medMetaDataKeys::SeriesDescription.key() );
-    newSeriesDescription += " Dilate filter ("+ QString::number(d->radiusInPixels) + unit + ")";
+
+    newSeriesDescription += " Dilate filter\n("+ QString::number(d->radiusMm[0])+", "+ 
+        QString::number(d->radiusMm[1])+", "+ QString::number(d->radiusMm[2])+" " + unit + ")";
 
     d->output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
 
