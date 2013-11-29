@@ -5,64 +5,13 @@
 #include <vtkRenderWindowInteractor.h>
 #include <vtkRendererCollection.h>
 #include <vtkRenderWindow.h>
+#include <vtkImageView2D.h>
+#include <vtkPointHandleRepresentation2D.h>
 
 vtkStandardNewMacro(vtkLandmarkWidget);
 vtkCxxRevisionMacro(vtkLandmarkWidget, "$Revision: 1315 $");
 
 
-////----------------------------------------------------------------------------
-//class SphereActorCallback : public vtkCommand
-//{
-//public:
-//  static SphereActorCallback *New()
-//  { return new SphereActorCallback; }
-
-//  void Execute(vtkObject *caller,
-//               unsigned long event,
-//               void *vtkNotUsed(callData))
-//  {
-//    if (this->Actor != NULL)
-//    {
-//      vtkActor* caller = vtkActor::SafeDownCast (caller);
-//      if (caller && (event == vtkCommand::ModifiedEvent))
-//      {
-//        this->Actor->SetVisibility(caller->GetVisibility());
-//        this->Actor->SetMapper(caller->GetMapper());
-//        this->Actor->Modified();
-//      }
-//    }
-//  }
-
-//  void SetActor (vtkActor* arg)
-//  {
-//    if (this->Actor == arg)
-//      return;
-//    if (this->Actor)
-//      this->Actor->UnRegister (this);
-//    this->Actor = arg;
-//    if (this->Actor)
-//      this->Actor->Register(this);
-//  }
-
-//  vtkActor* GetActor()
-//  {
-//    return this->Actor;
-//  }
-
-//protected:
-//  SphereActorCallback()
-//  {
-//    this->Actor = NULL;
-//  }
-//  ~SphereActorCallback()
-//  {
-//    if (this->Actor)
-//      this->Actor->Delete ();
-//  }
-
-//  vtkActor* Actor;
-
-//};
 
 
 vtkLandmarkWidget::vtkLandmarkWidget()
@@ -70,8 +19,7 @@ vtkLandmarkWidget::vtkLandmarkWidget()
   this->Command = vtkLandmarkWidgetCommand::New();
   this->Command->SetLandmark (this);
   this->Value = 0.0;
-  this->crossLandmark = vtkLandmark::New();
-  //this->crossLandmark->se
+  this->widget2D = vtkHandleWidget::New();
 }
 
 vtkLandmarkWidget::~vtkLandmarkWidget()
@@ -84,20 +32,28 @@ void vtkLandmarkWidgetCommand::Execute(vtkObject *   caller,
 				       void *        callData)
 {
   vtkSphereWidget* l = vtkSphereWidget::SafeDownCast(caller);
-  
+  vtkHandleWidget * widget = vtkHandleWidget::SafeDownCast(caller);
+
   if (event == vtkCommand::InteractionEvent)
   {
-    if (this->Landmark)
+    if (this->Landmark && l)
     {
       this->Landmark->SetCenter (l->GetCenter());
       if (this->Landmark->GetInteractor())
 	this->Landmark->GetInteractor()->Render();
+      if (this->Landmark==l)
+          std::cout<<"i hate u dude!";
+    }
+    if (this->widget2D == widget)
+    {
+        if (this->Landmark)
+            this->Landmark->SetCenter(dynamic_cast<vtkPointHandleRepresentation2D*>(this->widget2D->GetRepresentation())->GetWorldPosition());
     }
   }
   if ( (event == vtkCommand::EnableEvent) ||
        (event == vtkCommand::DisableEvent) )
   {
-    if (this->Landmark)
+    if (this->Landmark && l)
       this->Landmark->SetEnabled (l->GetEnabled());
   }
 }
@@ -107,6 +63,10 @@ void vtkLandmarkWidgetCommand::SetLandmark (vtkSphereWidget* l)
   this->Landmark = l;
 }
 
+void vtkLandmarkWidgetCommand::SetWidget2D (vtkHandleWidget* widget)
+{
+    this->widget2D = widget;
+}
 
 void vtkLandmarkWidget::SetEnabled( int val)
 {
@@ -132,7 +92,7 @@ void vtkLandmarkWidget::SetEnabled( int val)
 //  }
 }
 
-vtkLandmark * vtkLandmarkWidget::getCrossLandmark()
+vtkHandleWidget * vtkLandmarkWidget::GetWidget2D()
 {
-    return this->crossLandmark;
+    return this->widget2D;
 }

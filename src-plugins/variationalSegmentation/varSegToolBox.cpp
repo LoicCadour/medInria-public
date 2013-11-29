@@ -22,6 +22,9 @@
 
 #include <vtkLandmarkSegmentationController.h>
 #include <vtkLandmarkWidget.h>
+#include <vtkHandleWidget.h>
+#include <vtkWidgetRepresentation.h>
+#include <vtkPointHandleRepresentation2D.h>
 
 #include <vtkCollection.h>
 #include <vtkRenderWindowInteractor.h>
@@ -236,13 +239,26 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
                 l->GetCurrentRenderer()->RemoveActor(l->GetHandleActor());
             }
             l->SetCurrentRenderer(newrenderer);
-            newrenderer->AddActor(l->GetSphereActor());
-            newrenderer->AddActor(l->GetHandleActor());
+            if (value == "3D")
+            {   
+                newrenderer->AddActor(l->GetSphereActor());
+                newrenderer->AddActor(l->GetHandleActor());
+            }
+            else
+            {
+                l->GetWidget2D()->SetInteractor(l->GetInteractor());
+                l->GetWidget2D()->GetRepresentation()->SetRenderer(newrenderer);
+            }
         }
         l = vtkLandmarkWidget::SafeDownCast(landmarks->GetNextItemAsObject());
     }
     newrenderer->DrawOn();
     newrenderer->Render();
+
+    if (value == "3D")
+        this->controller->setMode3D(true);
+    else
+        this->controller->setMode3D(false);
 }
 
 
@@ -254,6 +270,11 @@ void VarSegToolBox::update(dtkAbstractView * view)
         return;
 
     connect(view, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)));
+
+    if (view->property("Orientation")=="3D")
+        this->controller->setMode3D(true);
+    else
+        this->controller->setMode3D(false);
 
     vtkCollection* interactorcollection = vtkCollection::New();
     interactorcollection->AddItem(static_cast<vtkRenderWindow*>(v->getRenderWindow())->GetInteractor());
@@ -310,7 +331,7 @@ void VarSegToolBox::update(dtkAbstractView * view)
     ImageType::SpacingType imageSpacing  = image->GetSpacing();
 
     qDebug() << imageSize[0] << " " << imageSize[1] << " " << imageSize[2] ;
-    double res = 20;
+    double res = 25;
     ImageType::IndexType corner= {{0,0,0}};;
     double smallestSpacing = std::min(imageSpacing[0], std::min(imageSpacing[1], imageSpacing[2]));
     double mSpacing[3];

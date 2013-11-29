@@ -2,6 +2,7 @@
 #define _vtk_LandmarkWidget_h_
 
 #include <vtkSphereWidget.h>
+#include <vtkHandleWidget.h>
 #include <vtkLandmark.h>
 #include <vtkCommand.h>
 #include <vtkSetGet.h>
@@ -16,6 +17,8 @@ class VTK_EXPORT vtkLandmarkWidgetCommand : public vtkCommand
                void *        callData);
   void SetLandmark (vtkSphereWidget* l);
 
+  void SetWidget2D (vtkHandleWidget * widget);
+
  protected:
   vtkLandmarkWidgetCommand()
   {
@@ -25,6 +28,7 @@ class VTK_EXPORT vtkLandmarkWidgetCommand : public vtkCommand
   
  private:
   vtkSphereWidget* Landmark;
+  vtkHandleWidget * widget2D;
 };
 
 class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
@@ -40,7 +44,9 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
   vtkGetObjectMacro(HandleActor, vtkActor);
 
   virtual void SetEnabled(int);
-  vtkLandmark * getCrossLandmark();
+  vtkHandleWidget * GetWidget2D();
+  int GetIdSlice(){return idSlice;};
+  void SetIdSlice(int id){idSlice=id;};
  protected:
   vtkLandmarkWidget();
   ~vtkLandmarkWidget();
@@ -48,9 +54,11 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
  private:
   vtkLandmarkWidgetCommand* Command;
   double Value;
-  vtkLandmark * crossLandmark;
+  vtkHandleWidget * widget2D;
+  int idSlice; // slice on which the widget2d was defined;
   
 };
+
 //ETX
 
 #endif //_vtk_LandmarkWidget_h_
