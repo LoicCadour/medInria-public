@@ -82,7 +82,11 @@ public:
 
   void setView2D(vtkImageView2D*);
   void setView3D(vtkImageView3D*);
-  
+  void showOrHide2DWidget(int slice);
+  void updateLandmarksPosFromWidget2D();
+
+  void setMode3D(bool val){mode3D =val;};
+
  protected:
   vtkLandmarkSegmentationController();
   ~vtkLandmarkSegmentationController();
@@ -112,9 +116,7 @@ private:
   double                      LandmarkRadius;
   vtkImageView2D * view2d;
   vtkImageView3D * view3d;
-
-  vtkLandmarkManager * m_crossLandmarkManager;
-
+  bool mode3D;
 };
 
 #endif

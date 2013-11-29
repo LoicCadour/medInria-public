@@ -90,7 +90,6 @@ target_link_libraries(${PROJECT_NAME}
   vtkWidgets
   vtkRendering
   ${ITK_LIBRARIES}
-  vtkLandmarkManagement
   vtkImageView
 )
 #not useful if plugin in the medInria-plugins directory
