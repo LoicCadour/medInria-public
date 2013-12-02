@@ -32,6 +32,7 @@
 #include <vtkRenderer.h>
 #include <itkCastImageFilter.h>
 #include <itkResampleImagefilter.h>
+#include <medVtkViewBackend.h>
 #include <algorithm> 
 
 namespace mseg {
@@ -222,7 +223,8 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
         return;
     
     medAbstractView * v = qobject_cast<medAbstractView*>(this->sender());
-    vtkRenderWindowInteractor * interactor = static_cast<vtkRenderWindow*>(v->getRenderWindow())->GetInteractor();
+    
+    vtkRenderWindowInteractor * interactor = static_cast<medVtkViewBackend*>(v->backend())->renWin->GetInteractor();
 
     vtkCollection* landmarks = this->controller->GetTotalLandmarkCollection();
     landmarks->InitTraversal();
@@ -277,7 +279,7 @@ void VarSegToolBox::update(dtkAbstractView * view)
         this->controller->setMode3D(false);
 
     vtkCollection* interactorcollection = vtkCollection::New();
-    interactorcollection->AddItem(static_cast<vtkRenderWindow*>(v->getRenderWindow())->GetInteractor());
+    interactorcollection->AddItem(static_cast<medVtkViewBackend*>(v->backend())->renWin->GetInteractor());
     this->controller->SetInteractorCollection(interactorcollection);
     interactorcollection->Delete();
 
@@ -357,10 +359,14 @@ void VarSegToolBox::update(dtkAbstractView * view)
     imagetest->SetSpacing(NewSpacing);
     
     this->controller->SetInput(imagetest);
-    this->controller->setView2D(static_cast<vtkImageView2D*>(v->getView2D()));
-    this->controller->setView3D(static_cast<vtkImageView3D*>(v->getView3D()));
-    static_cast<vtkImageView2D*>(v->getView2D())->AddDataSet (controller->GetOutput());
-    static_cast<vtkImageView3D*>(v->getView3D())->AddDataSet (controller->GetOutput());
+    vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(v->backend())->view2D;
+    vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(v->backend())->view3D;
+
+
+    this->controller->setView2D(view2d);
+    this->controller->setView3D(view3d);
+    view2d->AddDataSet (controller->GetOutput());
+    view3d->AddDataSet (controller->GetOutput());
 
   //   int returnValue = 0;
   //int res = this->GetResolution();
