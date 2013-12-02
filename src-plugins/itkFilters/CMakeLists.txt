@@ -55,6 +55,7 @@ set(${PROJECT_NAME}_HEADERS
   itkFiltersShrinkProcess_p.h
   itkFiltersSubtractProcess_p.h
   itkFiltersWindowingProcess_p.h
+  itkFiltersThresholdingProcess_p.h
   itkFiltersDilateProcess_p.h
   itkFiltersErodeProcess_p.h
   itkFiltersCloseProcess_p.h
@@ -76,6 +77,7 @@ set(${PROJECT_NAME}_HEADERS_MOC
   itkFiltersInvertProcess.h
   itkFiltersShrinkProcess.h
   itkFiltersWindowingProcess.h
+  itkFiltersThresholdingProcess.h
   itkFiltersDilateProcess.h
   itkFiltersErodeProcess.h
   itkFiltersCloseProcess.h
@@ -97,6 +99,7 @@ set(${PROJECT_NAME}_SOURCES
   itkFiltersInvertProcess.cpp
   itkFiltersShrinkProcess.cpp
   itkFiltersWindowingProcess.cpp
+  itkFiltersThresholdingProcess.cpp
   itkFiltersDilateProcess.cpp
   itkFiltersErodeProcess.cpp
   itkFiltersCloseProcess.cpp
