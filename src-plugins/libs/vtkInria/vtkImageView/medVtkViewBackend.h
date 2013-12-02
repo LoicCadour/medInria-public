@@ -15,15 +15,4 @@ public:
     vtkImageView2D * view2D;
     vtkImageView3D * view3D;
     vtkRenderWindow * renWin;
-=======
-#include <medAbstractView.h>
-#include <vtkImageView2D.h>
-
-class medVtkViewBackend : public medViewBackend
-{
-public:
-    medVtkViewBackend(vtkImageView2D * view2D_);
-
-    vtkImageView2D * view2D;
->>>>>>> cherry-pick
 };
