@@ -319,6 +319,7 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
     l->SetEnabled (true);
     if (l->GetCurrentRenderer() && !mode3D) 
     {
+
         l->GetCurrentRenderer()->RemoveActor(l->GetSphereActor());
         l->GetCurrentRenderer()->RemoveActor(l->GetHandleActor());
     }
@@ -443,8 +444,9 @@ void vtkLandmarkSegmentationController::LinkInteractions ( void)
       int id1 = numberofinteractors * n + i;
       l1 = vtkLandmarkWidget::SafeDownCast (collection->GetItemAsObject(id1));
       if (!l1->HasObserver(vtkCommand::EndInteractionEvent, this->Command))
-	l1->AddObserver(vtkCommand::EndInteractionEvent, this->Command, -1);
-      l1->GetWidget2D()->AddObserver(vtkCommand::EndInteractionEvent, this->Command, -1);
+	    l1->AddObserver(vtkCommand::EndInteractionEvent, this->Command, -1);
+      if (!l1->GetWidget2D()->HasObserver(vtkCommand::EndInteractionEvent, this->Command))
+        l1->GetWidget2D()->AddObserver(vtkCommand::EndInteractionEvent, this->Command, -1);
       
       for (unsigned int j=0; j<numberofinteractors; j++)
       {
