@@ -153,15 +153,15 @@ int itkFiltersDilateProcess::update ( void )
         << ")";
         return -1;
     }
-    QString unit;
-    if (d->isRadiusInPixels)
-        unit = "pixels";
-    else
-        unit = "mm";
+
     QString newSeriesDescription = d->input->metadata ( medMetaDataKeys::SeriesDescription.key() );
 
-    newSeriesDescription += " Dilate filter\n("+ QString::number(d->radiusMm[0])+", "+ 
-        QString::number(d->radiusMm[1])+", "+ QString::number(d->radiusMm[2])+" " + unit + ")";
+    if (d->isRadiusInPixels)
+        newSeriesDescription += " Dilate filter\n("+ QString::number(d->radius[0])+", "+ 
+        QString::number(d->radius[1])+", "+ QString::number(d->radius[2])+" pixels)";
+    else
+        newSeriesDescription += " Dilate filter\n("+ QString::number(d->radiusMm[0])+", "+ 
+        QString::number(d->radiusMm[1])+", "+ QString::number(d->radiusMm[2])+" mm)";
 
     d->output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
 
