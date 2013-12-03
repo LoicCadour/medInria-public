@@ -1,6 +1,5 @@
 #pragma once
 
-<<<<<<< HEAD
 #include "vtkImageViewExport.h"
 #include <medAbstractView.h>
 #include <vtkImageView2D.h>
