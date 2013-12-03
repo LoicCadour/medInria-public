@@ -45,9 +45,9 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
 
   virtual void SetEnabled(int);
   vtkHandleWidget * GetWidget2D();
-  int GetIdSlice(){return idSlice;};
-  void SetIdSlice(int id){idSlice=id;};
- protected:
+  int * GetIndices(){return indices;};
+  void SetIndices(int ind[3]){indices[0]=ind[0];indices[1]=ind[1];indices[2]=ind[2];};
+  protected:
   vtkLandmarkWidget();
   ~vtkLandmarkWidget();
   
@@ -55,8 +55,7 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
   vtkLandmarkWidgetCommand* Command;
   double Value;
   vtkHandleWidget * widget2D;
-  int idSlice; // slice on which the widget2d was defined;
-  
+  int indices[3]; // indices in image
 };
 
 //ETX

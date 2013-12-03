@@ -44,7 +44,6 @@ public slots:
 
 private:
     vtkLandmarkSegmentationController* controller;
-
 };
 
 }
