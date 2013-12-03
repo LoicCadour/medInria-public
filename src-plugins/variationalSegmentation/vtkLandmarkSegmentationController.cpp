@@ -59,7 +59,7 @@ void vtkLandmarkSegmentationControllerCommand::SetController (vtkLandmarkSegment
 void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsigned long event, void *vtkNotUsed(callData))
 {
 
-  if (!this->Controller)
+    if (!this->Controller) // if we are in 3D mode we block all interactions, IMO it is too difficult to add or manipulate sphere widgets in 3d.
     return;
   if (!this->Controller->GetInteractorCollection())
     return;
@@ -119,9 +119,13 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
     /*************************************************/
     /**  Third we add the landmark and invoke event  */
     /*************************************************/
-    vtkLandmarkWidget* initial_landmark = this->Controller->AddConstraint(position, type);
-    initial_landmark->InvokeEvent (vtkCommand::EndInteractionEvent);
-    return;
+    if (!this->Controller->getMode3D())
+    {
+        vtkLandmarkWidget* initial_landmark = this->Controller->AddConstraint(position, type);
+        initial_landmark->InvokeEvent (vtkCommand::EndInteractionEvent);
+        return;
+    }
+    
   }
   
   if ( event == vtkCommand::EndInteractionEvent )
@@ -133,15 +137,13 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
         this->Controller->updateLandmarksPosFromWidget2D();
     }
     else 
-        if (landmark->GetInteractor()->GetControlKey())
-          /**************  Landmark deletion  **************/
-          this->Controller->RemoveConstraint (landmark);
-        else
-            /***********  Landmark has finished moving  ***********/
-            dynamic_cast<vtkPointHandleRepresentation2D*>(landmark->GetWidget2D()->GetRepresentation())->SetWorldPosition(landmark->GetCenter());  
-        
-        this->Controller->RefreshConstraints();
-        this->Controller->Update();
+        if (landmark->GetInteractor()->GetControlKey()) /**************  Landmark deletion  **************/
+        {
+            this->Controller->RemoveConstraint (landmark);
+        }
+    
+    this->Controller->RefreshConstraints();
+    this->Controller->Update();
     
     this->Controller->GetInteractorCollection()->InitTraversal();
     vtkRenderWindowInteractor* interactor = vtkRenderWindowInteractor::SafeDownCast (this->Controller->GetInteractorCollection()->GetNextItemAsObject());
@@ -154,7 +156,7 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
   if ( event == vtkImageView2D::SliceChangedEvent )
   {
       vtkImageView2D * view2d= vtkImageView2D::SafeDownCast(caller);
-      this->Controller->showOrHide2DWidget(view2d->GetSlice());                                              
+      this->Controller->showOrHide2DWidget();                                              
   }
 }
 
@@ -312,17 +314,14 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
     l->GetWidget2D()->SetRepresentation(pointRep);
     if (!mode3D)
         l->GetWidget2D()->SetInteractor(item);
-    l->SetIdSlice(view2d->GetSlice());
+    int indices[3];
+    view2d->GetImageCoordinatesFromWorldCoordinates(pos,indices);
+    l->SetIndices(indices);
     l->GetWidget2D()->On();
     l->SetRepresentationToSurface();
     l->SetInteractor (item);
-    l->SetEnabled (true);
-    if (l->GetCurrentRenderer() && !mode3D) 
-    {
-
-        l->GetCurrentRenderer()->RemoveActor(l->GetSphereActor());
-        l->GetCurrentRenderer()->RemoveActor(l->GetHandleActor());
-    }
+    if (l->GetCurrentRenderer())
+        l->Off();
     this->GetTotalLandmarkCollection()->AddItem (l);
     if (!initial_landmark)
       initial_landmark = l;
@@ -353,7 +352,7 @@ void vtkLandmarkSegmentationController::RemoveConstraint (vtkLandmarkWidget* arg
     // We cannot actually remove the object as the landmark still has some
     // invoked events to process. So we just let the TotalLandmarkCollection
     // grow without any consequence.
-    // this->TotalLandmarkCollection->RemoveItem (toremove);
+    this->TotalLandmarkCollection->RemoveItem (toremove);
   }
 }
 
@@ -517,16 +516,20 @@ void vtkLandmarkSegmentationController::setView3D(vtkImageView3D *view)
     this->view3d = view;
 }
 
-void vtkLandmarkSegmentationController::showOrHide2DWidget(int slice)
+void vtkLandmarkSegmentationController::showOrHide2DWidget()
 {
   for (int i=0; i<this->LandmarkCollection->GetNumberOfItems(); i++)
   {
     vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject(i));
     if (landmark->GetWidget2D()->GetInteractor() && landmark->GetWidget2D()->GetRepresentation()->GetRenderer())
-        if (landmark->GetIdSlice()==slice)
-            landmark->GetWidget2D()->On();
-        else
-            landmark->GetWidget2D()->Off();
+    {
+        vtkHandleWidget * widget  = landmark->GetWidget2D();
+        if (widget->GetInteractor()->GetRenderWindow())
+            if (landmark->GetIndices()[view2d->GetViewOrientation()]!=view2d->GetSlice())
+                widget->Off();
+            else
+                widget->On();
+    }
   }
 }                                              
 
@@ -537,5 +540,8 @@ void vtkLandmarkSegmentationController::updateLandmarksPosFromWidget2D()
         vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject(i));
         vtkPointHandleRepresentation2D * pointRep = dynamic_cast<vtkPointHandleRepresentation2D*> (landmark->GetWidget2D()->GetRepresentation());
         landmark->SetCenter(pointRep->GetWorldPosition());
+        int indices[3];
+        view2d->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),indices);
+        landmark->SetIndices(indices);
     }
 }

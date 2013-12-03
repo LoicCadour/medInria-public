@@ -180,11 +180,7 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     layout->addWidget(outside);
     layout->addWidget(on);
     
-
     controller = vtkLandmarkSegmentationController::New();
-
-    
-
 }
 
 VarSegToolBox::~VarSegToolBox()
@@ -229,38 +225,24 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
     vtkCollection* landmarks = this->controller->GetTotalLandmarkCollection();
     landmarks->InitTraversal();
     vtkLandmarkWidget* l = vtkLandmarkWidget::SafeDownCast(landmarks->GetNextItemAsObject());
-    vtkRenderer* newrenderer = interactor->FindPokedRenderer(interactor->GetLastEventPosition()[0],interactor->GetLastEventPosition()[1]);
-    newrenderer->DrawOff();
+    
     while(l)
     {
-        if ( (l->GetInteractor() == interactor) && l->GetEnabled() )
-        {
-            if (l->GetCurrentRenderer())
-            {
-                l->GetCurrentRenderer()->RemoveActor(l->GetSphereActor());
-                l->GetCurrentRenderer()->RemoveActor(l->GetHandleActor());
-            }
-            l->SetCurrentRenderer(newrenderer);
-            if (value == "3D")
-            {   
-                newrenderer->AddActor(l->GetSphereActor());
-                newrenderer->AddActor(l->GetHandleActor());
-            }
-            else
-            {
-                l->GetWidget2D()->SetInteractor(l->GetInteractor());
-                l->GetWidget2D()->GetRepresentation()->SetRenderer(newrenderer);
-            }
-        }
+        if ( (l->GetInteractor() == interactor))
+            if (value=="3D")
+                l->On();
+            else if (this->controller->getMode3D()) // test if previous orientation was 3d
+                if (l->GetCurrentRenderer())
+                    l->Off();
         l = vtkLandmarkWidget::SafeDownCast(landmarks->GetNextItemAsObject());
     }
-    newrenderer->DrawOn();
-    newrenderer->Render();
-
+    
     if (value == "3D")
         this->controller->setMode3D(true);
     else
         this->controller->setMode3D(false);
+    
+    this->controller->showOrHide2DWidget();
 }
 
 

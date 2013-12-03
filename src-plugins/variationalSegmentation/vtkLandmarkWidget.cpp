@@ -71,8 +71,8 @@ void vtkLandmarkWidgetCommand::SetWidget2D (vtkHandleWidget* widget)
 void vtkLandmarkWidget::SetEnabled( int val)
 {
   Superclass::SetEnabled( val);
-  
-//  vtkRenderWindowInteractor *i = this->Interactor;
+  this->Interactor->RemoveObservers(vtkCommand::MouseMoveEvent,reinterpret_cast<vtkCommand*>(this->EventCallbackCommand));// the sphere widget should not be movable. All movements should go through the 2d view -> widget2d.
+  //  vtkRenderWindowInteractor *i = this->Interactor;
 //  if (!i || !i->GetRenderWindow())
 //      return;
 //  vtkRendererCollection* renderers = i->GetRenderWindow()->GetRenderers();
