@@ -41,9 +41,12 @@ public:
 public slots:
     virtual void update(dtkAbstractView * view);
     void updateLandmarksRenderer(QString key, QString value);
+    void addBinaryImage();
 
 private:
     vtkLandmarkSegmentationController* controller;
+    medAbstractView * currentView;
+    dtkSmartPointer<dtkAbstractData>  output;
 };
 
 }
