@@ -90,6 +90,8 @@ public:
   void setMode3D(bool val){mode3D =val;};
   bool getMode3D(){return mode3D;};
 
+  ImageType * GetBinaryImage();
+
  protected:
   vtkLandmarkSegmentationController();
   ~vtkLandmarkSegmentationController();
@@ -120,6 +122,8 @@ private:
   vtkImageView2D * view2d;
   vtkImageView3D * view3d;
   bool mode3D;
+  ImageType::Pointer binaryOutput;
+
 };
 
 #endif

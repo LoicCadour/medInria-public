@@ -34,6 +34,7 @@
 #include <itkResampleImagefilter.h>
 #include <medVtkViewBackend.h>
 #include <algorithm> 
+#include <medDataManager.h>
 
 namespace mseg {
 
@@ -176,11 +177,18 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     QLabel * outside = new QLabel(QString("On VOI : Shift + left mouse button"),displayWidget);
     QLabel * on = new QLabel(QString("Outside VOI : Shift + middle mouse button"),displayWidget);
 
+    QPushButton * binaryImageButton = new QPushButton(tr("Generate binary image"),displayWidget);
+
     layout->addWidget(inside);
     layout->addWidget(outside);
     layout->addWidget(on);
+    layout->addWidget(binaryImageButton);
+
+    connect(binaryImageButton,SIGNAL(clicked()),this,SLOT(addBinaryImage()));
     
     controller = vtkLandmarkSegmentationController::New();
+    output =new dtkAbstractData();
+    currentView=0;
 }
 
 VarSegToolBox::~VarSegToolBox()
@@ -245,10 +253,28 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
     this->controller->showOrHide2DWidget();
 }
 
+void VarSegToolBox::addBinaryImage()
+{
+    output->setData ( this->controller->GetBinaryImage() );
+    
+    QString newSeriesDescription = reinterpret_cast<dtkAbstractData*>(this->currentView->data())->metadata ( medMetaDataKeys::SeriesDescription.key() );
+    newSeriesDescription += "varSeg";
+    
+    output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
+    medDataManager::instance()->importNonPersistent( output.data() );
+
+    //currentView->setData(reinterpret_cast<dtkAbstractData*>(this->controller->GetBinaryImage()));
+    //import plutot 
+}
 
 void VarSegToolBox::update(dtkAbstractView * view)
 {
     medAbstractView * v = qobject_cast<medAbstractView*>(view);
+
+    if (currentView) // TODO change this system.
+        return;
+    else
+        currentView=v;
 
     if (this->controller->GetInteractorCollection())
         return;
@@ -343,7 +369,6 @@ void VarSegToolBox::update(dtkAbstractView * view)
     this->controller->SetInput(imagetest);
     vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(v->backend())->view2D;
     vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(v->backend())->view3D;
-
 
     this->controller->setView2D(view2d);
     this->controller->setView3D(view3d);

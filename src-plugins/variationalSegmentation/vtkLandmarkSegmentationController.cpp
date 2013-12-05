@@ -165,6 +165,7 @@ vtkLandmarkSegmentationController::vtkLandmarkSegmentationController()
 {
   this->SetNumberOfInputPorts(0);
   m_Input                    = NULL;
+  binaryOutput               = NULL;
   this->InteractorCollection = NULL;
   this->Enabled              = 0;
   m_Filter                 = FilterType::New();
@@ -352,7 +353,7 @@ void vtkLandmarkSegmentationController::RemoveConstraint (vtkLandmarkWidget* arg
     // We cannot actually remove the object as the landmark still has some
     // invoked events to process. So we just let the TotalLandmarkCollection
     // grow without any consequence.
-    this->TotalLandmarkCollection->RemoveItem (toremove);
+    //this->TotalLandmarkCollection->RemoveItem (toremove);
   }
 }
 
@@ -472,37 +473,6 @@ void vtkLandmarkSegmentationController::LinkInteractions ( void)
   }
 }
 
-//----------------------------------------------------------------------------
-int vtkLandmarkSegmentationController::RequestData(
-  vtkInformation *vtkNotUsed(request),
-  vtkInformationVector **inputVector,
-  vtkInformationVector *outputVector)
-{
-  vtkInformation *outInfo = outputVector->GetInformationObject(0);
-  vtkPolyData *output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
-
-  //try
-  //{
-  m_Filter->Update();
-  m_Converter->Update();
-  //} catch (itk::ExceptionObject &e)
-  /*{
-    std::cerr << e << std::endl;
-    return 0;
-  }*/
-  
-  this->SurfaceExtractor->Update();
-
-  vtkPolyData* data = this->SurfaceExtractor->GetOutput();
-  vtkPoints* newpoints = vtkPoints::New();
-  if (data->GetPoints()) this->Transformer->TransformPoints (data->GetPoints(), newpoints);
-  data->SetPoints (newpoints);
-  newpoints->Delete();
-  output->SetPoints (data->GetPoints());
-  output->SetPolys (data->GetPolys());
-  return 1;
-}
-
 void vtkLandmarkSegmentationController::setView2D(vtkImageView2D *view)
 {
     if (this->view2d)
@@ -544,4 +514,41 @@ void vtkLandmarkSegmentationController::updateLandmarksPosFromWidget2D()
         view2d->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),indices);
         landmark->SetIndices(indices);
     }
+}
+
+//----------------------------------------------------------------------------
+int vtkLandmarkSegmentationController::RequestData(
+  vtkInformation *vtkNotUsed(request),
+  vtkInformationVector **inputVector,
+  vtkInformationVector *outputVector)
+{
+  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkPolyData *output = vtkPolyData::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
+
+  //try
+  //{
+  m_Filter->Update();
+  this->binaryOutput = m_Filter->GetOutput();
+  m_Converter->Update();
+  //} catch (itk::ExceptionObject &e)
+  /*{
+    std::cerr << e << std::endl;
+    return 0;
+  }*/
+  
+  this->SurfaceExtractor->Update();
+
+  vtkPolyData* data = this->SurfaceExtractor->GetOutput();
+  vtkPoints* newpoints = vtkPoints::New();
+  if (data->GetPoints()) this->Transformer->TransformPoints (data->GetPoints(), newpoints);
+  data->SetPoints (newpoints);
+  newpoints->Delete();
+  output->SetPoints (data->GetPoints());
+  output->SetPolys (data->GetPolys());
+  return 1;
+}
+
+vtkLandmarkSegmentationController::ImageType * vtkLandmarkSegmentationController::GetBinaryImage()
+{
+    return this->binaryOutput;
 }
