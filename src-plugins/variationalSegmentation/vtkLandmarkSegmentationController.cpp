@@ -27,6 +27,10 @@
 #include <vtkPointHandleRepresentation3D.h>
 #include <vtkPointHandleRepresentation2D.h>
 #include <vtkProperty2D.h>
+#include <itkBinaryThresholdImageFilter.h>
+#include <itkResampleImageFilter.h>
+#include <itkNearestNeighborInterpolateImageFunction.h>
+#include <itkBSplineInterpolateImageFunction.h>
 
 vtkCxxRevisionMacro(vtkLandmarkSegmentationController, "$Revision: 1315 $");
 vtkStandardNewMacro(vtkLandmarkSegmentationController);
@@ -165,7 +169,7 @@ vtkLandmarkSegmentationController::vtkLandmarkSegmentationController()
 {
   this->SetNumberOfInputPorts(0);
   m_Input                    = NULL;
-  binaryOutput               = NULL;
+  implicitFunction           = NULL;
   this->InteractorCollection = NULL;
   this->Enabled              = 0;
   m_Filter                 = FilterType::New();
@@ -528,7 +532,7 @@ int vtkLandmarkSegmentationController::RequestData(
   //try
   //{
   m_Filter->Update();
-  this->binaryOutput = m_Filter->GetOutput();
+  implicitFunction = m_Filter->GetOutput();
   m_Converter->Update();
   //} catch (itk::ExceptionObject &e)
   /*{
@@ -548,7 +552,47 @@ int vtkLandmarkSegmentationController::RequestData(
   return 1;
 }
 
-vtkLandmarkSegmentationController::ImageType * vtkLandmarkSegmentationController::GetBinaryImage()
+vtkLandmarkSegmentationController::binaryType::Pointer vtkLandmarkSegmentationController::GetBinaryImage()
 {
-    return this->binaryOutput;
+    if (!implicitFunction)
+        return NULL;
+    
+    itk::BinaryThresholdImageFilter<ImageType,binaryType>::Pointer thresholdFilter = itk::BinaryThresholdImageFilter<ImageType,binaryType>::New();
+    thresholdFilter->SetInput(implicitFunction);
+    thresholdFilter->SetUpperThreshold(0);
+    thresholdFilter->SetInsideValue(1);
+    thresholdFilter->Update();
+    binaryType::Pointer img = thresholdFilter->GetOutput();
+
+    itk::ResampleImageFilter<binaryType , binaryType>::Pointer filter = itk::ResampleImageFilter<binaryType , binaryType>::New();
+    typedef itk::NearestNeighborInterpolateImageFunction<binaryType, double >  InterpolatorType;
+    InterpolatorType::Pointer interpolator = InterpolatorType::New();
+    binaryType::SizeType filterInputSize = img->GetLargestPossibleRegion().GetSize();
+ 
+    // Resize
+    binaryType::SizeType size;
+    size[0]=outputSize[0];
+    size[1]=outputSize[1];
+    size[2]=outputSize[2];
+    binaryType::SpacingType outputSpacing;
+
+    outputSpacing[0] = implicitFunction->GetSpacing()[0] * (static_cast<double>(filterInputSize[0]) / static_cast<double>(outputSize[0]));
+    outputSpacing[1] = implicitFunction->GetSpacing()[1] * (static_cast<double>(filterInputSize[1]) / static_cast<double>(outputSize[1]));
+    outputSpacing[2] = implicitFunction->GetSpacing()[2] * (static_cast<double>(filterInputSize[2]) / static_cast<double>(outputSize[2]));
+
+    filter->SetInput(img);
+    filter->SetSize(size);
+    filter->SetInterpolator(0);
+    filter->SetOutputOrigin(m_Input->GetOrigin());
+    filter->SetOutputDirection(m_Input->GetDirection());
+    filter->SetOutputSpacing(outputSpacing);
+    filter->SetInterpolator(interpolator);
+    filter->UpdateLargestPossibleRegion();
+    
+    /*itk::BinaryThresholdImageFilter<ImageType,binaryType>::Pointer thresholdFilter = itk::BinaryThresholdImageFilter<ImageType,binaryType>::New();
+    thresholdFilter->SetInput(filter->GetOutput());
+    thresholdFilter->SetUpperThreshold(0);
+    thresholdFilter->SetInsideValue(1);
+    thresholdFilter->Update();*/
+    return filter->GetOutput();
 }

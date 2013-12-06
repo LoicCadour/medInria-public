@@ -47,6 +47,7 @@ private:
     vtkLandmarkSegmentationController* controller;
     medAbstractView * currentView;
     dtkSmartPointer<dtkAbstractData>  output;
+    int inputSize[3];
 };
 
 }

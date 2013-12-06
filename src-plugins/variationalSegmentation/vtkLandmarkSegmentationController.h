@@ -49,6 +49,7 @@ public:
   
   typedef double ScalarType;
   typedef itk::Image<ScalarType, 3> ImageType;
+  typedef itk::Image<unsigned char,3> binaryType;
   typedef itk::Image<int, 3> BooleanImageType;
   typedef itk::VariationalFunctionImageToImageFilter<ImageType> FilterType;
   typedef itk::ImageToVTKImageFilter<ImageType> ConverterType;
@@ -90,7 +91,9 @@ public:
   void setMode3D(bool val){mode3D =val;};
   bool getMode3D(){return mode3D;};
 
-  ImageType * GetBinaryImage();
+  binaryType::Pointer GetBinaryImage();
+
+  void setOutputSize(int x,int y,int z){outputSize[0]=x;outputSize[1]=y;outputSize[2]=z;};
 
  protected:
   vtkLandmarkSegmentationController();
@@ -122,8 +125,8 @@ private:
   vtkImageView2D * view2d;
   vtkImageView3D * view3d;
   bool mode3D;
-  ImageType::Pointer binaryOutput;
-
+  ImageType::Pointer implicitFunction;
+  int outputSize[3]; // size expected for the output
 };
 
 #endif
