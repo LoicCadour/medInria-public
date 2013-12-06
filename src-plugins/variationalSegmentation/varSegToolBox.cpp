@@ -35,6 +35,7 @@
 #include <medVtkViewBackend.h>
 #include <algorithm> 
 #include <medDataManager.h>
+#include <itkResampleImageFilter.h>
 
 namespace mseg {
 
@@ -187,7 +188,7 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     connect(binaryImageButton,SIGNAL(clicked()),this,SLOT(addBinaryImage()));
     
     controller = vtkLandmarkSegmentationController::New();
-    output =new dtkAbstractData();
+    output = output = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
     currentView=0;
 }
 
@@ -255,16 +256,44 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
 
 void VarSegToolBox::addBinaryImage()
 {
-    output->setData ( this->controller->GetBinaryImage() );
-    
+    if (!this->controller->GetBinaryImage())
+        return;
+
+    //typedef itk::Image<unsigned char,3> binaryType;
+    //itk::ResampleImageFilter<binaryType , binaryType>::Pointer filter = itk::ResampleImageFilter<binaryType , binaryType >::New();
+    //binaryType::Pointer filterInput = this->controller->GetBinaryImage();
+    //binaryType::SizeType filterInputSize = filterInput->GetLargestPossibleRegion().GetSize();
+ 
+    //// Resize
+    //binaryType::SizeType outputSize;
+    //binaryType::SpacingType outputSpacing;
+
+    //outputSize[0]=inputSize[0];
+    //outputSize[1]=inputSize[1];
+    //outputSize[2]=inputSize[2];
+
+    //outputSpacing[0] = filterInput->GetSpacing()[0] * (static_cast<double>(filterInputSize[0]) / static_cast<double>(outputSize[0]));
+    //outputSpacing[1] = filterInput->GetSpacing()[1] * (static_cast<double>(filterInputSize[1]) / static_cast<double>(outputSize[1]));
+    //outputSpacing[2] = filterInput->GetSpacing()[2] * (static_cast<double>(filterInputSize[2]) / static_cast<double>(outputSize[2]));
+
+    //filter->SetInput(filterInput);
+    //filter->SetSize(outputSize);
+    //filter->SetOutputOrigin(filterInput->GetOrigin());
+    //filter->SetOutputSpacing(outputSpacing);
+    //filter->UpdateLargestPossibleRegion();
+    //output->setData ( filter->GetOutput());
+
+    //dtkSmartPointer<dtkAbstractData> output2 = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
+    //output2->setData(filterInput);
+    output->setData(this->controller->GetBinaryImage());
     QString newSeriesDescription = reinterpret_cast<dtkAbstractData*>(this->currentView->data())->metadata ( medMetaDataKeys::SeriesDescription.key() );
     newSeriesDescription += "varSeg";
     
     output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
+    //newSeriesDescription += "varSeg2";
+    //output2->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
     medDataManager::instance()->importNonPersistent( output.data() );
-
-    //currentView->setData(reinterpret_cast<dtkAbstractData*>(this->controller->GetBinaryImage()));
-    //import plutot 
+    //medDataManager::instance()->importNonPersistent( output2.data() );
 }
 
 void VarSegToolBox::update(dtkAbstractView * view)
@@ -351,8 +380,11 @@ void VarSegToolBox::update(dtkAbstractView * view)
 
     int mDim[3];
     for (unsigned int i = 0; i < 3; i++)
+    {
         mDim[i] = (int) (imageSize[i] * imageSpacing[i] / mSpacing[i]);
-
+        inputSize[i]=imageSize[i];
+    }
+    this->controller->setOutputSize(inputSize[0],inputSize[1],inputSize[2]);
 
     ImageType::SpacingType NewSpacing;
     ImageType::SizeType NewSize;
