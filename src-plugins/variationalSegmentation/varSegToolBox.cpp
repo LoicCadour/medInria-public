@@ -256,10 +256,12 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
 
 void VarSegToolBox::addBinaryImage()
 {
-    if (!this->controller->GetBinaryImage())
+    typedef itk::Image<unsigned char,3> binaryType;
+    binaryType::Pointer img = this->controller->GetBinaryImage();
+
+    if (!img)
         return;
 
-    //typedef itk::Image<unsigned char,3> binaryType;
     //itk::ResampleImageFilter<binaryType , binaryType>::Pointer filter = itk::ResampleImageFilter<binaryType , binaryType >::New();
     //binaryType::Pointer filterInput = this->controller->GetBinaryImage();
     //binaryType::SizeType filterInputSize = filterInput->GetLargestPossibleRegion().GetSize();
@@ -285,7 +287,7 @@ void VarSegToolBox::addBinaryImage()
 
     //dtkSmartPointer<dtkAbstractData> output2 = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
     //output2->setData(filterInput);
-    output->setData(this->controller->GetBinaryImage());
+    output->setData(img);
     QString newSeriesDescription = reinterpret_cast<dtkAbstractData*>(this->currentView->data())->metadata ( medMetaDataKeys::SeriesDescription.key() );
     newSeriesDescription += "varSeg";
     
