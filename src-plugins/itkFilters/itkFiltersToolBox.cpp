@@ -247,10 +247,10 @@ itkFiltersToolBox::itkFiltersToolBox ( QWidget *parent ) : medFilteringAbstractT
     //Threshold filter widgets
     d->thresholdFilterWidget = new QWidget(this);
     d->thresholdFilterValue = new QDoubleSpinBox;
-    d->thresholdFilterValue->setMaximum ( 100000 );
+    d->thresholdFilterValue->setRange ( -10000, 10000 );
     d->thresholdFilterValue->setValue ( 200.0 );
     d->thresholdFilterValue2 = new QDoubleSpinBox;
-    d->thresholdFilterValue2->setMaximum ( 100000 );
+    d->thresholdFilterValue2->setRange ( -10000, 10000 );
     d->thresholdFilterValue2->setValue ( 0 );
     d->greaterButton = new QRadioButton(tr("greater than :"), this);
     d->greaterButton->setChecked(true);
