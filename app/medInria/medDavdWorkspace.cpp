@@ -127,7 +127,10 @@ medDavdWorkspace::medDavdWorkspace(QWidget *parent) : medWorkspace(parent), d(ne
 
     d->toolboxes<<d->tb1<<bezierSegToolBox<<paintSegToolBox<<d->tb3<<d->tb4<<meshToolBox;
     for(int i=1;i<d->toolboxes.size();i++)
+    {
+        d->toolboxes[i]->setDisabled(true);
         d->toolboxes[i]->header()->blockSignals(true);
+    }
     d->stepDescriptions<<step1Description<<step2Description<<step3Description<<step4Description<<step5Description<<step6Description;
 
     d->step =0;
@@ -181,24 +184,28 @@ void medDavdWorkspace::goToNextStep(){
     {
         d->pipelineToolbox->getPreviousButton()->setDisabled(false);
         d->toolboxes[d->step]->switchMinimize(); //minimize current
-        //d->toolboxes[d->step]->setDisabled(true);
+        d->toolboxes[d->step]->setDisabled(true);
         d->toolboxes[d->step]->header()->blockSignals(true); //prevent the user from minimizing the toolbox
         d->step++;
         d->toolboxes[d->step]->switchMinimize();
+        d->toolboxes[d->step]->setDisabled(false);
         d->pipelineToolbox->setDescription(d->stepDescriptions[d->step]);
         d->pipelineToolbox->setLabel(d->toolboxes[d->step]->header()->title());
     }
     if (d->step == d->toolboxes.size()-1)
         d->pipelineToolbox->getNextButton()->setDisabled(true);
 }
+
 void medDavdWorkspace::goToPreviousStep(){
     if(d->step>0)
     {
         d->pipelineToolbox->getNextButton()->setDisabled(false);
         d->toolboxes[d->step]->switchMinimize();
+        d->toolboxes[d->step]->setDisabled(true);
         d->toolboxes[d->step]->header()->blockSignals(true);
         d->step--;
         d->toolboxes[d->step]->switchMinimize();
+        d->toolboxes[d->step]->setDisabled(false);
         d->pipelineToolbox->setDescription(d->stepDescriptions[d->step]);
         d->pipelineToolbox->setLabel(d->toolboxes[d->step]->header()->title());
     }
