@@ -114,6 +114,8 @@ void v3dViewMeshInteractor::setData(dtkAbstractData *data)
         vtkMetaDataSet * mesh = dynamic_cast<vtkMetaDataSet*>((vtkDataObject *)(data->data()));
         vtkPointSet * pointSet = vtkPointSet::SafeDownCast (mesh->GetDataSet());
 
+        qDebug() << mesh << pointSet;
+
         if(!d->view->hasImage())
             changeBounds(pointSet);
 
@@ -423,18 +425,13 @@ void v3dViewMeshInteractor::changeBounds (vtkPointSet* pointSet)
             }
         }
     }
-
     if(isImageOutBounded)
     {
         vtkImageFromBoundsSource* imagegenerator = vtkImageFromBoundsSource::New();
         unsigned int imSize [3]; imSize[0]=100; imSize[1]=100; imSize[2]=100;
         imagegenerator->SetOutputImageSize(imSize);
-        //        vtkInformationDoubleVectorKey * origin = pointSet->ORIGIN();
-        //        double *originDouble= origin->Get(pointSet->GetInformation() );
-        //        imagegenerator->SetOutputImageOrigin(originDouble);
-        imagegenerator->SetOutputImageBounds(d->imageBounds);
         vtkImageData * image = imagegenerator->GetOutput();
-
+        
         if(d->view->dataInList(0))
         {
             //d->view->view2d()->RemoveDataSet();
