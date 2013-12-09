@@ -185,6 +185,13 @@ void v3dViewObserver::Execute ( vtkObject *caller, unsigned long event, void *ca
     }
     break;
 
+    case vtkImageView2D::SliceChangedEvent:
+    {
+        int slice = this->view->view2d()->GetSlice();
+        this->view->emitViewSliceChangedEvent(slice);
+    }
+    break;
+
     case vtkCommand::InteractionEvent:
     {
         double *pos = this->view->renderer3d()->GetActiveCamera()->GetPosition();
@@ -539,8 +546,8 @@ v3dView::v3dView() : medAbstractView(), d ( new v3dViewPrivate )
     d->renWin = vtkRenderWindow::New();
     d->renWin->StereoCapableWindowOn();
     d->renWin->SetStereoTypeToCrystalEyes();
-    // if(qApp->arguments().contains("--stereo"))
-    //     renwin->SetStereoRender(1);
+    if (qApp->arguments().contains("--stereo"))
+        d->renWin->SetStereoRender(1);
 
     // Necessary options for depth-peeling
     d->renWin->SetAlphaBitPlanes(1);
@@ -594,6 +601,7 @@ v3dView::v3dView() : medAbstractView(), d ( new v3dViewPrivate )
     //d->view2d->GetInteractorStyle()->AddObserver(vtkImageView2DCommand::SliceMoveEvent, d->observer, 0);
     d->view2d->AddObserver ( vtkImageView::CurrentPointChangedEvent, d->observer, 0 );
     d->view2d->AddObserver ( vtkImageView::WindowLevelChangedEvent,  d->observer, 0 );
+    d->view2d->AddObserver ( vtkImageView2D::SliceChangedEvent, d->observer, 0 );
     d->view2d->GetInteractorStyle()->AddObserver ( vtkImageView2DCommand::CameraZoomEvent, d->observer, 0 );
     d->view2d->GetInteractorStyle()->AddObserver ( vtkImageView2DCommand::CameraPanEvent, d->observer, 0 );
     d->view2d->AddObserver ( vtkImageView2DCommand::CameraPanEvent, d->observer, 0);
@@ -1138,6 +1146,16 @@ QWidget *v3dView::widget()
     return d->widget;
 }
 
+void * v3dView::getView2D()
+{
+    return d->view2d;
+}
+
+void * v3dView::getRenderWindow()
+{
+    return d->renWin;
+}
+
 void v3dView::play ( bool start )
 {
     d->timeline->setFrameRange ( d->slider->minimum(), d->slider->maximum() );
@@ -1284,12 +1302,14 @@ void v3dView::onOrientationPropertySet ( const QString &value )
 
     // force a correct display of the 2D axis for planar views
     d->currentView->InvokeEvent ( vtkImageView::CurrentPointChangedEvent, NULL ); // seems not needed anymore
+    
 
     // update slider position
     if ( vtkImageView2D *view2d = vtkImageView2D::SafeDownCast ( d->currentView ) )
     {
         unsigned int zslice = view2d->GetSlice();
         d->slider->setValue ( zslice );
+        view2d->InvokeEvent(vtkImageView2D::SliceChangedEvent,NULL);
     }
 }
 
