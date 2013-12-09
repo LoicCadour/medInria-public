@@ -70,6 +70,10 @@ public:
             m_cb->setPaintState(m_lastPaintState);
             m_paintState = m_lastPaintState;
                 m_cb->addToStackIndex(view);
+                if (mouseEvent->modifiers()==Qt::CTRL)
+                {
+                    m_cb->onAcceptGrowth();                
+                }
     }
         return false;
         }
@@ -375,10 +379,10 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
 
     undo_shortcut = new QShortcut(QKeySequence(tr("Ctrl+z","Undo segmentation")),this);
     redo_shortcut = new QShortcut(QKeySequence(tr("Ctrl+y","Redo segmentation")),this);
-    copy_shortcut = new QShortcut(QKeySequence(tr("Ctrl+c","copy segmentation")),this);
-    paste_shortcut = new QShortcut(QKeySequence(tr("Ctrl+v","paste segmentation")),this);
-    acceptGrowth_shortcut = new QShortcut(QKeySequence(tr("Ctrl+Return","accept growth")),this);
-    removeSeed_shortcut = new QShortcut(QKeySequence(tr("Ctrl+BackSpace","remove seed")),this);
+    copy_shortcut = new QShortcut(QKeySequence(tr("Ctrl+c","Copy segmentation")),this);
+    paste_shortcut = new QShortcut(QKeySequence(tr("Ctrl+v","Paste segmentation")),this);
+    acceptGrowth_shortcut = new QShortcut(QKeySequence(tr("Ctrl+Return","Accept growth")),this);
+    removeSeed_shortcut = new QShortcut(QKeySequence(tr("Ctrl+BackSpace","Remove seed")),this);
     acceptGrowth_shortcut->setEnabled(false);
     removeSeed_shortcut->setEnabled(false);
         
