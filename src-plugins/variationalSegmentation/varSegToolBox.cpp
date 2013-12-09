@@ -35,8 +35,9 @@
 #include <medVtkViewBackend.h>
 #include <algorithm> 
 #include <medDataManager.h>
-#include <itkResampleImageFilter.h>
-#include <itkMaskImageFilter.h>
+#include <dtkCore/dtkAbstractProcessFactory.h>
+#include <dtkCore/dtkAbstractProcess.h>
+
 
 namespace mseg {
 
@@ -180,13 +181,15 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     QLabel * on = new QLabel(QString("Outside VOI : Shift + middle mouse button"),displayWidget);
 
     QPushButton * binaryImageButton = new QPushButton(tr("Generate binary image"),displayWidget);
-
+    QPushButton * applyMaskButton = new QPushButton(tr("Apply mask to image"),displayWidget);
     layout->addWidget(inside);
     layout->addWidget(outside);
     layout->addWidget(on);
     layout->addWidget(binaryImageButton);
+    layout->addWidget(applyMaskButton);
 
     connect(binaryImageButton,SIGNAL(clicked()),this,SLOT(addBinaryImage()));
+    connect(applyMaskButton,SIGNAL(clicked()),this,SLOT(applyMaskToImage()));
     
     controller = vtkLandmarkSegmentationController::New();
     output = output = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
@@ -278,61 +281,26 @@ void VarSegToolBox::applyMaskToImage()
     if (!currentView)
         return;
     
+    dtkAbstractProcess * maskApplicationProcess = dtkAbstractProcessFactory::instance()->create("medMaskApplication");
+    if (!maskApplicationProcess)
+        return;
+
     typedef itk::Image<unsigned char,3> binaryType;
     binaryType::Pointer img = this->controller->GetBinaryImage();
-    
+
     if (!img)
         return;
 
-    dtkAbstractData * data = reinterpret_cast<dtkAbstractData*>(currentView->data());
-    if (!data) return;
+    dtkAbstractData * maskData = dtkAbstractDataFactory::instance()->createSmartPointer ( "itkDataImageUChar3" );
+    maskData->setData(img);
+    maskApplicationProcess->setInput(maskData,0);
+    maskApplicationProcess->setInput(static_cast<dtkAbstractData*>(currentView->data()),1);
+    maskApplicationProcess->update();
+    //dtkSmartPointer<dtkAbstractData> newimage = maskApplicationProcess->output();
+    currentView->setData(maskApplicationProcess->output(),0);
+    
 
-    if (data->identifier() == "itkDataImageShort3")
-    {
-        typedef itk::Image<short, 3> InputImage;
-        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
-        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
-        CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(imgView);
-        caster->Update(); // terribly expensive in term of memory look for alternative
-        image = caster->GetOutput();
-    }
-    else if (data->identifier() == "itkDataImageUShort3")
-    {
-        typedef itk::Image<unsigned short, 3> InputImage;
-        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
-        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
-        CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(imgView);
-        caster->Update();
-        image = caster->GetOutput();
-    }
-    else if (data->identifier() == "itkDataImageDouble3")
-    {
-        typedef itk::Image<double, 3> InputImage;
-        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
-        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
-        CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(imgView);
-        caster->Update();
-        image = caster->GetOutput();
-    }
-    else if (data->identifier() == "itkDataImageFloat3")
-    {
-        typedef itk::Image<float, 3> InputImage;
-        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
-        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
-        CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(imgView);
-        caster->Update();
-        image = caster->GetOutput();
-    }
-    else
-    {
-        qDebug() << "Failed : type " << data->identifier();
-    }
-
-    itk::MaskImageFilter<
+    //itk::MaskImageFilter<
 
     //    currentView;*/
 
@@ -403,6 +371,16 @@ void VarSegToolBox::update(dtkAbstractView * view)
     else if (data->identifier() == "itkDataImageFloat3")
     {
         typedef itk::Image<float, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(imgView);
+        caster->Update();
+        image = caster->GetOutput();
+    }
+     else if (data->identifier() == "itkDataImageInt3")
+    {
+        typedef itk::Image<int, 3> InputImage;
         InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
         typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
         CasterType::Pointer caster = CasterType::New();
