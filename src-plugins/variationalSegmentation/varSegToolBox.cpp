@@ -36,6 +36,7 @@
 #include <algorithm> 
 #include <medDataManager.h>
 #include <itkResampleImageFilter.h>
+#include <itkMaskImageFilter.h>
 
 namespace mseg {
 
@@ -256,46 +257,85 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
 
 void VarSegToolBox::addBinaryImage()
 {
+    // Need to be tested a little more
+    // TODO : Solve border problem
     typedef itk::Image<unsigned char,3> binaryType;
     binaryType::Pointer img = this->controller->GetBinaryImage();
 
     if (!img)
         return;
 
-    //itk::ResampleImageFilter<binaryType , binaryType>::Pointer filter = itk::ResampleImageFilter<binaryType , binaryType >::New();
-    //binaryType::Pointer filterInput = this->controller->GetBinaryImage();
-    //binaryType::SizeType filterInputSize = filterInput->GetLargestPossibleRegion().GetSize();
- 
-    //// Resize
-    //binaryType::SizeType outputSize;
-    //binaryType::SpacingType outputSpacing;
-
-    //outputSize[0]=inputSize[0];
-    //outputSize[1]=inputSize[1];
-    //outputSize[2]=inputSize[2];
-
-    //outputSpacing[0] = filterInput->GetSpacing()[0] * (static_cast<double>(filterInputSize[0]) / static_cast<double>(outputSize[0]));
-    //outputSpacing[1] = filterInput->GetSpacing()[1] * (static_cast<double>(filterInputSize[1]) / static_cast<double>(outputSize[1]));
-    //outputSpacing[2] = filterInput->GetSpacing()[2] * (static_cast<double>(filterInputSize[2]) / static_cast<double>(outputSize[2]));
-
-    //filter->SetInput(filterInput);
-    //filter->SetSize(outputSize);
-    //filter->SetOutputOrigin(filterInput->GetOrigin());
-    //filter->SetOutputSpacing(outputSpacing);
-    //filter->UpdateLargestPossibleRegion();
-    //output->setData ( filter->GetOutput());
-
-    //dtkSmartPointer<dtkAbstractData> output2 = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
-    //output2->setData(filterInput);
     output->setData(img);
     QString newSeriesDescription = reinterpret_cast<dtkAbstractData*>(this->currentView->data())->metadata ( medMetaDataKeys::SeriesDescription.key() );
     newSeriesDescription += "varSeg";
     
     output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-    //newSeriesDescription += "varSeg2";
-    //output2->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
     medDataManager::instance()->importNonPersistent( output.data() );
-    //medDataManager::instance()->importNonPersistent( output2.data() );
+}
+
+void VarSegToolBox::applyMaskToImage()
+{
+    if (!currentView)
+        return;
+    
+    typedef itk::Image<unsigned char,3> binaryType;
+    binaryType::Pointer img = this->controller->GetBinaryImage();
+    
+    if (!img)
+        return;
+
+    dtkAbstractData * data = reinterpret_cast<dtkAbstractData*>(currentView->data());
+    if (!data) return;
+
+    if (data->identifier() == "itkDataImageShort3")
+    {
+        typedef itk::Image<short, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(imgView);
+        caster->Update(); // terribly expensive in term of memory look for alternative
+        image = caster->GetOutput();
+    }
+    else if (data->identifier() == "itkDataImageUShort3")
+    {
+        typedef itk::Image<unsigned short, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(imgView);
+        caster->Update();
+        image = caster->GetOutput();
+    }
+    else if (data->identifier() == "itkDataImageDouble3")
+    {
+        typedef itk::Image<double, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(imgView);
+        caster->Update();
+        image = caster->GetOutput();
+    }
+    else if (data->identifier() == "itkDataImageFloat3")
+    {
+        typedef itk::Image<float, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(imgView);
+        caster->Update();
+        image = caster->GetOutput();
+    }
+    else
+    {
+        qDebug() << "Failed : type " << data->identifier();
+    }
+
+    itk::MaskImageFilter<
+
+    //    currentView;*/
+
 }
 
 void VarSegToolBox::update(dtkAbstractView * view)
@@ -333,33 +373,42 @@ void VarSegToolBox::update(dtkAbstractView * view)
     if (data->identifier() == "itkDataImageShort3")
     {
         typedef itk::Image<short, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
         typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
         CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(data->data())));
+        caster->SetInput(imgView);
         caster->Update(); // terribly expensive in term of memory look for alternative
         image = caster->GetOutput();
     }
     else if (data->identifier() == "itkDataImageUShort3")
     {
         typedef itk::Image<unsigned short, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
         typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
         CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(data->data())));
+        caster->SetInput(imgView);
         caster->Update();
         image = caster->GetOutput();
     }
     else if (data->identifier() == "itkDataImageDouble3")
     {
         typedef itk::Image<double, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
         typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
         CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(data->data())));
+        caster->SetInput(imgView);
         caster->Update();
         image = caster->GetOutput();
     }
     else if (data->identifier() == "itkDataImageFloat3")
     {
-        image = dynamic_cast< ImageType*>((itk::Object*)(data->data()));
+        typedef itk::Image<float, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(data->data()));
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(imgView);
+        caster->Update();
+        image = caster->GetOutput();
     }
     else
     {
@@ -367,7 +416,10 @@ void VarSegToolBox::update(dtkAbstractView * view)
     }
 
     //itk::ChangeInformationImageFilter<itk::Image<float,3> > * infofilter = itk::ChangeInformationImageFilter<itk::Image<float,3> >::New();
-    ImageType::Pointer imagetest;
+    ImageType::Pointer smallerImage;
+
+    // TODO : stash origin direction size and spacing in variables without having to make a freaking cast. TOO expensive in memory I hate that !@!@!!!!@!@!@!
+
     ImageType::SizeType imageSize = image->GetLargestPossibleRegion().GetSize(); ;
     ImageType::SpacingType imageSpacing  = image->GetSpacing();
 
@@ -393,14 +445,14 @@ void VarSegToolBox::update(dtkAbstractView * view)
     NewSpacing[0] = mSpacing[0];NewSpacing[1] = mSpacing[1];NewSpacing[2] = mSpacing[2];
     NewSize[0] = mDim[0];NewSize[1] = mDim[1];NewSize[2] = mDim[2];
     ImageType::RegionType region(corner,NewSize);
-    imagetest = ImageType::New();
-    imagetest->SetRegions(region);
-    imagetest->Allocate();
-    imagetest->SetDirection(image->GetDirection());
-    imagetest->SetOrigin(image->GetOrigin());
-    imagetest->SetSpacing(NewSpacing);
+    smallerImage = ImageType::New();
+    smallerImage->SetRegions(region);
+    smallerImage->Allocate();
+    smallerImage->SetDirection(image->GetDirection());
+    smallerImage->SetOrigin(image->GetOrigin());
+    smallerImage->SetSpacing(NewSpacing);
     
-    this->controller->SetInput(imagetest);
+    this->controller->SetInput(smallerImage);
     vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(v->backend())->view2D;
     vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(v->backend())->view3D;
 
@@ -409,51 +461,7 @@ void VarSegToolBox::update(dtkAbstractView * view)
     view2d->AddDataSet (controller->GetOutput());
     view3d->AddDataSet (controller->GetOutput());
 
-  //   int returnValue = 0;
-  //int res = this->GetResolution();
-
-  //// Get image information
-  //int    dim[3];
-  //double spacing[3];
-  //double origin[3];
-  //this->Image->GetImageData()->GetDimensions(dim);
-  //this->Image->GetImageData()->GetSpacing(spacing);
-  //this->Image->GetImageData()->GetOrigin(origin);
-
-  //double smallestSpacing = min(spacing[0], min(spacing[1], spacing[2]));
-  //double mSpacing[3];
-  //for (unsigned int i = 0; i < 3; i++)
-  //  mSpacing[i] = 100 * smallestSpacing / res;
-
-  //int mDim[3];
-  //for (unsigned int i = 0; i < 3; i++)
-  //  mDim[i] = (int) (dim[i] * spacing[i] / mSpacing[i]);
-
-  //yav::VariationalFunction* vFun = new yav::VariationalFunction;
-  //if ( !vFun->SetSampleDimensions(mDim[0], mDim[1], mDim[2]) )
-  //{
-  //  vtkKWPopupErrorMessage(this,"Invalid model dimensions. Please change the resolution\n");
-  //  delete vFun;
-  //  return -1;
-  //}
-
-  //if ( !vFun->SetModelBounds(0, dim[0] * spacing[0], 
-		//	     0, dim[1] * spacing[1], 
-		//	     0, dim[2] * spacing[2]) )
-  //{
-  //  vtkKWPopupErrorMessage(this,"Invalid model bounds. Please change the resolution\n");
-  //  delete vFun;
-  //  return -1;
-  //}
-
-  //// Create the implicit image
-  //yav::Inrimage* iFun = 
-  //  new yav::Inrimage(mDim[0], mDim[1], mDim[2], yav::Inrimage::WT_FLOAT,
-		//      1, VM_INTERLACED,
-		//      fabs(mSpacing[0]), fabs(mSpacing[1]), fabs(mSpacing[2]));
-
 }
-
 
 
 

@@ -42,6 +42,7 @@ public slots:
     virtual void update(dtkAbstractView * view);
     void updateLandmarksRenderer(QString key, QString value);
     void addBinaryImage();
+    void applyMaskToImage();
 
 private:
     vtkLandmarkSegmentationController* controller;
