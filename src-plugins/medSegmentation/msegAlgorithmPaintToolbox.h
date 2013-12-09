@@ -82,12 +82,19 @@ public:
     void setSeedPlanted(bool,MaskType::IndexType,unsigned int,double);
     void setSeed(QVector3D);
 
+    inline bool getCursorOn(){return cursorOn;};
+    void setCursorOn(bool value);
+    inline void setCurrentIdSlice(unsigned int id){currentIdSlice = id;};
+    inline unsigned int getCurrentIdSlice(){return currentIdSlice;};
+    inline void setCurrentPlaneIndex(unsigned int index){currentPlaneIndex = index;};
+    inline unsigned int getCurrentPlaneIndex(){return currentPlaneIndex;};
+
 public slots:
     void onStrokeToggled(bool);
     void onMagicWandToggled(bool);
-    void onStrokePressed();
+  /*  void onStrokePressed();
     void onMagicWandPressed();
-
+*/
     void onApplyButtonClicked();
     void onClearMaskClicked();
 
@@ -114,7 +121,6 @@ public slots:
 
     void onAddBrushSize();
     void onReduceBrushSize();
-    void activateBezierCurve(bool);
 
 protected:
     friend class ClickAndMoveEventFilter;
@@ -212,8 +218,6 @@ private:
     unsigned int currentIdSlice; // current slice;
     bool undoRedoCopyPasteModeOn;
     bool cursorJustReactivated;
-
-    QPushButton * bezierCurve;
 };
 
 } // namespace mseg

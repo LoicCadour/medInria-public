@@ -296,17 +296,9 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_magicWandButton->setToolTip(tr("Magic wand to automatically paint similar voxels."));
     m_magicWandButton->setCheckable(true);
 
-    /* TO ADD IN A NEW PLUGIN BEZIER CURVE PLUGIN OR WHATEVER */
-    bezierCurve = new QPushButton(tr("Bezier Curve"),displayWidget);
-    bezierCurve->setToolTip(tr("activate the bezier curve widget"));
-    bezierCurve->setCheckable(true);
-    connect(bezierCurve,SIGNAL(toggled(bool)),this,SLOT(activateBezierCurve(bool)));
-    /*--------------------------------(-_-)*---------------HEAD SHOT--------------*/
-
     QHBoxLayout * ButtonLayout = new QHBoxLayout();
     ButtonLayout->addWidget( m_strokeButton );
     ButtonLayout->addWidget( m_magicWandButton );
-    ButtonLayout->addWidget(bezierCurve);
     layout->addLayout( ButtonLayout );
 
     QHBoxLayout * brushSizeLayout = new QHBoxLayout();
@@ -442,15 +434,8 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     QHBoxLayout * dataButtonsLayout = new QHBoxLayout();
     dataButtonsLayout->addWidget(m_applyButton);
     dataButtonsLayout->addWidget(m_clearMaskButton);
-    //dataButtonsLayout->addWidget(m_interpolate);
     layout->addLayout(dataButtonsLayout);
 
-    /*connect (m_strokeButton,     SIGNAL(pressed()),
-        this, SLOT(onStrokePressed ()));
-    
-    connect (m_magicWandButton, SIGNAL(pressed()),
-             this,SLOT(onMagicWandPressed()));*/
-    
     connect (m_strokeButton,     SIGNAL(toggled(bool)),
         this, SLOT(onStrokeToggled (bool)));
     
@@ -1137,16 +1122,15 @@ void AlgorithmPaintToolbox::updateStroke( ClickAndMoveEventFilter * filter, medA
     MaskType::IndexType index;
     itk::Point<ElemType,3> testPt;
     for ( int y(-Ny); y <= Ny; ++y ) {
-        double dy = (int)(y*m_sampleSpacing[1]);
+        double dy = y*m_sampleSpacing[1];
         for ( int x(-Nx); x <= Nx; ++x ) {
-            double dx = (int)(x*m_sampleSpacing[0]);
+            double dx = x*m_sampleSpacing[0];
             if ( dx*dx + dy*dy >= radius2)
                 continue;
 
-            for ( int ic(0); ic<3; ++ic) {
-                testPt[ic] = centerPoint[ic] + dx * vecRight[ic] + dy * vecVup[ic];
-            }
-
+            for ( int ic(0); ic<3; ++ic) 
+               testPt[ic] = centerPoint[ic] + dx * vecRight[ic] + dy * vecVup[ic];
+            
             bool isInside = m_itkMask->TransformPhysicalPointToIndex( testPt, index );
             if ( isInside ) {
                 if (cursorOn) 
@@ -1836,28 +1820,14 @@ void AlgorithmPaintToolbox::onReduceBrushSize()
 
 void AlgorithmPaintToolbox::setCursorOn(bool value)
 {
+    if (!currentView)
+        return;
     cursorOn = value;
-    if (value)
+    /*if (value)
         if (m_paintState != PaintState::DeleteStroke)
             currentView->setProperty("Cursor","None");  
     else
-        currentView->setProperty("Cursor","Normal");
-}
-
-void AlgorithmPaintToolbox::activateBezierCurve(bool checked)
-{
-    if (checked)
-    {
-            setCursorOn(false);
-            m_magicWandButton->setChecked(false);
-            m_strokeButton->setChecked(false);
-    }
-
-    if (currentView)
-        if (checked)
-            currentView->setProperty("vtkWidget","ContourWidget");
-        else
-            currentView->setProperty("vtkWidget","None");
+        currentView->setProperty("Cursor","Normal");*/
 }
 
 } // namespace mseg
