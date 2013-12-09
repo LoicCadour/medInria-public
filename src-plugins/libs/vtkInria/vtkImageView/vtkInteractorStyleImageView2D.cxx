@@ -44,6 +44,7 @@ vtkInteractorStyleImageView2D::vtkInteractorStyleImageView2D()
   this->RightButtonInteraction  = InteractionTypeZoom;
   this->MiddleButtonInteraction = InteractionTypePan;
   this->WheelButtonInteraction  = InteractionTypeSlice;
+  this->KeyboardInteraction  = InteractionTypeSlice;
 }
 
 
@@ -463,7 +464,7 @@ void vtkInteractorStyleImageView2D::OnChar()
   {
     this->InvokeEvent (vtkImageView2DCommand::ResetViewerEvent, this);
   }
-  this->Superclass::OnChar();
+  //this->Superclass::OnChar();
 }
 
 //----------------------------------------------------------------------------

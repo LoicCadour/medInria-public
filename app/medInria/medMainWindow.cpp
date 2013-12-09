@@ -110,6 +110,8 @@ public:
     QPropertyAnimation*       quickAccessAnimation;
     QToolButton*                quitButton;
     QToolButton*              fullscreenButton;
+    QLabel *                  memoryUsageLabel;
+    QTimer *                  memoryTimer; // used to display memory usage
     QList<QString>            importUuids;
 
     medQuickAccessMenu * quickAccessWidget;
@@ -246,6 +248,12 @@ medMainWindow::medMainWindow ( QWidget *parent ) : QMainWindow ( parent ), d ( n
     d->fullscreenButton->setChecked(false);
     d->fullscreenButton->setObjectName("fullScreenButton");
 
+    // Memory Usage Label 's Widgets
+    d->memoryUsageLabel = new QLabel(this);
+    d->memoryTimer = new QTimer(this);
+    connect(d->memoryTimer,SIGNAL(timeout()),this,SLOT(updateMemoryUsageLabel()));
+    d->memoryTimer->start(1000);
+
 #if defined(Q_WS_MAC)
     d->fullscreenButton->setShortcut(Qt::ControlModifier + Qt::Key_F);
     d->fullscreenButton->setToolTip(tr("Switch FullScreen state (Cmd+f)"));
@@ -273,6 +281,7 @@ medMainWindow::medMainWindow ( QWidget *parent ) : QMainWindow ( parent ), d ( n
     QHBoxLayout * rightEndButtonsLayout = new QHBoxLayout(d->rightEndButtons);
     rightEndButtonsLayout->setContentsMargins ( 5, 0, 5, 0 );
     rightEndButtonsLayout->setSpacing ( 5 );
+    rightEndButtonsLayout->addWidget(d->memoryUsageLabel);
     rightEndButtonsLayout->addWidget( d->screenshotButton );
     rightEndButtonsLayout->addWidget( d->fullscreenButton );
     rightEndButtonsLayout->addWidget( d->quitButton );
@@ -366,7 +375,6 @@ void medMainWindow::keyPressEvent( QKeyEvent *event )
             this->showShortcutAccess();
 
         d->shortcutAccessWidget->updateCurrentlySelectedRight();
-        
         return;
     }
 
@@ -955,3 +963,62 @@ void medMainWindow::registerToFactories()
     dtkAbstractDataFactory * datafactory = dtkAbstractDataFactory::instance();
     datafactory->registerDataType( medSeedPointAnnotationData::s_identifier(), dtkAbstractDataCreateFunc<medSeedPointAnnotationData> );
 }
+
+void medMainWindow::updateMemoryUsageLabel()
+{
+    size_t memoryUsage = medDataManager::getProcessMemoryUsage();
+    size_t memoryAvailable = medDataManager::getAvailablePhysicalRam();
+    size_t totalPhysRam = medDataManager::getTotalSizeOfPhysicalRam();
+   
+    if ((memoryAvailable/(1024*1024))<1024)
+        d->memoryUsageLabel->setText("Memory left : " + QString::number(memoryAvailable/(1024*1024)) + " Mo");
+    else
+        d->memoryUsageLabel->setText("Memory left : " + QString::number(memoryAvailable/(double)(1024*1024*1024),'g',2) + " Go");
+
+    d->memoryUsageLabel->setToolTip("Total Memory : " + QString::number(totalPhysRam/(1024*1024)) + " Mo\nMedinria Memory Usage : " 
+        + QString::number(memoryUsage/(1024*1024)) + " Mo");
+}
+bool medMainWindow::eventFilter(QObject * obj, QEvent *ev)
+{
+    if (ev->type() == QEvent::KeyPress)
+    {
+        QKeyEvent * keyEvent = static_cast<QKeyEvent*>(ev);
+        this->keyPressEvent(keyEvent);
+    }
+
+    if (ev->type()==QEvent::KeyRelease)
+    {
+        QKeyEvent * keyEvent = static_cast<QKeyEvent*>(ev);
+        this->keyReleaseEvent(keyEvent);
+    }
+    
+    // For the time being, We do not use this function to filter but only to send event to the MainWindow.
+    // Therefore, we always return false;
+
+    return false; 
+}
+
+bool medMainWindow::event(QEvent * e)
+{
+    switch(e->type())
+    {
+        // ...
+    case QEvent::WindowActivate :
+        {
+            // gained focus
+            emit mainWindowActivated();
+            break ;
+        }
+
+    case QEvent::WindowDeactivate :
+        {
+            // lost focus
+            emit mainWindowDeactivated();
+            break ;
+        }
+        // ...
+    default:
+        break;
+    } ;
+    return QMainWindow::event(e) ;
+}   

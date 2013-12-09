@@ -78,6 +78,7 @@ set(PLUGIN_LIST
   itkDataTensorImageReader       ON
   medSegmentation                ON
   itkFilters                     ON
+  variationalSegmentation        ON
   qtdcmDataSource                ON
   itkDataSHImage                 ON
   itkDataSHImageWriter           ON
