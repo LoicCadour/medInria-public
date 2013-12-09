@@ -194,7 +194,7 @@ private:
     
     MaskType::Pointer m_itkMask;
     QPair<MaskSliceType::Pointer,char> m_copy;
-
+    
     // undo_redo_feature's attributes
     QHash<medAbstractView*,QStack<PairListSlicePlaneId>*> * m_undoStacks,*m_redoStacks;
     medAbstractView * currentView;

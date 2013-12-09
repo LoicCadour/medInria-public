@@ -48,12 +48,11 @@
 namespace mseg 
 {
 
-
 class ClickAndMoveEventFilter : public medViewEventFilter
 {
 public:
     ClickAndMoveEventFilter(medSegmentationSelectorToolBox * controller, AlgorithmPaintToolbox *cb ) :
-    medViewEventFilter(), m_cb(cb), m_paintState(PaintState::None), m_lastPaintState(PaintState::None){}
+    medViewEventFilter(), m_cb(cb), m_paintState(PaintState::None), m_lastPaintState(PaintState::None), timer()/*,cursorJustReactivated(true)*/{}
 
     virtual bool mousePressEvent( medAbstractView *view, QMouseEvent *mouseEvent )
     {
@@ -104,14 +103,14 @@ public:
                 // add current state to undo stack//
                 bool isInside;
                 AlgorithmPaintToolbox::MaskType::IndexType index;
-                unsigned char planeIndex = m_cb->computePlaneIndex(posImage,index,isInside);
-                unsigned int currentSlice = index[planeIndex];
+                m_cb->setCurrentPlaneIndex(m_cb->computePlaneIndex(posImage,index,isInside));
+                m_cb->setCurrentIdSlice(index[m_cb->currentPlaneIndex]);
                 QList<int> listIdSlice;
                 
                 listIdSlice.append(m_cb->currentIdSlice);
                 m_cb->addSliceToStack(view,m_cb->currentPlaneIndex,listIdSlice);
                 //-------------------------------//
-                
+                //m_cb->saveCurrentStateForCursor(view,m_cb->getCurrentPlaneIndex(),m_cb->getCurrentIdSlice());
                 this->m_points.push_back(posImage);
                 //m_cb->updateStroke( this,view );
             }
@@ -133,7 +132,7 @@ public:
 
     virtual bool mouseMoveEvent( medAbstractView *view, QMouseEvent *mouseEvent )
     {
-        if ( this->m_paintState == PaintState::None )
+        if(view->property("Orientation")=="3D")
             return false;
 
         if (m_paintState == PaintState::None && (m_cb->m_paintState == PaintState::Stroke || m_cb->m_paintState == PaintState::DeleteStroke) && (m_cb->getCursorOn() || m_cb->undoRedoCopyPasteModeOn))
@@ -226,7 +225,6 @@ public:
             if (view->property("Orientation")!="3D" && !m_cb->cursorJustReactivated && m_paintState!=PaintState::Stroke )
             {
                 m_cb->removeCursorDisplay();
-            return true;
                 m_cb->updateStroke(this,view);
             }
             return true;   
@@ -236,9 +234,11 @@ public:
 
     virtual bool leaveEvent(medAbstractView *view, QEvent * event)
     {
-        if (m_cb->getCursorOn())
+        /*if (m_cb->getCursorOn())
             view->setProperty("Cursor","Normal");
         else
+            return false;*/
+        if (!m_cb->getCursorOn())
             return false;
         
         m_cb->removeCursorDisplay();
@@ -249,9 +249,9 @@ public:
 
     virtual bool enterEvent(medAbstractView *view, QEvent *event)
     {
-        if (m_cb->getCursorOn())
+        /*if (m_cb->getCursorOn())
             if (m_paintState != PaintState::DeleteStroke)
-                view->setProperty("Cursor","None");
+                view->setProperty("Cursor","None");*/
 
         //m_cb->setCurrentView(view);
         dtkAbstractData * viewData = medSegmentationSelectorToolBox::viewData( view );
@@ -426,7 +426,6 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
 
     m_applyButton = new QPushButton( tr("Create Database Item") , displayWidget);
     m_applyButton->setToolTip(tr("Save result to the Temporary Database"));
-
     
     m_clearMaskButton = new QPushButton( tr("Clear Mask") , displayWidget);
     m_clearMaskButton->setToolTip(tr("Resets the mask."));
@@ -444,7 +443,6 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
 
     connect (m_clearMaskButton,     SIGNAL(clicked()),
         this, SLOT(onClearMaskClicked ()));
-
 
     connect (m_applyButton,     SIGNAL(clicked()),
         this, SLOT(onApplyButtonClicked()));
@@ -1616,7 +1614,7 @@ void AlgorithmPaintToolbox::pasteSliceMask()
 {
    if (!viewCopied || !currentView || currentView!=viewCopied || !m_copy.first || m_copy.second==-1)  // TODO add message No copy in buffer // TODO ADD MESSAGE NO CURRENT VIEW DEFINED FOR THE SEGEMENTAION TOOLBOX
         return;
-
+   
     MaskType::IndexType index3D;
     medAbstractViewCoordinates * coords = currentView->coordinates();
     QVector3D vec = coords->displayToWorld(QPointF(0,0));
@@ -1687,7 +1685,10 @@ char AlgorithmPaintToolbox::computePlaneIndex(const QVector3D & vec,MaskType::In
         {
             double dotProduct = 0;
             for (unsigned int j = 0;j < 3;++j)
+            {
                 dotProduct += direction(j,i) * vecVpn[j];
+                qDebug() << "direction(j,i) : " << direction(j,i);
+            }
 
             if (fabs(dotProduct) > absDotProductMax)
             {
