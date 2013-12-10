@@ -43,12 +43,22 @@ public slots:
     void updateLandmarksRenderer(QString key, QString value);
     void addBinaryImage();
     void applyMaskToImage();
+    void startSegmentation();
+    void endSegmentation();
+    void segmentation(bool);
+    void bringBackOriginalImage();
 
 private:
     vtkLandmarkSegmentationController* controller;
     medAbstractView * currentView;
+    QPushButton * segButton;
+    QPushButton * clearChanges;
+    QPushButton * binaryImageButton;
+    QPushButton * applyMaskButton;
+    dtkSmartPointer<dtkAbstractData> originalInput;
     dtkSmartPointer<dtkAbstractData>  output;
     int inputSize[3];
+    bool segOn;
 };
 
 }
