@@ -25,6 +25,7 @@
 #include <medDataManager.h>
 
 #include <itkMaskImageFilter.h>
+#include <itkMinimumMaximumImageCalculator.h>
 
 // /////////////////////////////////////////////////////////////////
 // medMaskApplicationPrivate
@@ -55,8 +56,12 @@ class medMaskApplicationPrivate
         maskFilter->SetInput(imgInput);
         maskFilter->SetMaskImage(maskInput);
 
+        typename itk::MinimumMaximumImageCalculator<ImageType>::Pointer MinMaxCalculator = itk::MinimumMaximumImageCalculator<ImageType>::New();
+        MinMaxCalculator->SetImage(imgInput);
+        MinMaxCalculator->ComputeMinimum();
+
         //Outside values set to the lowest reachable value
-        maskFilter->SetOutsideValue(std::numeric_limits<PixelType>::min());
+        maskFilter->SetOutsideValue(MinMaxCalculator->GetMinimum());
         maskFilter->Update();
 
         output->setData(maskFilter->GetOutput());
