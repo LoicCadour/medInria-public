@@ -70,27 +70,16 @@ void itkFiltersDilateProcess::setParameter(int data, int channel)
         return;
     DTK_D(itkFiltersDilateProcess);
     d->radiusInPixels = data;
+
+    d->radius[0] = data;
+    d->radius[1] = data;
+    d->radius[2] = data;
+
     if (channel == 1) // data is in pixels
-    {
-        d->radius[0] = data;
-        d->radius[1] = data;
-        d->radius[2] = data;
         d->isRadiusInPixels = true;
-    }
-
-    itk::Image<unsigned char, 3> *image = dynamic_cast<itk::Image<unsigned char, 3> *> ( ( itk::Object* ) ( d->input->data() ) );
-
 
     if (channel == 0) //data is in mm
-    {
-        for (int i=0; i<image->GetSpacing().Size(); i++)
-            d->radius[i] = floor((data/image->GetSpacing()[i])+0.5); //rounding
-
         d->isRadiusInPixels = false;
-    }
-
-    for (int i=0; i<image->GetSpacing().Size(); i++)
-            d->radiusMm[i] = d->radius[i] * image->GetSpacing()[i];
 }
 
 //-------------------------------------------------------------------------------------------
@@ -153,17 +142,6 @@ int itkFiltersDilateProcess::update ( void )
         << ")";
         return -1;
     }
-
-    QString newSeriesDescription = d->input->metadata ( medMetaDataKeys::SeriesDescription.key() );
-
-    if (d->isRadiusInPixels)
-        newSeriesDescription += " Dilate filter\n("+ QString::number(d->radius[0])+", "+ 
-        QString::number(d->radius[1])+", "+ QString::number(d->radius[2])+" pixels)";
-    else
-        newSeriesDescription += " Dilate filter\n("+ QString::number(d->radiusMm[0])+", "+ 
-        QString::number(d->radiusMm[1])+", "+ QString::number(d->radiusMm[2])+" mm)";
-
-    d->output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
 
     return EXIT_SUCCESS;
 }
