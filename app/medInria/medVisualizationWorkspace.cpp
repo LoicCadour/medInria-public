@@ -19,6 +19,8 @@
 #include <medTimeLineToolBox.h>
 #include <medVisualizationLayoutToolBox.h>
 #include <medSettingsManager.h>
+#include <medToolBoxFactory.h>
+#include <medFilteringAbstractToolBox.h>
 
 #include <medToolBoxFactory.h>
 
@@ -49,7 +51,7 @@ medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medWorks
     this->addToolBox( d->layoutToolBox );
 
     // -- View toolbox --
-
+    medFilteringAbstractToolBox *binaryOpToolBox = qobject_cast<medFilteringAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("medBinaryOperationToolBox", parent));
     d->viewPropertiesToolBox = new medViewPropertiesToolBox(parent);
     d->timeToolBox           = new medTimeLineToolBox(parent);
     d->meshToolBox           = medToolBoxFactory::instance()->createToolBox("medMeshToolsToolBox", parent);
@@ -57,6 +59,7 @@ medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medWorks
     this->addToolBox( d->viewPropertiesToolBox );
     this->addToolBox( d->timeToolBox );
     this->addToolBox( d->meshToolBox );
+    this->addToolBox( binaryOpToolBox );
 
     connect ( this, SIGNAL(layoutModeChanged(const QString&)),
               d->timeToolBox, SLOT(onStopButton()));
