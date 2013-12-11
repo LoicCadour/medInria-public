@@ -71,7 +71,7 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     layout->addWidget(binaryImageButton);
     layout->addWidget(applyMaskButton);
     layout->addWidget(clearChanges);
-
+    
     connect(segButton,SIGNAL(toggled(bool)),this,SLOT(segmentation(bool)));
     connect(binaryImageButton,SIGNAL(clicked()),this,SLOT(addBinaryImage()));
     connect(applyMaskButton,SIGNAL(clicked()),this,SLOT(applyMaskToImage()));
@@ -119,6 +119,8 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
         return;
     
     medAbstractView * v = qobject_cast<medAbstractView*>(this->sender());
+    if (v!=currentView || !controller)
+        return;
     
     vtkRenderWindowInteractor * interactor = static_cast<medVtkViewBackend*>(v->backend())->renWin->GetInteractor();
 
@@ -201,13 +203,13 @@ void VarSegToolBox::update(dtkAbstractView * view)
 
 void VarSegToolBox::startSegmentation()
 {
-    if (this->controller->GetInteractorCollection() || !currentView)
+    if (!currentView)
     {
         segButton->setChecked(false);
         return;
     }
 
-    connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)));
+    connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)),Qt::UniqueConnection);
 
     if (currentView->property("Orientation")=="3D")
         this->controller->setMode3D(true);
@@ -329,7 +331,7 @@ void VarSegToolBox::startSegmentation()
     
     view2d->AddDataSet (controller->GetOutput());
     view3d->AddDataSet (controller->GetOutput());
-
+    
     binaryImageButton->setEnabled(true);
     applyMaskButton->setEnabled(true);
     currentView->widget()->setCursor(Qt::CrossCursor);
@@ -340,8 +342,20 @@ void VarSegToolBox::endSegmentation()
 {
     segButton->setText("Start Segmentation");
     segOn = false;
+    if (!controller)
+        return;
     if (currentView)
+    {
         currentView->widget()->unsetCursor();
+        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(currentView->backend())->view2D;
+        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(currentView->backend())->view3D;
+        view2d->RemoveDataSet (controller->GetOutput());
+        view3d->RemoveDataSet (controller->GetOutput());
+    }
+    qDebug() << " reference count for the controller before delete : " << this->controller->GetReferenceCount();
+    this->controller->EnabledOff();
+    this->controller->GetTotalLandmarkCollection()->RemoveAllItems();
+    this->controller->GetLandmarkCollection()->RemoveAllItems();
 }
 
 void VarSegToolBox::segmentation(bool checked)
@@ -352,7 +366,7 @@ void VarSegToolBox::segmentation(bool checked)
         startSegmentation();
     }
     else
-    endSegmentation();
+        endSegmentation();
 }
 
 void VarSegToolBox::bringBackOriginalImage()

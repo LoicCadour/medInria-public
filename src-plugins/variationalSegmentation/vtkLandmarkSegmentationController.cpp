@@ -204,6 +204,9 @@ vtkLandmarkSegmentationController::~vtkLandmarkSegmentationController()
   this->Transformer->Delete();
   this->SurfaceExtractor->Delete();
   this->LandmarkCollection->Delete();
+  if (this->view2d)
+      this->view2d->RemoveObserver(this->Command);
+
   this->Command->Delete();
   if (this->InteractorCollection)
     this->InteractorCollection->UnRegister(this);
