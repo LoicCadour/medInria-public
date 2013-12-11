@@ -26,6 +26,13 @@
 #include <pipelineToolBox.h>
 #include <medSettingsManager.h>
 #include <medToolBoxHeader.h>
+#include <medAbstractView.h>
+#include <dtkCore/dtkSmartPointer.h>
+//#include <src-plugins/vtkImageView2D.h>
+#include <dtkCore/dtkAbstractProcessFactory>
+#include <dtkCore/dtkAbstractProcess.h>
+#include <medMetaDataKeys.h>
+#include <medDataManager.h>
 
 class medDavdWorkspacePrivate
 {
@@ -40,6 +47,8 @@ public:
    
     QList<medToolBox*> toolboxes;
     QList<QString> stepDescriptions;
+
+    dtkSmartPointer<dtkAbstractProcess> process;
 
 };
 
@@ -67,16 +76,18 @@ medDavdWorkspace::medDavdWorkspace(QWidget *parent) : medWorkspace(parent), d(ne
              this,             SLOT(goToPreviousStep()));
     connect (d->pipelineToolbox, SIGNAL(nextClicked()),
              this,             SLOT(goToNextStep()));
+    connect (d->pipelineToolbox, SIGNAL(nextClicked()),
+             this,             SLOT(launchNextAlgo()));
 
-
-
-
+    this->setCurrentViewContainer("Single");
+    
     d->segmentationToolbox   = new medSegmentationSelectorToolBox(this, parent);
     d->segmentationToolbox->hide();
 
-    d->tb1 = new medToolBox(parent);
-    d->tb1->setTitle("1. Definition of the Volume of Interest");
-    d->tb1->header()->blockSignals(true); //prevent the user from minimizing the toolbox
+    medSegmentationAbstractToolBox *varSegToolBox = 
+        qobject_cast<medSegmentationAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("mseg::VarSegToolBox", d->segmentationToolbox));
+    varSegToolBox->setTitle("1. Definition of the Volume of Interest");
+    varSegToolBox->header()->blockSignals(true); //prevent the user from minimizing the toolbox
     QString step1Description = "Define the tricuspid and pulmonary planes";
     
     medSegmentationAbstractToolBox *bezierSegToolBox = 
@@ -118,14 +129,14 @@ medDavdWorkspace::medDavdWorkspace(QWidget *parent) : medWorkspace(parent), d(ne
     //this->addToolBox( d->layoutToolBox );
     this->addToolBox( d->viewPropertiesToolBox );
     this->addToolBox( d->pipelineToolbox );
-    this->addToolBox( d->tb1 );
+    this->addToolBox( varSegToolBox );
     this->addToolBox( bezierSegToolBox );
     this->addToolBox( paintSegToolBox);
     this->addToolBox( d->tb3);
     this->addToolBox( d->tb4);
     this->addToolBox( meshToolBox);
 
-    d->toolboxes<<d->tb1<<bezierSegToolBox<<paintSegToolBox<<d->tb3<<d->tb4<<meshToolBox;
+    d->toolboxes<<varSegToolBox<<bezierSegToolBox<<paintSegToolBox<<d->tb3<<d->tb4<<meshToolBox;
     for(int i=1;i<d->toolboxes.size();i++)
     {
         d->toolboxes[i]->setDisabled(true);
@@ -179,7 +190,76 @@ bool medDavdWorkspace::isUsable(){
     return true; // for the time being, no test is defined.
 }
 
+void medDavdWorkspace::dilateTheMask()
+{
+    qDebug()<<"STEP 2 Dilate the mask";
+    dtkAbstractView *view =this->currentViewContainer()->childContainers()[0]->view();
+
+    if(!view)
+        return;
+    dtkSmartPointer<medAbstractView> currentView = dynamic_cast<medAbstractView *> (view);
+    dtkAbstractData * data = static_cast<dtkAbstractData*>(currentView->data());
+
+    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer ( "itkDilateProcess" );
+    d->process->setInput(data);
+    d->process->setParameter(2, 0);//radius = 2mm
+    d->process->update();
+    QString newSeriesDescription;
+    newSeriesDescription = " Dilate filter\n(2 mm)";
+    dtkAbstractData * output = d->process->output();
+    output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
+    medDataManager::instance()->importNonPersistent(output);
+}
+
+void medDavdWorkspace::intersectMasks()
+{
+    qDebug()<<"STEP 3 Intersect masks";
+    dtkAbstractView *view =this->currentViewContainer()->childContainers()[0]->view();
+    dtkAbstractData * input = d->process->output();
+
+    if(!view)
+        return;
+    dtkSmartPointer<medAbstractView> currentView = dynamic_cast<medAbstractView *> (view);
+    dtkAbstractData * data = static_cast<dtkAbstractData*>(currentView->data());
+
+    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer ( "itkXorOperator" );
+    d->process->setInput(data, 0);
+    d->process->setInput(input, 1);
+    d->process->update();
+
+    QString newSeriesDescription;
+    newSeriesDescription = " Intersection";
+    dtkAbstractData * output = d->process->output();
+    output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
+    //medDataManager::instance()->importNonPersistent(output);
+
+}
+
+void medDavdWorkspace::applyMaskToImage()
+{
+    qDebug()<<"STEP 4 Apply mask";
+    dtkAbstractView *view =this->currentViewContainer()->childContainers()[1]->view();
+    dtkAbstractData * mask = d->process->output();
+
+    if(!view)
+        return;
+    dtkSmartPointer<medAbstractView> currentView = dynamic_cast<medAbstractView *> (view);
+    dtkAbstractData * data = static_cast<dtkAbstractData*>(currentView->data());
+
+    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer ( "medMaskApplication" );
+    d->process->setInput(mask, 0);
+    d->process->setInput(data, 1);
+    d->process->update();
+
+    QString newSeriesDescription;
+    newSeriesDescription = " mask applied";
+    dtkAbstractData * output = d->process->output();
+    output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
+    medDataManager::instance()->importNonPersistent(output);
+}
+
 void medDavdWorkspace::goToNextStep(){
+
     if(d->step < d->toolboxes.size()-1)
     {
         d->pipelineToolbox->getPreviousButton()->setDisabled(false);
@@ -194,6 +274,13 @@ void medDavdWorkspace::goToNextStep(){
     }
     if (d->step == d->toolboxes.size()-1)
         d->pipelineToolbox->getNextButton()->setDisabled(true);
+
+    if (d->step == 4)
+    {
+        this->dilateTheMask();
+        this->intersectMasks();
+        this->applyMaskToImage();
+    }
 }
 
 void medDavdWorkspace::goToPreviousStep(){
