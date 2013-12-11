@@ -108,9 +108,12 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
     int type = 0;
     switch(event)
     {
-	case vtkCommand::RightButtonPressEvent:
-	  type = -1;
-	  break;
+    case vtkCommand::RightButtonPressEvent:
+        if (rwi->GetAltKey())
+            type = -1;
+        else
+            type = 1;
+        break;
 	case vtkCommand::LeftButtonPressEvent:
 	  type = 0;
 	  break;
