@@ -68,6 +68,7 @@ public:
 
     virtual QWidget *receiverWidget();
     virtual void * getView2D();
+    virtual void * getView3D();
     virtual void * getRenderWindow();
 
     /**

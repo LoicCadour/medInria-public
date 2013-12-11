@@ -157,6 +157,11 @@ void * medAbstractView::getView2D()
     return NULL;
 }
 
+void * medAbstractView::getView3D()
+{
+    return NULL;
+}
+
 void * medAbstractView::getRenderWindow()
 {
     return NULL;

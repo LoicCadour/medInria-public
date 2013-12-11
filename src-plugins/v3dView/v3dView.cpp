@@ -1162,16 +1162,6 @@ QWidget *v3dView::widget()
     return d->widget;
 }
 
-void * v3dView::getView2D()
-{
-    return d->view2d;
-}
-
-void * v3dView::getRenderWindow()
-{
-    return d->renWin;
-}
-
 void v3dView::play ( bool start )
 {
     d->timeline->setFrameRange ( d->slider->minimum(), d->slider->maximum() );

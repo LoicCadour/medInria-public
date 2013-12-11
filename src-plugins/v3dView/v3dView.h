@@ -90,9 +90,7 @@ public:
 
     QWidget *receiverWidget();
     QWidget *widget();
-    void * getView2D();
-    void * getRenderWindow();
-
+    
     void close();
 
     // access method to internal members for v3dView**Interactor classes
