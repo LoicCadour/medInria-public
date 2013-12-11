@@ -35,134 +35,11 @@
 #include <medVtkViewBackend.h>
 #include <algorithm> 
 #include <medDataManager.h>
-#include <itkResampleImageFilter.h>
+#include <dtkCore/dtkAbstractProcessFactory.h>
+#include <dtkCore/dtkAbstractProcess.h>
+
 
 namespace mseg {
-
-//class SelectDataEventFilter : public medViewEventFilter
-//{
-//public:
-//    SelectDataEventFilter(medToolBoxSegmentation * controller, VarSegToolBox *cb ) :
-//        medViewEventFilter(),
-//            m_cb(cb)
-//        {}
-//        virtual bool mousePressEvent( medAbstractView *view, QMouseEvent *mouseEvent )
-//        {
-//            mouseEvent->accept();
-
-//            dtkAbstractData * viewData = medToolBoxSegmentation::viewData( view );
-//            if (viewData) {
-//                m_cb->setData( viewData );
-//                this->removeFromAllViews();
-//            }
-//            return mouseEvent->isAccepted();
-//        }
-
-//private :
-//    VarSegToolBox *m_cb;
-//};
-
-//    class ClickEventFilter : public medViewEventFilter
-//    {
-//    public:
-//        ClickEventFilter(medToolBoxSegmentation * controller, VarSegToolBox *cb ) :
-//        medViewEventFilter(),
-//        m_cb(cb)
-//        {}
-
-//        virtual bool mousePressEvent( medAbstractView *view, QMouseEvent *mouseEvent )
-//        {
-//            medAbstractViewCoordinates * coords = view->coordinates();
-
-//            mouseEvent->accept();
-
-//            if (coords->is2D()) {
-//                // Convert mouse click to a 3D point in the image.
-
-//                QVector3D posImage = coords->displayToWorld( mouseEvent->posF() );
-
-//                // handled after release
-//                m_cb->updateWandRegion(view, posImage);
-//            }
-//            return mouseEvent->isAccepted();
-//        }
-
-//        private :
-//        VarSegToolBox *m_cb;
-//    };
-
-//class ClickAndMoveEventFilter : public medViewEventFilter
-//{
-//public:
-//    ClickAndMoveEventFilter(medToolBoxSegmentation * controller, VarSegToolBox *cb ) :
-//        medViewEventFilter(),
-//        m_cb(cb)
-//        {}
-
-//    virtual bool mousePressEvent( medAbstractView *view, QMouseEvent *mouseEvent )
-//    {
-//        medAbstractViewCoordinates * coords = view->coordinates();
-
-//        mouseEvent->accept();
-
-//        if (coords->is2D()) {
-//            // Convert mouse click to a 3D point in the image.
-
-//            QVector3D posImage = coords->displayToWorld( mouseEvent->posF() );
-//            this->m_state = State::Painting;
-
-//            //Project vector onto plane
-////            dtkAbstractData * viewData = medToolBoxSegmentation::viewData( view );
-//            this->m_points.push_back(posImage);
-
-//            m_cb->updateStroke( this,view );
-//        }
-//        return mouseEvent->isAccepted();
-//    }
-
-//    virtual bool mouseMoveEvent( medAbstractView *view, QMouseEvent *mouseEvent )
-//    {
-//        if ( this->m_state != State::Painting )
-//            return false;
-
-//        medAbstractViewCoordinates * coords = view->coordinates();
-//        mouseEvent->accept();
-
-//        if (coords->is2D()) {
-//            // Convert mouse click to a 3D point in the image.
-
-//            QVector3D posImage = coords->displayToWorld( mouseEvent->posF() );
-//            //Project vector onto plane
-//            this->m_points.push_back(posImage);
-//            m_cb->updateStroke( this,view );
-//        }
-//        return mouseEvent->isAccepted();
-//    }
-
-//    virtual bool mouseReleaseEvent( medAbstractView *view, QMouseEvent *mouseEvent )
-//    {
-//        if ( this->m_state == State::Painting )
-//        {
-//            this->m_state = State::Done;
-//            m_cb->updateStroke(this,view);
-//            this->m_points.clear();
-//            return true;
-//        }
-//        return false;
-//    }
-//    struct State {
-//        enum E { Start, Painting, Done };
-//    };
-
-//    State::E state() const { return m_state; }
-
-//    const std::vector<QVector3D> & points() const { return m_points; }
-
-//private :
-//    VarSegToolBox *m_cb;
-//    std::vector<QVector3D> m_points;
-//    State::E m_state;
-//};
 
 VarSegToolBox::VarSegToolBox(QWidget * parent )
     : medSegmentationAbstractToolBox(parent)
@@ -178,18 +55,32 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     QLabel * outside = new QLabel(QString("On VOI : Shift + left mouse button"),displayWidget);
     QLabel * on = new QLabel(QString("Outside VOI : Shift + middle mouse button"),displayWidget);
 
-    QPushButton * binaryImageButton = new QPushButton(tr("Generate binary image"),displayWidget);
 
+    segButton = new QPushButton(tr("Start Segmentation"),displayWidget);
+    segButton->setCheckable(true);
+    binaryImageButton = new QPushButton(tr("Generate binary image"),displayWidget);
+    applyMaskButton = new QPushButton(tr("Apply segmentation"),displayWidget);
+    clearChanges = new QPushButton(tr("Abandon all changes"),displayWidget);
+    clearChanges->setEnabled(false);
+    binaryImageButton->setEnabled(false);
+    applyMaskButton->setEnabled(false);
+    layout->addWidget(segButton);
     layout->addWidget(inside);
     layout->addWidget(outside);
     layout->addWidget(on);
     layout->addWidget(binaryImageButton);
-
+    layout->addWidget(applyMaskButton);
+    layout->addWidget(clearChanges);
+    
+    connect(segButton,SIGNAL(toggled(bool)),this,SLOT(segmentation(bool)));
     connect(binaryImageButton,SIGNAL(clicked()),this,SLOT(addBinaryImage()));
+    connect(applyMaskButton,SIGNAL(clicked()),this,SLOT(applyMaskToImage()));
+    connect(clearChanges,SIGNAL(clicked()),this,SLOT(bringBackOriginalImage()));
     
     controller = vtkLandmarkSegmentationController::New();
     output = output = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
     currentView=0;
+    segOn = false;
 }
 
 VarSegToolBox::~VarSegToolBox()
@@ -228,6 +119,8 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
         return;
     
     medAbstractView * v = qobject_cast<medAbstractView*>(this->sender());
+    if (v!=currentView || !controller)
+        return;
     
     vtkRenderWindowInteractor * interactor = static_cast<medVtkViewBackend*>(v->backend())->renWin->GetInteractor();
 
@@ -256,69 +149,75 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
 
 void VarSegToolBox::addBinaryImage()
 {
+    // Need to be tested a little more
+    // TODO : Solve border problem
     typedef itk::Image<unsigned char,3> binaryType;
     binaryType::Pointer img = this->controller->GetBinaryImage();
 
     if (!img)
         return;
 
-    //itk::ResampleImageFilter<binaryType , binaryType>::Pointer filter = itk::ResampleImageFilter<binaryType , binaryType >::New();
-    //binaryType::Pointer filterInput = this->controller->GetBinaryImage();
-    //binaryType::SizeType filterInputSize = filterInput->GetLargestPossibleRegion().GetSize();
- 
-    //// Resize
-    //binaryType::SizeType outputSize;
-    //binaryType::SpacingType outputSpacing;
-
-    //outputSize[0]=inputSize[0];
-    //outputSize[1]=inputSize[1];
-    //outputSize[2]=inputSize[2];
-
-    //outputSpacing[0] = filterInput->GetSpacing()[0] * (static_cast<double>(filterInputSize[0]) / static_cast<double>(outputSize[0]));
-    //outputSpacing[1] = filterInput->GetSpacing()[1] * (static_cast<double>(filterInputSize[1]) / static_cast<double>(outputSize[1]));
-    //outputSpacing[2] = filterInput->GetSpacing()[2] * (static_cast<double>(filterInputSize[2]) / static_cast<double>(outputSize[2]));
-
-    //filter->SetInput(filterInput);
-    //filter->SetSize(outputSize);
-    //filter->SetOutputOrigin(filterInput->GetOrigin());
-    //filter->SetOutputSpacing(outputSpacing);
-    //filter->UpdateLargestPossibleRegion();
-    //output->setData ( filter->GetOutput());
-
-    //dtkSmartPointer<dtkAbstractData> output2 = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
-    //output2->setData(filterInput);
     output->setData(img);
     QString newSeriesDescription = reinterpret_cast<dtkAbstractData*>(this->currentView->data())->metadata ( medMetaDataKeys::SeriesDescription.key() );
     newSeriesDescription += "varSeg";
     
     output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-    //newSeriesDescription += "varSeg2";
-    //output2->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
     medDataManager::instance()->importNonPersistent( output.data() );
-    //medDataManager::instance()->importNonPersistent( output2.data() );
+}
+
+void VarSegToolBox::applyMaskToImage()
+{
+    if (!currentView)
+        return;
+    
+    dtkAbstractProcess * maskApplicationProcess = dtkAbstractProcessFactory::instance()->create("medMaskApplication");
+    if (!maskApplicationProcess)
+        return;
+
+    typedef itk::Image<unsigned char,3> binaryType;
+    binaryType::Pointer img = this->controller->GetBinaryImage();
+
+    if (!img)
+        return;
+
+    dtkAbstractData * maskData = dtkAbstractDataFactory::instance()->createSmartPointer ( "itkDataImageUChar3" );
+    maskData->setData(img);
+    maskApplicationProcess->setInput(maskData,0);
+    maskApplicationProcess->setInput(static_cast<dtkAbstractData*>(currentView->data()),1);
+    maskApplicationProcess->update();
+    currentView->removeOverlay(0);
+    currentView->setData(maskApplicationProcess->output(),0);
+    clearChanges->setEnabled(true);
 }
 
 void VarSegToolBox::update(dtkAbstractView * view)
 {
     medAbstractView * v = qobject_cast<medAbstractView*>(view);
 
-    if (currentView) // TODO change this system.
+    if (!v)
         return;
-    else
+        
+    if (!segOn) // if the segmentation is activated we do not change the currentView. The currentView is supposed to be the view in which the segmentation is being done.
         currentView=v;
+}
 
-    if (this->controller->GetInteractorCollection())
+void VarSegToolBox::startSegmentation()
+{
+    if (!currentView)
+    {
+        segButton->setChecked(false);
         return;
+    }
 
-    connect(view, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)));
+    connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)),Qt::UniqueConnection);
 
-    if (view->property("Orientation")=="3D")
+    if (currentView->property("Orientation")=="3D")
         this->controller->setMode3D(true);
     else
         this->controller->setMode3D(false);
 
     vtkCollection* interactorcollection = vtkCollection::New();
-    interactorcollection->AddItem(static_cast<medVtkViewBackend*>(v->backend())->renWin->GetInteractor());
+    interactorcollection->AddItem(static_cast<medVtkViewBackend*>(currentView->backend())->renWin->GetInteractor());
     this->controller->SetInteractorCollection(interactorcollection);
     interactorcollection->Delete();
 
@@ -327,47 +226,70 @@ void VarSegToolBox::update(dtkAbstractView * view)
     typedef vtkLandmarkSegmentationController::ImageType ImageType;
     ImageType::Pointer image;
 
-    dtkAbstractData * data = reinterpret_cast<dtkAbstractData*>(v->data());
-    if (!data) return;
+    originalInput = reinterpret_cast<dtkAbstractData*>(currentView->data());
+    
+    if (!originalInput) return;
 
-    if (data->identifier() == "itkDataImageShort3")
+    if (originalInput->identifier() == "itkDataImageShort3")
     {
         typedef itk::Image<short, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
         typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
         CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(data->data())));
+        caster->SetInput(imgView);
         caster->Update(); // terribly expensive in term of memory look for alternative
         image = caster->GetOutput();
     }
-    else if (data->identifier() == "itkDataImageUShort3")
+    else if (originalInput->identifier() == "itkDataImageUShort3")
     {
         typedef itk::Image<unsigned short, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
         typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
         CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(data->data())));
+        caster->SetInput(imgView);
         caster->Update();
         image = caster->GetOutput();
     }
-    else if (data->identifier() == "itkDataImageDouble3")
+    else if (originalInput->identifier() == "itkDataImageDouble3")
     {
         typedef itk::Image<double, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
         typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
         CasterType::Pointer caster = CasterType::New();
-        caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(data->data())));
+        caster->SetInput(imgView);
         caster->Update();
         image = caster->GetOutput();
     }
-    else if (data->identifier() == "itkDataImageFloat3")
+    else if (originalInput->identifier() == "itkDataImageFloat3")
     {
-        image = dynamic_cast< ImageType*>((itk::Object*)(data->data()));
+        typedef itk::Image<float, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(imgView);
+        caster->Update();
+        image = caster->GetOutput();
+    }
+     else if (originalInput->identifier() == "itkDataImageInt3")
+    {
+        typedef itk::Image<int, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(imgView);
+        caster->Update();
+        image = caster->GetOutput();
     }
     else
     {
-        qDebug() << "Failed : type " << data->identifier();
+        qDebug() << "Failed : type " << originalInput->identifier();
     }
 
     //itk::ChangeInformationImageFilter<itk::Image<float,3> > * infofilter = itk::ChangeInformationImageFilter<itk::Image<float,3> >::New();
-    ImageType::Pointer imagetest;
+    ImageType::Pointer smallerImage;
+
+    // TODO : stash origin direction size and spacing in variables without having to make a freaking cast. TOO expensive in memory I hate that !@!@!!!!@!@!@!
+
     ImageType::SizeType imageSize = image->GetLargestPossibleRegion().GetSize(); ;
     ImageType::SpacingType imageSpacing  = image->GetSpacing();
 
@@ -393,68 +315,65 @@ void VarSegToolBox::update(dtkAbstractView * view)
     NewSpacing[0] = mSpacing[0];NewSpacing[1] = mSpacing[1];NewSpacing[2] = mSpacing[2];
     NewSize[0] = mDim[0];NewSize[1] = mDim[1];NewSize[2] = mDim[2];
     ImageType::RegionType region(corner,NewSize);
-    imagetest = ImageType::New();
-    imagetest->SetRegions(region);
-    imagetest->Allocate();
-    imagetest->SetDirection(image->GetDirection());
-    imagetest->SetOrigin(image->GetOrigin());
-    imagetest->SetSpacing(NewSpacing);
+    smallerImage = ImageType::New();
+    smallerImage->SetRegions(region);
+    smallerImage->Allocate();
+    smallerImage->SetDirection(image->GetDirection());
+    smallerImage->SetOrigin(image->GetOrigin());
+    smallerImage->SetSpacing(NewSpacing);
     
-    this->controller->SetInput(imagetest);
-    vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(v->backend())->view2D;
-    vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(v->backend())->view3D;
+    this->controller->SetInput(smallerImage);
+    vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(currentView->backend())->view2D;
+    vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(currentView->backend())->view3D;
 
     this->controller->setView2D(view2d);
     this->controller->setView3D(view3d);
+    
     view2d->AddDataSet (controller->GetOutput());
     view3d->AddDataSet (controller->GetOutput());
-
-  //   int returnValue = 0;
-  //int res = this->GetResolution();
-
-  //// Get image information
-  //int    dim[3];
-  //double spacing[3];
-  //double origin[3];
-  //this->Image->GetImageData()->GetDimensions(dim);
-  //this->Image->GetImageData()->GetSpacing(spacing);
-  //this->Image->GetImageData()->GetOrigin(origin);
-
-  //double smallestSpacing = min(spacing[0], min(spacing[1], spacing[2]));
-  //double mSpacing[3];
-  //for (unsigned int i = 0; i < 3; i++)
-  //  mSpacing[i] = 100 * smallestSpacing / res;
-
-  //int mDim[3];
-  //for (unsigned int i = 0; i < 3; i++)
-  //  mDim[i] = (int) (dim[i] * spacing[i] / mSpacing[i]);
-
-  //yav::VariationalFunction* vFun = new yav::VariationalFunction;
-  //if ( !vFun->SetSampleDimensions(mDim[0], mDim[1], mDim[2]) )
-  //{
-  //  vtkKWPopupErrorMessage(this,"Invalid model dimensions. Please change the resolution\n");
-  //  delete vFun;
-  //  return -1;
-  //}
-
-  //if ( !vFun->SetModelBounds(0, dim[0] * spacing[0], 
-		//	     0, dim[1] * spacing[1], 
-		//	     0, dim[2] * spacing[2]) )
-  //{
-  //  vtkKWPopupErrorMessage(this,"Invalid model bounds. Please change the resolution\n");
-  //  delete vFun;
-  //  return -1;
-  //}
-
-  //// Create the implicit image
-  //yav::Inrimage* iFun = 
-  //  new yav::Inrimage(mDim[0], mDim[1], mDim[2], yav::Inrimage::WT_FLOAT,
-		//      1, VM_INTERLACED,
-		//      fabs(mSpacing[0]), fabs(mSpacing[1]), fabs(mSpacing[2]));
-
+    
+    binaryImageButton->setEnabled(true);
+    applyMaskButton->setEnabled(true);
+    currentView->widget()->setCursor(Qt::CrossCursor);
+    segOn = true;
 }
 
+void VarSegToolBox::endSegmentation()
+{
+    segButton->setText("Start Segmentation");
+    segOn = false;
+    if (!controller)
+        return;
+    if (currentView)
+    {
+        currentView->widget()->unsetCursor();
+        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(currentView->backend())->view2D;
+        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(currentView->backend())->view3D;
+        view2d->RemoveDataSet (controller->GetOutput());
+        view3d->RemoveDataSet (controller->GetOutput());
+    }
+    qDebug() << " reference count for the controller before delete : " << this->controller->GetReferenceCount();
+    this->controller->EnabledOff();
+    this->controller->GetTotalLandmarkCollection()->RemoveAllItems();
+    this->controller->GetLandmarkCollection()->RemoveAllItems();
+}
 
+void VarSegToolBox::segmentation(bool checked)
+{
+    if (checked)
+    {
+        segButton->setText("End Segmentation");
+        startSegmentation();
+    }
+    else
+        endSegmentation();
+}
+
+void VarSegToolBox::bringBackOriginalImage()
+{
+    currentView->removeOverlay(0);
+    currentView->setData(originalInput,0);
+}
 
 
 } // namespace mseg

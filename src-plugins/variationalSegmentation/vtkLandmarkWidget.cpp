@@ -25,6 +25,7 @@ vtkLandmarkWidget::vtkLandmarkWidget()
 vtkLandmarkWidget::~vtkLandmarkWidget()
 {
   this->Command->Delete();
+  this->widget2D->Delete();
 }
 
 void vtkLandmarkWidgetCommand::Execute(vtkObject *   caller, 

@@ -204,6 +204,9 @@ vtkLandmarkSegmentationController::~vtkLandmarkSegmentationController()
   this->Transformer->Delete();
   this->SurfaceExtractor->Delete();
   this->LandmarkCollection->Delete();
+  if (this->view2d)
+      this->view2d->RemoveObserver(this->Command);
+
   this->Command->Delete();
   if (this->InteractorCollection)
     this->InteractorCollection->UnRegister(this);
@@ -572,13 +575,7 @@ vtkLandmarkSegmentationController::binaryType::Pointer vtkLandmarkSegmentationCo
     filter->SetOutputOrigin(m_Input->GetOrigin());
     filter->SetOutputDirection(m_Input->GetDirection());
     filter->SetOutputSpacing(outputSpacing);
-    //filter->SetInterpolator(interpolator);
     filter->UpdateLargestPossibleRegion();
-
-    //m_Filter->SetInput(filter->GetOutput());
-    //m_Filter->Update();
-
-
 
     itk::BinaryThresholdImageFilter<ImageType,binaryType>::Pointer thresholdFilter = itk::BinaryThresholdImageFilter<ImageType,binaryType>::New();
     thresholdFilter->SetInput(filter->GetOutput());
@@ -587,24 +584,5 @@ vtkLandmarkSegmentationController::binaryType::Pointer vtkLandmarkSegmentationCo
     thresholdFilter->Update();
     binaryType::Pointer img = thresholdFilter->GetOutput();
     
-
-    //itk::ResampleImageFilter<binaryType , binaryType>::Pointer filter = itk::ResampleImageFilter<binaryType , binaryType>::New();
-    /*typedef itk::NearestNeighborInterpolateImageFunction<binaryType, double >  InterpolatorType;
-    InterpolatorType::Pointer interpolator = InterpolatorType::New();
-    binaryType::SizeType filterInputSize = img->GetLargestPossibleRegion().GetSize();*/
- 
-    // Resize
-    
-    
-
-    
-
-    
-    
-    /*itk::BinaryThresholdImageFilter<ImageType,binaryType>::Pointer thresholdFilter = itk::BinaryThresholdImageFilter<ImageType,binaryType>::New();
-    thresholdFilter->SetInput(filter->GetOutput());
-    thresholdFilter->SetUpperThreshold(0);
-    thresholdFilter->SetInsideValue(1);
-    thresholdFilter->Update();*/
     return img;
 }
