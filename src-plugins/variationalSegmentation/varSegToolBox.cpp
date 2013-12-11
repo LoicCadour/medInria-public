@@ -53,7 +53,7 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
 
     QLabel * inside = new QLabel(QString("Inside VOI : Shift + right mouse button"),displayWidget);
     QLabel * outside = new QLabel(QString("On VOI : Shift + left mouse button"),displayWidget);
-    QLabel * on = new QLabel(QString("Outside VOI : Shift + Alt + right mouse button or Shift + middle mouse button"),displayWidget);
+    QLabel * on = new QLabel(QString("Outside VOI : Shift + Ctrl + right mouse button or Shift + middle mouse button"),displayWidget);
 
 
     segButton = new QPushButton(tr("Start Segmentation"),displayWidget);
