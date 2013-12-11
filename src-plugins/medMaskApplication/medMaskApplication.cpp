@@ -45,7 +45,7 @@ class medMaskApplicationPrivate
             return -1;
         //ImageType::Pointer mask = ImageType::New();
         typedef itk::MaskImageFilter< ImageType,  MaskType> MaskFilterType;
-        MaskFilterType::Pointer maskFilter = MaskFilterType::New();
+        typename MaskFilterType::Pointer maskFilter = MaskFilterType::New();
 
         typename ImageType::Pointer imgInput = dynamic_cast<ImageType *> ( ( itk::Object* ) ( input->data() )) ;
         typename MaskType::Pointer maskInput = dynamic_cast<MaskType *> ( ( itk::Object* ) ( mask->data() )) ;
