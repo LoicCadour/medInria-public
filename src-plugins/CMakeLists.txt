@@ -84,6 +84,7 @@ set(PLUGIN_LIST
   itkDataSHImageWriter           ON
   itkDataSHImageReader           ON
   medMeshTools                   ON
+  medMaskApplication             ON
   medBinaryOperation			 ON
   )
 
