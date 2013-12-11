@@ -24,6 +24,8 @@
 #include <medAbstractDataImage.h>
 #include <medDataManager.h>
 
+#include <itkCastImageFilter.h>
+
 #include <itkXorImageFilter.h>
 
 // /////////////////////////////////////////////////////////////////
@@ -76,7 +78,7 @@ void itkXorOperator::setInput ( dtkAbstractData *data, int channel)
     if ( channel == 1 )
     {
         QString identifier = data->identifier();
-        d->output = dtkAbstractDataFactory::instance()->createSmartPointer ( identifier );
+        d->output = dtkAbstractDataFactory::instance()->createSmartPointer ( "itkDataImageUChar3" );
         d->inputB = data;
     }
 }    
@@ -92,11 +94,38 @@ int itkXorOperator::update()
         return -1;
 
     typedef itk::Image<unsigned char, 3> ImageType;
+    ImageType::Pointer imageA;
+    imageA = dynamic_cast< ImageType*>((itk::Object*)(d->inputA->data()));
+
+    if (d->inputA->identifier() == "itkDataImageInt3")
+    {
+        typedef itk::Image<int, 3> InputImage;
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(d->inputA->data())));
+        caster->Update();
+        imageA = caster->GetOutput();
+    }
+
+    ImageType::Pointer imageB;
+    imageB = dynamic_cast< ImageType*>((itk::Object*)(d->inputB->data()));
+
+    if (d->inputB->identifier() == "itkDataImageInt3")
+    {
+        typedef itk::Image<int, 3> InputImage;
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(dynamic_cast< InputImage*>((itk::Object*)(d->inputB->data())));
+        caster->Update();
+        imageB = caster->GetOutput();
+    }
+
+
 
     typedef itk::XorImageFilter <ImageType, ImageType, ImageType> XorImageFilterType;
     XorImageFilterType::Pointer xorFilter = XorImageFilterType::New();
-    xorFilter->SetInput1(dynamic_cast<ImageType *> ( ( itk::Object* ) ( d->inputA->data() ) ));
-    xorFilter->SetInput2(dynamic_cast<ImageType *> ( ( itk::Object* ) ( d->inputB->data() ) ));
+    xorFilter->SetInput1(imageA);
+    xorFilter->SetInput2(imageB);
     xorFilter->Update();
 
     d->output->setData(xorFilter->GetOutput());
@@ -105,7 +134,6 @@ int itkXorOperator::update()
     QString newSeriesDescription = d->inputA->metadata ( medMetaDataKeys::SeriesDescription.key() );
     newSeriesDescription += " XOR " + d->inputB->metadata ( medMetaDataKeys::SeriesDescription.key() );
     d->output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-    medDataManager::instance()->importNonPersistent(d->output);
     return EXIT_SUCCESS;
 }        
 

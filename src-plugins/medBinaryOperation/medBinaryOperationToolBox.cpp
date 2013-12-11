@@ -209,11 +209,11 @@ void medBinaryOperationToolBox::run()
 void medBinaryOperationToolBox::onRoiImported(const medDataIndex& index)
 {
     dtkSmartPointer<dtkAbstractData> data = medDataManager::instance()->data(index);
-    // we accept only ROIs (itkDataImageUChar3)
-    if (!data || data->identifier() != "itkDataImageUChar3")
-    {
-        return;
-    }
+    //// we accept only ROIs (itkDataImageUChar3)
+    //if (!data || data->identifier() != "itkDataImageUChar3")
+    //{
+    //    return;
+    //}
     // put the thumbnail in the medDropSite as well
     // (code copied from @medDatabasePreviewItem)
     medAbstractDbController* dbc = medDataManager::instance()->controllerForDataSource(index.dataSourceId());
@@ -243,10 +243,10 @@ void medBinaryOperationToolBox::onImageImported(const medDataIndex& index)
 {
     dtkSmartPointer<dtkAbstractData> data = medDataManager::instance()->data(index);
     // we accept only ROIs (itkDataImageUChar3)
-    if (!data || data->identifier() != "itkDataImageUChar3")
-    {
-        return;
-    }
+    //if (!data || data->identifier() != "itkDataImageUChar3")
+    //{
+    //    return;
+    //}
 
     d->inputB = data;
 }
