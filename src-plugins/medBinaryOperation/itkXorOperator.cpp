@@ -134,6 +134,7 @@ int itkXorOperator::update()
     QString newSeriesDescription = d->inputA->metadata ( medMetaDataKeys::SeriesDescription.key() );
     newSeriesDescription += " XOR " + d->inputB->metadata ( medMetaDataKeys::SeriesDescription.key() );
     d->output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
+    medDataManager::instance()->importNonPersistent(d->output);
     return EXIT_SUCCESS;
 }        
 
