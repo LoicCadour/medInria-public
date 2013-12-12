@@ -520,8 +520,11 @@ void vtkLandmarkSegmentationController::updateLandmarksPosFromWidget2D()
         vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject(i));
         vtkPointHandleRepresentation2D * pointRep = dynamic_cast<vtkPointHandleRepresentation2D*> (landmark->GetWidget2D()->GetRepresentation());
         landmark->SetCenter(pointRep->GetWorldPosition());
+        int * previous_indices = landmark->GetIndices();
         int indices[3];
         view2d->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),indices);
+        int orientation = view2d->GetViewOrientation();
+        indices[orientation] = previous_indices[orientation]; // the slice id of the current Orientation cannot change does not make sense. This line is here to prevent that.
         landmark->SetIndices(indices);
     }
 }
