@@ -46,7 +46,6 @@ class itkMorphologicalFiltersToolBoxPrivate
 public:
     QLabel * dataTypeValue;
 
-    QWidget * filterWidget;
     QSpinBox * kernelSize;
     QRadioButton *mmButton, *pixelButton;
     
@@ -54,7 +53,6 @@ public:
     dtkSmartPointer <itkFiltersProcessBase> process;
     
     medProgressionStack * progression_stack;
-    bool isRadiusInPixels;
 };
 
 itkMorphologicalFiltersToolBox::itkMorphologicalFiltersToolBox ( QWidget *parent ) : medFilteringAbstractToolBox ( parent ), d ( new itkMorphologicalFiltersToolBoxPrivate )
@@ -78,7 +76,7 @@ itkMorphologicalFiltersToolBox::itkMorphologicalFiltersToolBox ( QWidget *parent
     dataTypeLayout->addWidget ( d->dataTypeValue );
 
     // We use the same widget for all the morphological filters
-    d->filterWidget = new QWidget(this);
+    QWidget *filterWidget = new QWidget(this);
     d->kernelSize = new QSpinBox;
     d->kernelSize->setMaximum ( 10 );
     d->kernelSize->setValue ( 1 );
@@ -97,9 +95,7 @@ itkMorphologicalFiltersToolBox::itkMorphologicalFiltersToolBox ( QWidget *parent
     morphoFilterLayout->addWidget ( d->mmButton );
     morphoFilterLayout->addWidget ( d->pixelButton );
     morphoFilterLayout->addStretch ( 1 );
-    d->filterWidget->setLayout ( morphoFilterLayout );
-
-    d->isRadiusInPixels = false;
+    filterWidget->setLayout ( morphoFilterLayout );
 
     // Run button:
     QPushButton *runButton = new QPushButton ( tr ( "Run" ) );
@@ -114,7 +110,7 @@ itkMorphologicalFiltersToolBox::itkMorphologicalFiltersToolBox ( QWidget *parent
     QVBoxLayout *layout = new QVBoxLayout();
     layout->addWidget ( d->filters );
     layout->addLayout ( dataTypeLayout );
-    layout->addWidget ( d->filterWidget );
+    layout->addWidget ( filterWidget );
     layout->addWidget ( runButton );
     layout->addWidget ( d->progression_stack );
     layout->addStretch ( 1 );
@@ -243,7 +239,7 @@ void itkMorphologicalFiltersToolBox::setupItkDilateProcess()
         return;
     
     d->process->setInput ( this->parentToolBox()->data() );
-    d->process->setParameter ( d->kernelSize->value(), d->isRadiusInPixels );
+    d->process->setParameter ( d->kernelSize->value(), d->pixelButton->isChecked() );
 }
 
 void itkMorphologicalFiltersToolBox::setupItkErodeProcess()
@@ -277,11 +273,6 @@ void itkMorphologicalFiltersToolBox::setupItkOpenProcess()
     
     d->process->setInput ( this->parentToolBox()->data() );
     d->process->setParameter ( d->kernelSize->value(), 0 );
-}
-
-void itkMorphologicalFiltersToolBox::changeUnit(bool toggled)
-{
-    d->isRadiusInPixels = toggled;
 }
 
 void itkMorphologicalFiltersToolBox::run ( void )

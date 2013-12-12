@@ -38,7 +38,6 @@ public slots:
 
     void clear();
     void update(dtkAbstractView *view);
-    void changeUnit(bool);
 
     void run();
 
