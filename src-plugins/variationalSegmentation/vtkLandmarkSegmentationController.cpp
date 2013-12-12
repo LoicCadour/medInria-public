@@ -505,10 +505,13 @@ void vtkLandmarkSegmentationController::showOrHide2DWidget()
     {
         vtkHandleWidget * widget  = landmark->GetWidget2D();
         if (widget->GetInteractor()->GetRenderWindow())
-            if (landmark->GetIndices()[view2d->GetViewOrientation()]!=view2d->GetSlice())
+        {
+            if (landmark->GetIndices()[view2d->GetSliceOrientation()]!=view2d->GetSlice())
                 widget->Off();
             else
                 widget->On();
+        }
+        
     }
   }
 }                                              
