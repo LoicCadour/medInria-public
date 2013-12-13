@@ -62,8 +62,8 @@ public:
     QDoubleSpinBox * multiplyFilterValue;
     QDoubleSpinBox * divideFilterValue;
     QDoubleSpinBox * gaussianFilterValue;
-    QDoubleSpinBox * thresholdFilterValue;
-    QDoubleSpinBox * thresholdFilterValue2;
+    QSpinBox * thresholdFilterValue;
+    QSpinBox * thresholdFilterValue2;
     QRadioButton *greaterButton, *lowerButton;
     QSpinBox * shrink0Value;
     QSpinBox * shrink1Value;
@@ -246,10 +246,10 @@ itkFiltersToolBox::itkFiltersToolBox ( QWidget *parent ) : medFilteringAbstractT
 
     //Threshold filter widgets
     d->thresholdFilterWidget = new QWidget(this);
-    d->thresholdFilterValue = new QDoubleSpinBox;
+    d->thresholdFilterValue = new QSpinBox;
     d->thresholdFilterValue->setRange ( -10000, 10000 );
     d->thresholdFilterValue->setValue ( 200.0 );
-    d->thresholdFilterValue2 = new QDoubleSpinBox;
+    d->thresholdFilterValue2 = new QSpinBox;
     d->thresholdFilterValue2->setRange ( -10000, 10000 );
     d->thresholdFilterValue2->setValue ( 0 );
     d->greaterButton = new QRadioButton(tr("greater than :"), this);

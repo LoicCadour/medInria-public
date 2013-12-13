@@ -59,7 +59,7 @@ bool itkFiltersThresholdingProcess::registered( void )
 
 //-------------------------------------------------------------------------------------------
 
-void itkFiltersThresholdingProcess::setParameter(double data, int channel)
+void itkFiltersThresholdingProcess::setParameter(int data, int channel)
 {
     if (channel > 2)
         return;

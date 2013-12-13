@@ -34,8 +34,8 @@ public:
 
     virtual ~itkFiltersThresholdingProcessPrivate(void) {}
     
-    double threshold;
-    double outsideValue;
+    int threshold;
+    int outsideValue;
     bool comparisonOperator;
     
     template <class PixelType> void update ( void )
