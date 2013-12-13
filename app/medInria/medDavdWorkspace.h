@@ -33,9 +33,13 @@ public:
     virtual QString identifier()  const;
     virtual QString description() const;
     static bool isUsable();
+    void displayMask();
     void dilateTheMask();
     void intersectMasks();
     void applyMaskToImage();
+    void applyThresholdToImage();
+    double regionGrowingThreshold();
+    void setOutputMetadata(const dtkAbstractData * inputData, dtkAbstractData * outputData);
 
 public slots:
     /**
