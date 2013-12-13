@@ -79,14 +79,14 @@ public:
   void RefreshConstraints (void);
   
   vtkLandmarkWidget* AddConstraint (double* pos, int type);
-  void RemoveConstraint (vtkLandmarkWidget* arg);
+  bool RemoveConstraint (vtkLandmarkWidget* arg);
 
   void setView2D(vtkImageView2D*);
   vtkImageView2D * getView2D(){return view2d;};
   void setView3D(vtkImageView3D*);
   vtkImageView3D * getView3D(){return view3d;};
-  void showOrHide2DWidget();
-  void updateLandmarksPosFromWidget2D();
+  /*void showOrHide2DWidget();*/
+  //void updateLandmarksPosFromWidget2D();
 
   void setMode3D(bool val){mode3D =val;};
   bool getMode3D(){return mode3D;};

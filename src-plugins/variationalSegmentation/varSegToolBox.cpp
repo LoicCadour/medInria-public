@@ -130,12 +130,16 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
     
     while(l)
     {
-        if ( (l->GetInteractor() == interactor))
-            if (value=="3D")
-                l->On();
-            else if (this->controller->getMode3D()) // test if previous orientation was 3d
-                if (l->GetCurrentRenderer())
-                    l->Off();
+        if (!this->controller->RemoveConstraint (l))
+        {
+            if ( (l->GetInteractor() == interactor))
+                if (value=="3D")
+                    l->On();
+                else if (this->controller->getMode3D()) // test if previous orientation was 3d
+                    if (l->GetCurrentRenderer())
+                        l->Off();
+        }
+        
         l = vtkLandmarkWidget::SafeDownCast(landmarks->GetNextItemAsObject());
     }
     
@@ -144,7 +148,15 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
     else
         this->controller->setMode3D(false);
     
-    this->controller->showOrHide2DWidget();
+    // This second loop is necessary especially in case of other orientation (not 3D). Not sure however since the slice event is called when the orientation is changed. 
+    // TODO : check the orientation and slice id when the slice event is called when the orientation is changed.
+    landmarks->InitTraversal(); 
+    l = vtkLandmarkWidget::SafeDownCast(landmarks->GetNextItemAsObject());
+    while(l)
+    {
+        l->showOrHide2DWidget();
+        l = vtkLandmarkWidget::SafeDownCast(landmarks->GetNextItemAsObject());
+    }
 }
 
 void VarSegToolBox::addBinaryImage()

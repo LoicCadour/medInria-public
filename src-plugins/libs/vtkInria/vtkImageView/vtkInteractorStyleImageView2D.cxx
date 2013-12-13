@@ -113,18 +113,12 @@ void vtkInteractorStyleImageView2D::OnLeftButtonDown()
     return;
   }  
   
-	this->GrabFocus(this->EventCallbackCommand);
+  this->GrabFocus(this->EventCallbackCommand);
 	
-  if (this->Interactor->GetShiftKey() || this->Interactor->GetControlKey()) 
+  
+  switch(this->GetLeftButtonInteraction())
   {
-    if (this->GetLeftButtonInteraction() == InteractionTypeWindowLevel)
-      this->StartSliceMove();
-  }
-  else
-  {
-    switch(this->GetLeftButtonInteraction())
-    {
-	case InteractionTypeSlice:
+    case InteractionTypeSlice:
 	  this->RequestedPosition[0] = x;
 	  this->RequestedPosition[1] = y;
 	  this->InvokeEvent (vtkImageView2DCommand::RequestedPositionEvent, this);
@@ -137,7 +131,7 @@ void vtkInteractorStyleImageView2D::OnLeftButtonDown()
 	  this->StartTimeChange();
 	  break;
 	case InteractionTypeWindowLevel:
-	  this->Superclass::OnLeftButtonDown();
+        this->Superclass::OnLeftButtonDown();
 	  break;
 	case InteractionTypeZoom:
 	  this->Superclass::OnRightButtonDown();
@@ -148,7 +142,6 @@ void vtkInteractorStyleImageView2D::OnLeftButtonDown()
 	default:
 	  break;
     }
-  }
 }
 
 

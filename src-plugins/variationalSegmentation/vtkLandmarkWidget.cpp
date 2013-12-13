@@ -11,28 +11,11 @@
 vtkStandardNewMacro(vtkLandmarkWidget);
 vtkCxxRevisionMacro(vtkLandmarkWidget, "$Revision: 1315 $");
 
-
-
-
-vtkLandmarkWidget::vtkLandmarkWidget()
-{
-  this->Command = vtkLandmarkWidgetCommand::New();
-  this->Command->SetLandmark (this);
-  this->Value = 0.0;
-  this->widget2D = vtkHandleWidget::New();
-}
-
-vtkLandmarkWidget::~vtkLandmarkWidget()
-{
-  this->Command->Delete();
-  this->widget2D->Delete();
-}
-
 void vtkLandmarkWidgetCommand::Execute(vtkObject *   caller, 
 				       unsigned long event, 
 				       void *        callData)
 {
-  vtkSphereWidget* l = vtkSphereWidget::SafeDownCast(caller);
+  vtkLandmarkWidget * l = vtkLandmarkWidget::SafeDownCast(caller);
   vtkHandleWidget * widget = vtkHandleWidget::SafeDownCast(caller);
 
   if (event == vtkCommand::InteractionEvent)
@@ -42,13 +25,11 @@ void vtkLandmarkWidgetCommand::Execute(vtkObject *   caller,
       this->Landmark->SetCenter (l->GetCenter());
       if (this->Landmark->GetInteractor())
 	this->Landmark->GetInteractor()->Render();
-      if (this->Landmark==l)
-          std::cout<<"i hate u dude!";
     }
-    if (this->widget2D == widget)
+    if (this->Widget2D == widget)
     {
         if (this->Landmark)
-            this->Landmark->SetCenter(dynamic_cast<vtkPointHandleRepresentation2D*>(this->widget2D->GetRepresentation())->GetWorldPosition());
+            this->Landmark->SetCenter(dynamic_cast<vtkPointHandleRepresentation2D*>(this->Widget2D->GetRepresentation())->GetWorldPosition());
     }
   }
   if ( (event == vtkCommand::EnableEvent) ||
@@ -57,43 +38,108 @@ void vtkLandmarkWidgetCommand::Execute(vtkObject *   caller,
     if (this->Landmark && l)
       this->Landmark->SetEnabled (l->GetEnabled());
   }
+
+  if ( event == vtkCommand::EndInteractionEvent)
+  {
+      if (widget)
+      {
+        if (widget->GetInteractor()->GetControlKey())
+        {
+            Landmark->InvokeEvent(vtkCommand::DeleteEvent);
+            //widget->Off();
+            //Landmark->Off();
+            //Landmark->GetView2D()->RemoveObserver(this);
+        }
+        else
+        {
+            Landmark->updateLandmarksPosFromWidget2D();
+            Landmark->InvokeEvent(vtkCommand::PlacePointEvent);
+        }
+      }
+      else
+          if (l && (l->GetInteractor()->GetControlKey()))
+          {
+              Landmark->InvokeEvent(vtkCommand::DeleteEvent);
+              //this->Widget2D->Off();
+              //Landmark->Off();
+              //Landmark->GetView2D()->RemoveObserver(this);
+              /*Landmark->RemoveAllObservers();
+              widget->RemoveAllObservers();*/
+          }
+  }
+  if ( event == vtkImageView2D::SliceChangedEvent )
+  {
+      vtkImageView2D * view2d= vtkImageView2D::SafeDownCast(caller);
+      this->Landmark->showOrHide2DWidget();                                              
+  }
 }
 
-void vtkLandmarkWidgetCommand::SetLandmark (vtkSphereWidget* l)
+void vtkLandmarkWidgetCommand::SetLandmark (vtkLandmarkWidget* l)
 {
-  this->Landmark = l;
+    this->Landmark = l;
 }
 
 void vtkLandmarkWidgetCommand::SetWidget2D (vtkHandleWidget* widget)
 {
-    this->widget2D = widget;
+    this->Widget2D = widget;
+}
+
+
+vtkLandmarkWidget::vtkLandmarkWidget()
+{
+  this->Command = vtkLandmarkWidgetCommand::New();
+  this->Command->SetLandmark (this);
+  this->Value = 0.0;
+  this->Widget2D = vtkHandleWidget::New();
+  this->Command->SetWidget2D (this->Widget2D);
+  this->AddObserver(vtkCommand::EndInteractionEvent,this->Command);
+  this->Widget2D->AddObserver(vtkCommand::EndInteractionEvent,this->Command);
+  this->View2D = 0;
+  this->View3D = 0;
+  this->ToDelete = false;
+}
+
+vtkLandmarkWidget::~vtkLandmarkWidget()
+{
+  this->Widget2D->RemoveAllObservers();
+  this->RemoveAllObservers();
+  if (View2D)
+    this->View2D->RemoveObserver(this->Command);
+  this->Command->Delete();
+  this->Widget2D->Delete();
 }
 
 void vtkLandmarkWidget::SetEnabled( int val)
 {
   Superclass::SetEnabled( val);
   this->Interactor->RemoveObservers(vtkCommand::MouseMoveEvent,reinterpret_cast<vtkCommand*>(this->EventCallbackCommand));// the sphere widget should not be movable. All movements should go through the 2d view -> widget2d.
-  //  vtkRenderWindowInteractor *i = this->Interactor;
-//  if (!i || !i->GetRenderWindow())
-//      return;
-//  vtkRendererCollection* renderers = i->GetRenderWindow()->GetRenderers();
-//  renderers->InitTraversal();
-//  std::cout<<"starting..."<<std::endl;
-//  while(vtkRenderer* r = renderers->GetNextItem())
-//  {
-//      SphereActorCallback* cbk = SphereActorCallback::New();
-//      vtkActor* actor = vtkActor::New();
-//      cbk->SetActor (actor);
-//      actor->SetMapper (this->SphereActor->GetMapper());
-//      actor->SetVisibility(this->SphereActor->GetVisibility());
-//      actor->SetProperty(this->SphereActor->GetProperty());
-//      r->AddActor(actor);
-//      std::cout<<"adding actor "<<actor<<" to renderer : "<<r<<std::endl;
-//      actor->Delete();
-//  }
 }
 
-vtkHandleWidget * vtkLandmarkWidget::GetWidget2D()
+void vtkLandmarkWidget::SetView2D(vtkImageView2D * view2d)
 {
-    return this->widget2D;
+    if (this->View2D)
+        this->View2D->RemoveObserver(this->Command);
+    this->View2D = view2d;
+    this->View2D->AddObserver(vtkImageView2D::SliceChangedEvent,this->Command);
+}
+
+void vtkLandmarkWidget::showOrHide2DWidget()
+{
+    if (Widget2D->GetInteractor() && Widget2D->GetRepresentation()->GetRenderer())
+        if (Widget2D->GetInteractor()->GetRenderWindow())
+            if (indices[View2D->GetSliceOrientation()]!=View2D->GetSlice() || ToDelete)
+                Widget2D->Off();
+            else
+                Widget2D->On();
+}        
+
+void vtkLandmarkWidget::updateLandmarksPosFromWidget2D()
+{
+    vtkPointHandleRepresentation2D * pointRep = dynamic_cast<vtkPointHandleRepresentation2D*> (Widget2D->GetRepresentation());
+    this->SetCenter(pointRep->GetWorldPosition());
+    int new_indices[3];
+    View2D->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),new_indices);
+    int orientation = View2D->GetSliceOrientation();
+    new_indices[orientation] = indices[orientation]; // the slice id of the current Orientation cannot change, it would not make sense. This line is here to prevent that.
+    SetIndices(new_indices);
 }

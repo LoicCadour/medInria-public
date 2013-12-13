@@ -129,25 +129,22 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
     if (!this->Controller->getMode3D())
     {
         vtkLandmarkWidget* initial_landmark = this->Controller->AddConstraint(position, type);
-        initial_landmark->InvokeEvent (vtkCommand::EndInteractionEvent);
+        initial_landmark->InvokeEvent (vtkCommand::PlacePointEvent);
         return;
     }
     
   }
   
-  if ( event == vtkCommand::EndInteractionEvent )
+  vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (caller);
+  if (landmark && (event == vtkCommand::PlacePointEvent || event == vtkCommand::DeleteEvent))
   {
-    vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (caller);
-    if (!landmark)
+    if (event == vtkCommand::DeleteEvent) /**************  Landmark deletion  **************/
     {
-        vtkHandleWidget * widget2d = vtkHandleWidget::SafeDownCast(caller);
-        this->Controller->updateLandmarksPosFromWidget2D();
+        landmark->SetToDelete(true);
+        landmark->Off();
+        landmark->GetWidget2D()->Off();
+        this->Controller->GetLandmarkCollection()->RemoveItem(landmark);
     }
-    else 
-        if (landmark->GetInteractor()->GetControlKey()) /**************  Landmark deletion  **************/
-        {
-            this->Controller->RemoveConstraint (landmark);
-        }
     
     this->Controller->RefreshConstraints();
     this->Controller->Update();
@@ -159,11 +156,6 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
       interactor->Render();
       interactor = vtkRenderWindowInteractor::SafeDownCast (this->Controller->GetInteractorCollection()->GetNextItemAsObject());
     }
-  }
-  if ( event == vtkImageView2D::SliceChangedEvent )
-  {
-      vtkImageView2D * view2d= vtkImageView2D::SafeDownCast(caller);
-      this->Controller->showOrHide2DWidget();                                              
   }
 }
 
@@ -312,13 +304,14 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
   {
     vtkLandmarkWidget* l = vtkLandmarkWidget::New();
     vtkPointHandleRepresentation2D * pointRep = vtkPointHandleRepresentation2D::New();
-    //pointRep->SetRenderer(view2d->GetRenderer());
     pointRep->SetWorldPosition(pos);
     pointRep->BuildRepresentation();
     l->ScaleOff();
     l->SetCenter (pos);
     l->SetRadius (this->LandmarkRadius);
     l->SetValue (type);
+    l->SetView2D(this->view2d);
+    l->SetView3D(this->view3d);
     if (type == 1) {l->GetSphereProperty()->SetColor (1,0,0);pointRep->GetProperty()->SetColor(1,0,0); }
     if (type == 0) {l->GetSphereProperty()->SetColor (1,1,0);pointRep->GetProperty()->SetColor(1,1,0); }
     if (type ==-1) {l->GetSphereProperty()->SetColor (0,1,0);pointRep->GetProperty()->SetColor(0,1,0); }
@@ -345,26 +338,32 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
 }
 
 //----------------------------------------------------------------------------
-void vtkLandmarkSegmentationController::RemoveConstraint (vtkLandmarkWidget* arg)
+bool vtkLandmarkSegmentationController::RemoveConstraint (vtkLandmarkWidget* arg)
 {
-  unsigned int                  id = this->TotalLandmarkCollection->IsItemPresent (arg) - 1.0;
+  /*unsigned int                  id = this->TotalLandmarkCollection->IsItemPresent (arg) - 1.0;
   unsigned int numberofinteractors = this->InteractorCollection->GetNumberOfItems();
   unsigned int     firstlandmarkid = (unsigned int)(std::floor ((double)id / (double)numberofinteractors)) * numberofinteractors;
   vtkLandmarkWidget* firstlandmark = vtkLandmarkWidget::SafeDownCast (this->TotalLandmarkCollection->GetItemAsObject (firstlandmarkid));
   unsigned int          idtoremove = this->LandmarkCollection->IsItemPresent (firstlandmark) - 1.0;
-  vtkLandmarkWidget*      toremove = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject (idtoremove));
-  toremove->Off();
-  toremove->RemoveAllObservers();
-  this->LandmarkCollection->RemoveItem(idtoremove);
-  for (unsigned int dump = 0; dump < numberofinteractors; dump++)
+  vtkLandmarkWidget*      toremove = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject (idtoremove));*/
+  if (arg->GetToDelete())
   {
-    toremove = vtkLandmarkWidget::SafeDownCast (this->TotalLandmarkCollection->GetItemAsObject (idtoremove * numberofinteractors));
-    toremove->RemoveAllObservers();
-    // We cannot actually remove the object as the landmark still has some
-    // invoked events to process. So we just let the TotalLandmarkCollection
-    // grow without any consequence.
-    //this->TotalLandmarkCollection->RemoveItem (toremove);
+    arg->RemoveAllObservers();
+    this->TotalLandmarkCollection->RemoveItem(arg);
+    return true;
   }
+  return false;
+  //toremove->Off();
+  //toremove->RemoveAllObservers();
+  //for (unsigned int dump = 0; dump < numberofinteractors; dump++)
+  //{
+  //  toremove = vtkLandmarkWidget::SafeDownCast (this->TotalLandmarkCollection->GetItemAsObject (idtoremove * numberofinteractors));
+  //  //toremove->RemoveAllObservers();
+  ////  // We cannot actually remove the object as the landmark still has some
+  ////  // invoked events to process. So we just let the TotalLandmarkCollection
+  ////  // grow without any consequence.
+  //  //this->TotalLandmarkCollection->RemoveItem (toremove);
+  //}
 }
 
 //----------------------------------------------------------------------------
@@ -417,13 +416,13 @@ void vtkLandmarkSegmentationController::SetEnabled (unsigned int arg)
       if (arg)
       {
 	if (!interactor->HasObserver (vtkCommand::CharEvent, this->Command) )
-	  interactor->AddObserver(vtkCommand::CharEvent, this->Command, -1);
+	  interactor->AddObserver(vtkCommand::CharEvent, this->Command, 0);
 	if (!interactor->HasObserver (vtkCommand::LeftButtonPressEvent, this->Command) )
-	  interactor->AddObserver(vtkCommand::LeftButtonPressEvent, this->Command, -1);
+	  interactor->AddObserver(vtkCommand::LeftButtonPressEvent, this->Command, 0);
 	if (!interactor->HasObserver (vtkCommand::MiddleButtonPressEvent, this->Command) )
-	  interactor->AddObserver(vtkCommand::MiddleButtonPressEvent, this->Command, -1);
+	  interactor->AddObserver(vtkCommand::MiddleButtonPressEvent, this->Command, 0);
 	if (!interactor->HasObserver (vtkCommand::RightButtonPressEvent, this->Command) )
-	  interactor->AddObserver(vtkCommand::RightButtonPressEvent, this->Command, -1);
+	  interactor->AddObserver(vtkCommand::RightButtonPressEvent, this->Command, 0);
       }
       else
 	interactor->RemoveObserver(this->Command);
@@ -453,10 +452,10 @@ void vtkLandmarkSegmentationController::LinkInteractions ( void)
     {
       int id1 = numberofinteractors * n + i;
       l1 = vtkLandmarkWidget::SafeDownCast (collection->GetItemAsObject(id1));
-      if (!l1->HasObserver(vtkCommand::EndInteractionEvent, this->Command))
-	    l1->AddObserver(vtkCommand::EndInteractionEvent, this->Command, -1);
-      if (!l1->GetWidget2D()->HasObserver(vtkCommand::EndInteractionEvent, this->Command))
-        l1->GetWidget2D()->AddObserver(vtkCommand::EndInteractionEvent, this->Command, -1);
+      if (!l1->HasObserver(vtkCommand::PlacePointEvent, this->Command))
+	    l1->AddObserver(vtkCommand::PlacePointEvent, this->Command, -1);
+      if (!l1->HasObserver(vtkCommand::DeleteEvent, this->Command))
+	    l1->AddObserver(vtkCommand::DeleteEvent, this->Command, -1);
       
       for (unsigned int j=0; j<numberofinteractors; j++)
       {
@@ -488,7 +487,7 @@ void vtkLandmarkSegmentationController::setView2D(vtkImageView2D *view)
     if (this->view2d)
         this->view2d->RemoveObserver(this->Command);
     this->view2d = view;
-    this->view2d->AddObserver(vtkImageView2D::SliceChangedEvent,this->Command);
+    //this->view2d->AddObserver(vtkImageView2D::SliceChangedEvent,this->Command);
 }
 
 void vtkLandmarkSegmentationController::setView3D(vtkImageView3D *view)
@@ -496,41 +495,41 @@ void vtkLandmarkSegmentationController::setView3D(vtkImageView3D *view)
     this->view3d = view;
 }
 
-void vtkLandmarkSegmentationController::showOrHide2DWidget()
-{
-  for (int i=0; i<this->LandmarkCollection->GetNumberOfItems(); i++)
-  {
-    vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject(i));
-    if (landmark->GetWidget2D()->GetInteractor() && landmark->GetWidget2D()->GetRepresentation()->GetRenderer())
-    {
-        vtkHandleWidget * widget  = landmark->GetWidget2D();
-        if (widget->GetInteractor()->GetRenderWindow())
-        {
-            if (landmark->GetIndices()[view2d->GetSliceOrientation()]!=view2d->GetSlice())
-                widget->Off();
-            else
-                widget->On();
-        }
-        
-    }
-  }
-}                                              
+//void vtkLandmarkSegmentationController::showOrHide2DWidget()
+//{
+//  for (int i=0; i<this->LandmarkCollection->GetNumberOfItems(); i++)
+//  {
+//    vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject(i));
+//    if (landmark->GetWidget2D()->GetInteractor() && landmark->GetWidget2D()->GetRepresentation()->GetRenderer())
+//    {
+//        vtkHandleWidget * widget  = landmark->GetWidget2D();
+//        if (widget->GetInteractor()->GetRenderWindow())
+//        {
+//            if (landmark->GetIndices()[view2d->GetSliceOrientation()]!=view2d->GetSlice())
+//                widget->Off();
+//            else
+//                widget->On();
+//        }
+//        
+//    }
+//  }
+//}                                              
 
-void vtkLandmarkSegmentationController::updateLandmarksPosFromWidget2D()
-{
-    for (int i=0; i<this->LandmarkCollection->GetNumberOfItems(); i++)
-    {
-        vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject(i));
-        vtkPointHandleRepresentation2D * pointRep = dynamic_cast<vtkPointHandleRepresentation2D*> (landmark->GetWidget2D()->GetRepresentation());
-        landmark->SetCenter(pointRep->GetWorldPosition());
-        int * previous_indices = landmark->GetIndices();
-        int indices[3];
-        view2d->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),indices);
-        int orientation = view2d->GetViewOrientation();
-        indices[orientation] = previous_indices[orientation]; // the slice id of the current Orientation cannot change does not make sense. This line is here to prevent that.
-        landmark->SetIndices(indices);
-    }
-}
+//void vtkLandmarkSegmentationController::updateLandmarksPosFromWidget2D()
+//{
+//    for (int i=0; i<this->LandmarkCollection->GetNumberOfItems(); i++)
+//    {
+//        vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject(i));
+//        vtkPointHandleRepresentation2D * pointRep = dynamic_cast<vtkPointHandleRepresentation2D*> (landmark->GetWidget2D()->GetRepresentation());
+//        landmark->SetCenter(pointRep->GetWorldPosition());
+//        int * previous_indices = landmark->GetIndices();
+//        int indices[3];
+//        view2d->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),indices);
+//        int orientation = view2d->GetViewOrientation();
+//        indices[orientation] = previous_indices[orientation]; // the slice id of the current Orientation cannot change does not make sense. This line is here to prevent that.
+//        landmark->SetIndices(indices);
+//    }
+//}
 
 //----------------------------------------------------------------------------
 int vtkLandmarkSegmentationController::RequestData(
