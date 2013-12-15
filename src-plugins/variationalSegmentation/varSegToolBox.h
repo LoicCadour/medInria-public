@@ -5,6 +5,7 @@
 
 #include <dtkCore/dtkAbstractData.h>
 #include <dtkCore/dtkSmartPointer.h>
+#include <medWorkspace.h>
 
 #include <QWidget>
 
@@ -47,6 +48,7 @@ public slots:
     void endSegmentation();
     void segmentation(bool);
     void bringBackOriginalImage();
+    void moveToMPRmode();
 
 private:
     vtkLandmarkSegmentationController* controller;
@@ -59,6 +61,7 @@ private:
     dtkSmartPointer<dtkAbstractData>  output;
     int inputSize[3];
     bool segOn;
+    medWorkspace * workspace;
 };
 
 }

@@ -335,4 +335,7 @@ void medSegmentationSelectorToolBox::setOutputMetadata(const dtkAbstractData * i
     }
 }
 
-
+medWorkspace *  medSegmentationSelectorToolBox::getWorkspace()
+{
+    return d->workspace;
+}

@@ -170,6 +170,10 @@ bool medAbstractView::positionLinked() const
 void medAbstractView::setLinkWindowing (bool value)
 {
     d->linkWindowing = value;
+    if (value)
+        setProperty("WindowingLinked","true");
+    else
+        setProperty("WindowingLinked","false");
 }
 
 bool medAbstractView::windowingLinked() const

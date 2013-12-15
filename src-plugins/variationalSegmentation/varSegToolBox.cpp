@@ -38,6 +38,8 @@
 #include <dtkCore/dtkAbstractProcessFactory.h>
 #include <dtkCore/dtkAbstractProcess.h>
 
+#include <medTabbedViewContainers.h>
+
 
 namespace mseg {
 
@@ -61,6 +63,9 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     binaryImageButton = new QPushButton(tr("Generate binary image"),displayWidget);
     applyMaskButton = new QPushButton(tr("Apply segmentation"),displayWidget);
     clearChanges = new QPushButton(tr("Abandon all changes"),displayWidget);
+
+    QPushButton * mprMode = new QPushButton(tr("MPR MODE"),displayWidget);
+
     clearChanges->setEnabled(false);
     binaryImageButton->setEnabled(false);
     applyMaskButton->setEnabled(false);
@@ -76,11 +81,13 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     connect(binaryImageButton,SIGNAL(clicked()),this,SLOT(addBinaryImage()));
     connect(applyMaskButton,SIGNAL(clicked()),this,SLOT(applyMaskToImage()));
     connect(clearChanges,SIGNAL(clicked()),this,SLOT(bringBackOriginalImage()));
-    
+    connect(mprMode,SIGNAL(clicked()),this,SLOT(moveToMPRmode()));
+
     controller = vtkLandmarkSegmentationController::New();
     output = output = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
     currentView=0;
     segOn = false;
+    workspace = segmentationToolBox()->getWorkspace();
 }
 
 VarSegToolBox::~VarSegToolBox()
@@ -387,6 +394,43 @@ void VarSegToolBox::bringBackOriginalImage()
     currentView->setData(originalInput,0);
 }
 
+void VarSegToolBox::moveToMPRmode()
+{
+    if (!currentView)
+        return;
+    
+    medCustomViewContainer * segContainer = new medCustomViewContainer( workspace->stackedViewContainers() );
+    segContainer->setPreset(5);
+    segContainer->setAcceptDrops(false);
+
+    segContainer->childContainers()[0]->open(static_cast<dtkAbstractData*>(currentView->data()));
+    segContainer->childContainers()[1]->open(static_cast<dtkAbstractData*>(currentView->data()));
+    segContainer->childContainers()[2]->open(static_cast<dtkAbstractData*>(currentView->data()));
+    segContainer->childContainers()[3]->open(static_cast<dtkAbstractData*>(currentView->data()));
+
+
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[0]->view())->setLinkWindowing(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[1]->view())->setLinkWindowing(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[2]->view())->setLinkWindowing(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[3]->view())->setLinkWindowing(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[0]->view())->setLinkPosition(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[1]->view())->setLinkPosition(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[2]->view())->setLinkPosition(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[3]->view())->setLinkPosition(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[0]->view())->setLinkCamera(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[1]->view())->setLinkCamera(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[2]->view())->setLinkCamera(true);
+    qobject_cast<medAbstractView*>(segContainer->childContainers()[3]->view())->setLinkCamera(true);
+
+    workspace->stackedViewContainers()->addContainer ( "Variation Segmentation",segContainer );
+    workspace->setCurrentViewContainer ( "Variation Segmentation" );
+
+    /*workspace->stackedViewContainers()->lockTabs();
+    workspace->stackedViewContainers()->hideTabBar();*/
+
+    // TODO: prevent view to be removed
+
+}
 
 } // namespace mseg
 
