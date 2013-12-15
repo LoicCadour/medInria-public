@@ -69,6 +69,7 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     clearChanges->setEnabled(false);
     binaryImageButton->setEnabled(false);
     applyMaskButton->setEnabled(false);
+    layout->addWidget(mprMode);
     layout->addWidget(segButton);
     layout->addWidget(inside);
     layout->addWidget(outside);
@@ -220,12 +221,168 @@ void VarSegToolBox::update(dtkAbstractView * view)
         currentView=v;
 }
 
+//void VarSegToolBox::startSegmentation()
+//{
+//    if (!currentView)
+//    {
+//        segButton->setChecked(false);
+//        return;
+//    }
+//
+//    connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)),Qt::UniqueConnection);
+//
+//    if (currentView->property("Orientation")=="3D")
+//        this->controller->setMode3D(true);
+//    else
+//        this->controller->setMode3D(false);
+//
+//    vtkCollection* interactorcollection = vtkCollection::New();
+//    interactorcollection->AddItem(static_cast<medVtkViewBackend*>(currentView->backend())->renWin->GetInteractor());
+//    this->controller->SetInteractorCollection(interactorcollection);
+//    interactorcollection->Delete();
+//
+//    this->controller->EnabledOn();
+//
+//    typedef vtkLandmarkSegmentationController::ImageType ImageType;
+//    ImageType::Pointer image;
+//
+//    originalInput = reinterpret_cast<dtkAbstractData*>(currentView->data());
+//    
+//    if (!originalInput) return;
+//
+//    if (originalInput->identifier() == "itkDataImageShort3")
+//    {
+//        typedef itk::Image<short, 3> InputImage;
+//        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
+//        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+//        CasterType::Pointer caster = CasterType::New();
+//        caster->SetInput(imgView);
+//        caster->Update(); // terribly expensive in term of memory look for alternative
+//        image = caster->GetOutput();
+//    }
+//    else if (originalInput->identifier() == "itkDataImageUShort3")
+//    {
+//        typedef itk::Image<unsigned short, 3> InputImage;
+//        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
+//        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+//        CasterType::Pointer caster = CasterType::New();
+//        caster->SetInput(imgView);
+//        caster->Update();
+//        image = caster->GetOutput();
+//    }
+//    else if (originalInput->identifier() == "itkDataImageDouble3")
+//    {
+//        typedef itk::Image<double, 3> InputImage;
+//        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
+//        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+//        CasterType::Pointer caster = CasterType::New();
+//        caster->SetInput(imgView);
+//        caster->Update();
+//        image = caster->GetOutput();
+//    }
+//    else if (originalInput->identifier() == "itkDataImageFloat3")
+//    {
+//        typedef itk::Image<float, 3> InputImage;
+//        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
+//        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+//        CasterType::Pointer caster = CasterType::New();
+//        caster->SetInput(imgView);
+//        caster->Update();
+//        image = caster->GetOutput();
+//    }
+//     else if (originalInput->identifier() == "itkDataImageInt3")
+//    {
+//        typedef itk::Image<int, 3> InputImage;
+//        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
+//        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+//        CasterType::Pointer caster = CasterType::New();
+//        caster->SetInput(imgView);
+//        caster->Update();
+//        image = caster->GetOutput();
+//    }
+//    else
+//    {
+//        qDebug() << "Failed : type " << originalInput->identifier();
+//    }
+//
+//    //itk::ChangeInformationImageFilter<itk::Image<float,3> > * infofilter = itk::ChangeInformationImageFilter<itk::Image<float,3> >::New();
+//    ImageType::Pointer smallerImage;
+//
+//    // TODO : stash origin direction size and spacing in variables without having to make a freaking cast. TOO expensive in memory I hate that !@!@!!!!@!@!@!
+//
+//    ImageType::SizeType imageSize = image->GetLargestPossibleRegion().GetSize(); ;
+//    ImageType::SpacingType imageSpacing  = image->GetSpacing();
+//
+//    qDebug() << imageSize[0] << " " << imageSize[1] << " " << imageSize[2] ;
+//    double res = 25;
+//    ImageType::IndexType corner= {{0,0,0}};;
+//    double smallestSpacing = std::min(imageSpacing[0], std::min(imageSpacing[1], imageSpacing[2]));
+//    double mSpacing[3];
+//    for (unsigned int i = 0; i < 3; i++)
+//        mSpacing[i] = 100 * smallestSpacing / res;
+//        //mSpacing[i] = 100 * imageSpacing[i] / res;
+//
+//    int mDim[3];
+//    for (unsigned int i = 0; i < 3; i++)
+//    {
+//        mDim[i] = (int) (imageSize[i] * imageSpacing[i] / mSpacing[i]);
+//        inputSize[i]=imageSize[i];
+//    }
+//    this->controller->setOutputSize(inputSize[0],inputSize[1],inputSize[2]);
+//
+//    ImageType::SpacingType NewSpacing;
+//    ImageType::SizeType NewSize;
+//    NewSpacing[0] = mSpacing[0];NewSpacing[1] = mSpacing[1];NewSpacing[2] = mSpacing[2];
+//    NewSize[0] = mDim[0];NewSize[1] = mDim[1];NewSize[2] = mDim[2];
+//    ImageType::RegionType region(corner,NewSize);
+//    smallerImage = ImageType::New();
+//    smallerImage->SetRegions(region);
+//    smallerImage->Allocate();
+//    smallerImage->SetDirection(image->GetDirection());
+//    smallerImage->SetOrigin(image->GetOrigin());
+//    smallerImage->SetSpacing(NewSpacing);
+//    
+//    this->controller->SetInput(smallerImage);
+//    vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(currentView->backend())->view2D;
+//    vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(currentView->backend())->view3D;
+//
+//    this->controller->setView2D(view2d);
+//    this->controller->setView3D(view3d);
+//    
+//    view2d->AddDataSet (controller->GetOutput());
+//    view3d->AddDataSet (controller->GetOutput());
+//    
+//    binaryImageButton->setEnabled(true);
+//    applyMaskButton->setEnabled(true);
+//    currentView->widget()->setCursor(Qt::CrossCursor);
+//    segOn = true;
+//}
+
+
 void VarSegToolBox::startSegmentation()
 {
     if (!currentView)
     {
         segButton->setChecked(false);
         return;
+    }
+    
+    medViewContainer * container  = workspace->currentViewContainer();
+
+    QList<medAbstractView*> medViews;
+    QList<vtkImageView2D*> * views2D = new QList<vtkImageView2D*>();
+    QList<vtkImageView3D*> * views3D = new QList<vtkImageView3D*>(); // the question is simple, do we need several view3d or only a single one? if it is the latter then it means that we need to prevent the user from changing the orientations.
+    medViews.append(currentView);
+    views2D->append(static_cast<medVtkViewBackend*>(currentView->backend())->view2D);
+    views3D->append(static_cast<medVtkViewBackend*>(currentView->backend())->view3D);
+    for(int i = 0;i<4;i++)
+    {
+        medAbstractView * medView = qobject_cast<medAbstractView*>(container->childContainers()[i]->view());
+        medViews.append(medView);
+        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(medView->backend())->view2D;
+        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(medView->backend())->view3D;
+        views2D->append(view2d);
+        views3D->append(view3d);
     }
 
     connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)),Qt::UniqueConnection);
@@ -237,6 +394,11 @@ void VarSegToolBox::startSegmentation()
 
     vtkCollection* interactorcollection = vtkCollection::New();
     interactorcollection->AddItem(static_cast<medVtkViewBackend*>(currentView->backend())->renWin->GetInteractor());
+    for(int i = 0;i<4;i++)
+    {
+        interactorcollection->AddItem(static_cast<medVtkViewBackend*>(medViews[i]->backend())->renWin->GetInteractor());
+    }
+    
     this->controller->SetInteractorCollection(interactorcollection);
     interactorcollection->Delete();
 
@@ -342,20 +504,26 @@ void VarSegToolBox::startSegmentation()
     smallerImage->SetSpacing(NewSpacing);
     
     this->controller->SetInput(smallerImage);
-    vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(currentView->backend())->view2D;
-    vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(currentView->backend())->view3D;
+    
 
-    this->controller->setView2D(view2d);
-    this->controller->setView3D(view3d);
+    for (int i = 0;i<4;i++)
+    {
+        // TODO : best way to visualize landmark on all views -> use the same vtkRenderWindow ? or interactor collection ? or same interactor ?
+        views2D->at(i)->AddDataSet (controller->GetOutput());
+        views3D->at(i)->AddDataSet (controller->GetOutput());
+    }
+
+    this->controller->setViews2D(views2D);
+    this->controller->setViews3D(views3D);
     
-    view2d->AddDataSet (controller->GetOutput());
-    view3d->AddDataSet (controller->GetOutput());
-    
+    qDebug()<< "number of interactors " << this->controller->GetInteractorCollection()->GetNumberOfItems();
     binaryImageButton->setEnabled(true);
     applyMaskButton->setEnabled(true);
     currentView->widget()->setCursor(Qt::CrossCursor);
     segOn = true;
 }
+
+
 
 void VarSegToolBox::endSegmentation()
 {
@@ -403,33 +571,26 @@ void VarSegToolBox::moveToMPRmode()
     segContainer->setPreset(5);
     segContainer->setAcceptDrops(false);
 
-    segContainer->childContainers()[0]->open(static_cast<dtkAbstractData*>(currentView->data()));
-    segContainer->childContainers()[1]->open(static_cast<dtkAbstractData*>(currentView->data()));
-    segContainer->childContainers()[2]->open(static_cast<dtkAbstractData*>(currentView->data()));
-    segContainer->childContainers()[3]->open(static_cast<dtkAbstractData*>(currentView->data()));
+    for (int i = 0;i<4;i++)
+    {
+        medViewContainer * childContainerI = segContainer->childContainers()[i];
+        childContainerI->open(static_cast<dtkAbstractData*>(currentView->data()));
+        medAbstractView * viewI = qobject_cast<medAbstractView*>(childContainerI->view());
+        viewI->setLinkWindowing(true);
+        viewI->setLinkPosition(true);  
+        viewI->setLinkCamera(true);    
+        viewI->setProperty("Closable","false");
+    }
+    
+    workspace->stackedViewContainers()->addContainer ( "Variational Segmentation",segContainer );
+    workspace->setCurrentViewContainer ( "Variational Segmentation" );
 
+    workspace->stackedViewContainers()->lockTabs();
+    workspace->stackedViewContainers()->hideTabBar(); // increase the space
 
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[0]->view())->setLinkWindowing(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[1]->view())->setLinkWindowing(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[2]->view())->setLinkWindowing(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[3]->view())->setLinkWindowing(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[0]->view())->setLinkPosition(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[1]->view())->setLinkPosition(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[2]->view())->setLinkPosition(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[3]->view())->setLinkPosition(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[0]->view())->setLinkCamera(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[1]->view())->setLinkCamera(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[2]->view())->setLinkCamera(true);
-    qobject_cast<medAbstractView*>(segContainer->childContainers()[3]->view())->setLinkCamera(true);
-
-    workspace->stackedViewContainers()->addContainer ( "Variation Segmentation",segContainer );
-    workspace->setCurrentViewContainer ( "Variation Segmentation" );
-
-    /*workspace->stackedViewContainers()->lockTabs();
-    workspace->stackedViewContainers()->hideTabBar();*/
-
-    // TODO: prevent view to be removed
-
+    // TODO : hide navigator to increase space ?? you probably can access the navigator via the workspace area which is accesssible probably via the main window
+    //   QMainWindow * mainWindow = dynamic_cast< QMainWindow * >(
+        //qApp->property( "MainWindow" ).value< QObject * >() );
 }
 
 } // namespace mseg
