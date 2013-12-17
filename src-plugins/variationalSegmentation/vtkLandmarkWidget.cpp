@@ -106,19 +106,24 @@ vtkLandmarkWidget::vtkLandmarkWidget()
 
 vtkLandmarkWidget::~vtkLandmarkWidget()
 {
-  this->Widget2D->RemoveAllObservers();
-  this->RemoveAllObservers();
-  if (View2D)
+    this->Widget2D->RemoveAllObservers();
+    this->RemoveAllObservers();
+    if (View2D)
         View2D->RemoveObserver(this->Command);
-  for(int i = 0;i<LittleBrothers->size();i++)
-      LittleBrothers->at(i)->RemoveObserver(this->Command);
-  LittleBrothers->clear();
-  delete LittleBrothers;
-  if (BigBrother)
-    BigBrother->GetLittleBrothers()->removeAt(BigBrother->GetLittleBrothers()->indexOf(this));
-  
-  this->Command->Delete();
-  this->Widget2D->Delete();
+    if (BigBrother)
+    {
+        this->RemoveObserver(BigBrother->GetCommand());
+        BigBrother->GetLittleBrothers()->removeAt(BigBrother->GetLittleBrothers()->indexOf(this));
+    }
+    else
+    {
+        for(int i = 0;i<LittleBrothers->size();i++)
+        LittleBrothers->at(i)->RemoveObserver(this->Command);
+        LittleBrothers->clear();
+        delete LittleBrothers;
+    }
+    this->Command->Delete();
+    this->Widget2D->Delete();
 }
 
 void vtkLandmarkWidget::SetEnabled( int val)

@@ -325,7 +325,6 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
         l->SetInteractor (item);
         if (l->GetCurrentRenderer())
             l->Off();
-        //l->showOrHide2DWidget(); // TODO OR NOT TODO THIS IS THE FREAKING QUESTION !!
         this->GetTotalLandmarkCollection()->AddItem (l);
         if (!initial_landmark)
             initial_landmark = l;

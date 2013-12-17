@@ -544,8 +544,29 @@ void VarSegToolBox::endSegmentation()
     }
     
     this->controller->EnabledOff();
-    this->controller->GetLandmarkCollection()->RemoveAllItems();
+    this->controller->GetLandmarkCollection()->InitTraversal();
+    //vtkLandmarkWidget * toRemove = vtkLandmarkWidget::SafeDownCast(this->controller->GetLandmarkCollection()->GetNextItemAsObject());
+    //while(toRemove)
+    //{
+    //    toRemove->RemoveAllObservers();
+    //    toRemove = vtkLandmarkWidget::SafeDownCast (this->controller->GetLandmarkCollection()->GetNextItemAsObject());
+    //}
+    
+
+    this->controller->GetTotalLandmarkCollection()->InitTraversal();
+    vtkLandmarkWidget * toRemove = vtkLandmarkWidget::SafeDownCast(this->controller->GetTotalLandmarkCollection()->GetNextItemAsObject());
+    while(toRemove)
+    {
+        toRemove->RemoveAllObservers();
+        toRemove = vtkLandmarkWidget::SafeDownCast (this->controller->GetTotalLandmarkCollection()->GetNextItemAsObject());
+    }
+
+    
     this->controller->GetTotalLandmarkCollection()->RemoveAllItems();
+    this->controller->GetLandmarkCollection()->RemoveAllItems();
+    qDebug() << "total = " << this->controller->GetTotalLandmarkCollection()->GetNumberOfItems();
+    qDebug() << "land = " <<  this->controller->GetLandmarkCollection()->GetNumberOfItems();
+    
 }
 
 void VarSegToolBox::segmentation(bool checked)
