@@ -86,6 +86,7 @@ set(PLUGIN_LIST
   medMeshTools                   ON
   medMaskApplication             ON
   medBinaryOperation			 ON
+  davd							 ON
   )
 
 if (MEDINRIA-PLUGINS_BUILD_EXAMPLES)

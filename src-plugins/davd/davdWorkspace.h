@@ -13,46 +13,46 @@
 
 #pragma once
 
-#include <QtCore>
-
 #include <medWorkspace.h>
 
+#include "davdPluginExport.h"
 
-class medDavdWorkspacePrivate;
-
-class medDavdWorkspace : public medWorkspace
+class davdWorkspacePrivate;
+    
+class DAVDPLUGIN_EXPORT davdWorkspace : public medWorkspace
 {
     Q_OBJECT
-
+    
 public:
-     medDavdWorkspace(QWidget *parent = 0);
-    ~medDavdWorkspace();
+    davdWorkspace(QWidget *parent = 0);
+    virtual ~davdWorkspace();
+    
+    virtual QString description() const;
+
+    virtual QString identifier() const;
 
     virtual void setupViewContainerStack();
 
-    virtual QString identifier()  const;
-    virtual QString description() const;
     static bool isUsable();
+
+    static bool registered();
+
     void displayMask();
     void dilateTheMask();
     void intersectMasks();
     void applyMaskToImage();
     void applyThresholdToImage();
-    double regionGrowingThreshold();
     void setOutputMetadata(const dtkAbstractData * inputData, dtkAbstractData * outputData);
+    void calculateVolume(dtkAbstractData* input);
+    unsigned int getNumberOfOnes(dtkAbstractData* input);
 
 public slots:
-    /**
-     * @brief Connects toolboxes to the current container
-     *
-     * @param name the container name
-    */
     virtual void connectToolboxesToCurrentContainer(const QString &name);
     void goToPreviousStep();
     void goToNextStep();
 
+
+    
 private:
-    medDavdWorkspacePrivate *d;
+    davdWorkspacePrivate *d;
 };
-
-

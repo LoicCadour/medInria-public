@@ -56,7 +56,6 @@
 #include "medDiffusionWorkspace.h"
 #include "medFilteringWorkspace.h"
 #include "medSegmentationWorkspace.h"
-#include "medDavdWorkspace.h"
 
 #include "medSaveModifiedDialog.h"
 
@@ -932,10 +931,6 @@ void medMainWindow::registerToFactories()
             <medFilteringWorkspace>("Filtering",
                                               tr("Filtering"),
                                               tr("Filter workspace"));
-    viewerWSpaceFactory->registerWorkspace
-            <medDavdWorkspace>("Davd",
-                                              tr("Davd"),
-                                              tr("Davd workspace"));
     medSegmentationWorkspace::registerWithViewerWorkspaceFactory();
 
     //Register settingsWidgets
