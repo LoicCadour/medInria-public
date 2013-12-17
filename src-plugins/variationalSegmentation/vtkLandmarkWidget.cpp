@@ -114,6 +114,9 @@ vtkLandmarkWidget::~vtkLandmarkWidget()
       LittleBrothers->at(i)->RemoveObserver(this->Command);
   LittleBrothers->clear();
   delete LittleBrothers;
+  if (BigBrother)
+    BigBrother->GetLittleBrothers()->removeAt(BigBrother->GetLittleBrothers()->indexOf(this));
+  
   this->Command->Delete();
   this->Widget2D->Delete();
 }

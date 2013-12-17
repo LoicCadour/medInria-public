@@ -542,10 +542,10 @@ void VarSegToolBox::endSegmentation()
         view2d->RemoveDataSet (controller->GetOutput());
         view3d->RemoveDataSet (controller->GetOutput());
     }
-    qDebug() << " reference count for the controller before delete : " << this->controller->GetReferenceCount();
+    
     this->controller->EnabledOff();
-    this->controller->GetTotalLandmarkCollection()->RemoveAllItems();
     this->controller->GetLandmarkCollection()->RemoveAllItems();
+    this->controller->GetTotalLandmarkCollection()->RemoveAllItems();
 }
 
 void VarSegToolBox::segmentation(bool checked)
