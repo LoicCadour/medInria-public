@@ -126,7 +126,7 @@ void vtkLandmarkSegmentationControllerCommand::Execute ( vtkObject *caller, unsi
         /*************************************************/
         /**  Third we add the landmark and invoke event  */
         /*************************************************/
-        if (!this->Controller->getMode3D())
+        if (!this->Controller->getMode3D()) // TODO : this mode3d thing is useless with the mpr mode!!  
         {
             vtkLandmarkWidget* initial_landmark = this->Controller->AddConstraint(position, type);
             initial_landmark->InvokeEvent (vtkCommand::PlacePointEvent);
@@ -309,7 +309,7 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
         l->SetCenter (pos);
         l->SetRadius (this->LandmarkRadius);
         l->SetValue (type);
-        l->SetView2D(Views2D->at(cpt));
+        l->SetViews2D(Views2D,cpt);
         l->SetView3D(Views3D->at(cpt));
         if (type == 1) {l->GetSphereProperty()->SetColor (1,0,0);pointRep->GetProperty()->SetColor(1,0,0); }
         if (type == 0) {l->GetSphereProperty()->SetColor (1,1,0);pointRep->GetProperty()->SetColor(1,1,0); }
@@ -325,6 +325,7 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
         l->SetInteractor (item);
         if (l->GetCurrentRenderer())
             l->Off();
+        l->showOrHide2DWidget(); // TODO OR NOT TODO THIS IS THE FREAKING QUESTION !!
         this->GetTotalLandmarkCollection()->AddItem (l);
         if (!initial_landmark)
             initial_landmark = l;
@@ -464,18 +465,18 @@ void vtkLandmarkSegmentationController::LinkInteractions ( void)
 
                 if (l1 != l2)
                 {
-                    if (!l1->HasObserver(vtkCommand::InteractionEvent, l2->GetCommand()))
-                        l1->AddObserver(vtkCommand::InteractionEvent, l2->GetCommand());
-                    if (!l1->HasObserver(vtkCommand::EnableEvent, l2->GetCommand()))
-                        l1->AddObserver(vtkCommand::EnableEvent,      l2->GetCommand());
-                    if (!l1->HasObserver(vtkCommand::DisableEvent, l2->GetCommand()))
-                        l1->AddObserver(vtkCommand::DisableEvent,     l2->GetCommand());
-                    if (!l2->HasObserver(vtkCommand::InteractionEvent, l1->GetCommand()))
-                        l2->AddObserver(vtkCommand::InteractionEvent, l1->GetCommand());
-                    if (!l2->HasObserver(vtkCommand::EnableEvent, l1->GetCommand()))
-                        l2->AddObserver(vtkCommand::EnableEvent,      l1->GetCommand());
-                    if (!l2->HasObserver(vtkCommand::DisableEvent, l1->GetCommand()))
-                        l2->AddObserver(vtkCommand::DisableEvent,     l1->GetCommand());
+                    //if (!l1->HasObserver(vtkCommand::InteractionEvent, l2->GetCommand()))
+                    //    l1->AddObserver(vtkCommand::InteractionEvent, l2->GetCommand());
+                    //if (!l1->HasObserver(vtkCommand::EnableEvent, l2->GetCommand()))
+                    //    l1->AddObserver(vtkCommand::EnableEvent,      l2->GetCommand());
+                    //if (!l1->HasObserver(vtkCommand::DisableEvent, l2->GetCommand()))
+                    //    l1->AddObserver(vtkCommand::DisableEvent,     l2->GetCommand());
+                    //if (!l2->HasObserver(vtkCommand::InteractionEvent, l1->GetCommand()))
+                    //    l2->AddObserver(vtkCommand::InteractionEvent, l1->GetCommand());
+                    //if (!l2->HasObserver(vtkCommand::EnableEvent, l1->GetCommand()))
+                    //    l2->AddObserver(vtkCommand::EnableEvent,      l1->GetCommand());
+                    //if (!l2->HasObserver(vtkCommand::DisableEvent, l1->GetCommand()))
+                    //    l2->AddObserver(vtkCommand::DisableEvent,     l1->GetCommand());
                 }  
             }    
         }

@@ -506,11 +506,12 @@ void VarSegToolBox::startSegmentation()
     this->controller->SetInput(smallerImage);
     
 
-    for (int i = 0;i<4;i++)
+    for (int i = 0;i<medViews.size();i++)
     {
         // TODO : best way to visualize landmark on all views -> use the same vtkRenderWindow ? or interactor collection ? or same interactor ?
         views2D->at(i)->AddDataSet (controller->GetOutput());
         views3D->at(i)->AddDataSet (controller->GetOutput());
+        medViews[i]->widget()->setCursor(Qt::CrossCursor);
     }
 
     this->controller->setViews2D(views2D);
@@ -519,7 +520,6 @@ void VarSegToolBox::startSegmentation()
     qDebug()<< "number of interactors " << this->controller->GetInteractorCollection()->GetNumberOfItems();
     binaryImageButton->setEnabled(true);
     applyMaskButton->setEnabled(true);
-    currentView->widget()->setCursor(Qt::CrossCursor);
     segOn = true;
 }
 

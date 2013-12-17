@@ -8,6 +8,7 @@
 #include <vtkSetGet.h>
 #include <vtkImageView2D.h>
 #include <vtkImageView3D.h>
+#include <qlist.h>
 
 class vtkLandmarkWidget;
 
@@ -53,8 +54,8 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
   int * GetIndices(){return indices;};
   void SetIndices(int ind[3]){indices[0]=ind[0];indices[1]=ind[1];indices[2]=ind[2];};
 
-  vtkGetObjectMacro(View2D,vtkImageView2D);
-  void SetView2D(vtkImageView2D*);
+  QList<vtkImageView2D*> * GetViews2D();
+  void SetViews2D(QList<vtkImageView2D*> * Views,int Ind);
   vtkGetObjectMacro(View3D,vtkImageView3D);
   vtkSetObjectMacro(View3D,vtkImageView3D);
 
@@ -62,6 +63,7 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
   
   vtkGetMacro(ToDelete,bool);
   vtkSetMacro(ToDelete,bool);
+  vtkGetMacro(IndView2D,int);
 
   void showOrHide2DWidget();
   void updateLandmarksPosFromWidget2D();
@@ -73,11 +75,13 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
  private:
   vtkLandmarkWidgetCommand* Command;
   vtkHandleWidget * Widget2D;
-  vtkImageView2D * View2D;
+  int IndView2D;
+  QList<vtkImageView2D*> * Views2D;
   vtkImageView3D * View3D;
   double Value;
   int indices[3]; // indices in image
   bool ToDelete;
+
 
 
 };

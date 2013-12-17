@@ -1,5 +1,4 @@
 #include <vtkLandmarkWidget.h>
-
 #include <vtkObjectFactory.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindowInteractor.h>
@@ -7,6 +6,7 @@
 #include <vtkRenderWindow.h>
 #include <vtkImageView2D.h>
 #include <vtkPointHandleRepresentation2D.h>
+#include <qlist.h>
 
 vtkStandardNewMacro(vtkLandmarkWidget);
 vtkCxxRevisionMacro(vtkLandmarkWidget, "$Revision: 1315 $");
@@ -44,12 +44,7 @@ void vtkLandmarkWidgetCommand::Execute(vtkObject *   caller,
       if (widget)
       {
         if (widget->GetInteractor()->GetControlKey())
-        {
             Landmark->InvokeEvent(vtkCommand::DeleteEvent);
-            //widget->Off();
-            //Landmark->Off();
-            //Landmark->GetView2D()->RemoveObserver(this);
-        }
         else
         {
             Landmark->updateLandmarksPosFromWidget2D();
@@ -58,14 +53,7 @@ void vtkLandmarkWidgetCommand::Execute(vtkObject *   caller,
       }
       else
           if (l && (l->GetInteractor()->GetControlKey()))
-          {
               Landmark->InvokeEvent(vtkCommand::DeleteEvent);
-              //this->Widget2D->Off();
-              //Landmark->Off();
-              //Landmark->GetView2D()->RemoveObserver(this);
-              /*Landmark->RemoveAllObservers();
-              widget->RemoveAllObservers();*/
-          }
   }
   if ( event == vtkImageView2D::SliceChangedEvent )
   {
@@ -94,8 +82,9 @@ vtkLandmarkWidget::vtkLandmarkWidget()
   this->Command->SetWidget2D (this->Widget2D);
   this->AddObserver(vtkCommand::EndInteractionEvent,this->Command);
   this->Widget2D->AddObserver(vtkCommand::EndInteractionEvent,this->Command);
-  this->View2D = 0;
+  this->Views2D = 0;
   this->View3D = 0;
+  this->IndView2D = -1;
   this->ToDelete = false;
 }
 
@@ -103,8 +92,9 @@ vtkLandmarkWidget::~vtkLandmarkWidget()
 {
   this->Widget2D->RemoveAllObservers();
   this->RemoveAllObservers();
-  if (View2D)
-    this->View2D->RemoveObserver(this->Command);
+  if (Views2D)
+        for(int i=0;i<Views2D->size();i++)
+            Views2D->at(i)->RemoveObserver(this->Command);
   this->Command->Delete();
   this->Widget2D->Delete();
 }
@@ -115,22 +105,30 @@ void vtkLandmarkWidget::SetEnabled( int val)
   this->Interactor->RemoveObservers(vtkCommand::MouseMoveEvent,reinterpret_cast<vtkCommand*>(this->EventCallbackCommand));// the sphere widget should not be movable. All movements should go through the 2d view -> widget2d.
 }
 
-void vtkLandmarkWidget::SetView2D(vtkImageView2D * view2d)
+void vtkLandmarkWidget::SetViews2D(QList<vtkImageView2D*> * Views,int Ind)
 {
-    if (this->View2D)
-        this->View2D->RemoveObserver(this->Command);
-    this->View2D = view2d;
-    this->View2D->AddObserver(vtkImageView2D::SliceChangedEvent,this->Command);
+    if (Views2D)
+        for(int i=0;i<Views2D->size();i++)
+            Views2D->at(i)->RemoveObserver(this->Command);
+
+    Views2D = Views;
+    IndView2D = Ind;
+    for(int i=0;i<Views2D->size();i++)
+        Views2D->at(i)->AddObserver(vtkImageView2D::SliceChangedEvent,Command);
 }
 
 void vtkLandmarkWidget::showOrHide2DWidget()
 {
     if (Widget2D->GetInteractor() && Widget2D->GetRepresentation()->GetRenderer())
         if (Widget2D->GetInteractor()->GetRenderWindow())
-            if (indices[View2D->GetSliceOrientation()]!=View2D->GetSlice() || ToDelete)
+        {
+            int orientation = Views2D->at(IndView2D)->GetSliceOrientation();
+            int idslice = Views2D->at(IndView2D)->GetSlice();
+            if (indices[Views2D->at(IndView2D)->GetSliceOrientation()]!=Views2D->at(IndView2D)->GetSlice() || ToDelete)
                 Widget2D->Off();
             else
                 Widget2D->On();
+        }
 }        
 
 void vtkLandmarkWidget::updateLandmarksPosFromWidget2D()
@@ -138,8 +136,8 @@ void vtkLandmarkWidget::updateLandmarksPosFromWidget2D()
     vtkPointHandleRepresentation2D * pointRep = dynamic_cast<vtkPointHandleRepresentation2D*> (Widget2D->GetRepresentation());
     this->SetCenter(pointRep->GetWorldPosition());
     int new_indices[3];
-    View2D->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),new_indices);
-    int orientation = View2D->GetSliceOrientation();
+    Views2D->at(IndView2D)->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),new_indices);
+    int orientation = Views2D->at(IndView2D)->GetSliceOrientation();
     new_indices[orientation] = indices[orientation]; // the slice id of the current Orientation cannot change, it would not make sense. This line is here to prevent that.
     SetIndices(new_indices);
 }
