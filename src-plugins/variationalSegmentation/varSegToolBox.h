@@ -61,6 +61,7 @@ private:
     dtkSmartPointer<dtkAbstractData>  output;
     int inputSize[3];
     bool segOn;
+    bool mprOn;
     medWorkspace * workspace;
 };
 

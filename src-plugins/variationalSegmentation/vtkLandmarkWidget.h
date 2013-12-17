@@ -24,6 +24,9 @@ class VTK_EXPORT vtkLandmarkWidgetCommand : public vtkCommand
 
   void SetWidget2D (vtkHandleWidget * widget);
 
+  void lock(){isLocked = true;};
+  void unlock(){isLocked = false;};
+
  protected:
   vtkLandmarkWidgetCommand()
   {
@@ -34,6 +37,7 @@ class VTK_EXPORT vtkLandmarkWidgetCommand : public vtkCommand
  private:
   vtkLandmarkWidget* Landmark;
   vtkHandleWidget * Widget2D;
+  bool isLocked;
 };
 
 
@@ -54,8 +58,9 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
   int * GetIndices(){return indices;};
   void SetIndices(int ind[3]){indices[0]=ind[0];indices[1]=ind[1];indices[2]=ind[2];};
 
-  QList<vtkImageView2D*> * GetViews2D();
-  void SetViews2D(QList<vtkImageView2D*> * Views,int Ind);
+  
+  vtkGetObjectMacro(View2D,vtkImageView2D);
+  void SetView2D(vtkImageView2D* View);
   vtkGetObjectMacro(View3D,vtkImageView3D);
   vtkSetObjectMacro(View3D,vtkImageView3D);
 
@@ -63,27 +68,32 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
   
   vtkGetMacro(ToDelete,bool);
   vtkSetMacro(ToDelete,bool);
-  vtkGetMacro(IndView2D,int);
+  
+  vtkSetObjectMacro(BigBrother,vtkLandmarkWidget);
+  vtkGetObjectMacro(BigBrother,vtkLandmarkWidget);
+  
+  QList<vtkLandmarkWidget*> * GetLittleBrothers();
 
+  void AddBrothers(vtkLandmarkWidget * littleBrother);
   void showOrHide2DWidget();
   void updateLandmarksPosFromWidget2D();
+  void PropagateEventToLittleBrothers(unsigned long event,vtkLandmarkWidget * l);
+  void updatePosition(double * worldPos);
 
-  protected:
-  vtkLandmarkWidget();
-  ~vtkLandmarkWidget();
+ protected:
+    vtkLandmarkWidget();
+    ~vtkLandmarkWidget();
   
  private:
   vtkLandmarkWidgetCommand* Command;
   vtkHandleWidget * Widget2D;
-  int IndView2D;
-  QList<vtkImageView2D*> * Views2D;
+  vtkImageView2D * View2D;
   vtkImageView3D * View3D;
   double Value;
   int indices[3]; // indices in image
   bool ToDelete;
-
-
-
+  vtkLandmarkWidget * BigBrother;
+  QList<vtkLandmarkWidget*> * LittleBrothers;
 };
 
 //ETX

@@ -88,6 +88,7 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     output = output = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
     currentView=0;
     segOn = false;
+    mprOn = false;
     workspace = segmentationToolBox()->getWorkspace();
 }
 
@@ -372,20 +373,19 @@ void VarSegToolBox::startSegmentation()
     QList<medAbstractView*> medViews;
     QList<vtkImageView2D*> * views2D = new QList<vtkImageView2D*>();
     QList<vtkImageView3D*> * views3D = new QList<vtkImageView3D*>(); // the question is simple, do we need several view3d or only a single one? if it is the latter then it means that we need to prevent the user from changing the orientations.
-    medViews.append(currentView);
-    views2D->append(static_cast<medVtkViewBackend*>(currentView->backend())->view2D);
-    views3D->append(static_cast<medVtkViewBackend*>(currentView->backend())->view3D);
-    for(int i = 0;i<4;i++)
-    {
-        medAbstractView * medView = qobject_cast<medAbstractView*>(container->childContainers()[i]->view());
-        medViews.append(medView);
-        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(medView->backend())->view2D;
-        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(medView->backend())->view3D;
-        views2D->append(view2d);
-        views3D->append(view3d);
-    }
 
-    connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)),Qt::UniqueConnection);
+    if (mprOn)
+        for(int i = 0;i<4;i++)
+        {
+            medAbstractView * medView = qobject_cast<medAbstractView*>(container->childContainers()[i]->view());
+            medViews.append(medView);
+            vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(medView->backend())->view2D;
+            vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(medView->backend())->view3D;
+            views2D->append(view2d);
+            views3D->append(view3d);
+        }
+    else
+        connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)),Qt::UniqueConnection);
 
     if (currentView->property("Orientation")=="3D")
         this->controller->setMode3D(true);
@@ -393,11 +393,11 @@ void VarSegToolBox::startSegmentation()
         this->controller->setMode3D(false);
 
     vtkCollection* interactorcollection = vtkCollection::New();
-    interactorcollection->AddItem(static_cast<medVtkViewBackend*>(currentView->backend())->renWin->GetInteractor());
-    for(int i = 0;i<4;i++)
-    {
-        interactorcollection->AddItem(static_cast<medVtkViewBackend*>(medViews[i]->backend())->renWin->GetInteractor());
-    }
+    if (mprOn)
+        for(int i = 0;i<4;i++)
+            interactorcollection->AddItem(static_cast<medVtkViewBackend*>(medViews[i]->backend())->renWin->GetInteractor());
+    else
+        interactorcollection->AddItem(static_cast<medVtkViewBackend*>(currentView->backend())->renWin->GetInteractor());
     
     this->controller->SetInteractorCollection(interactorcollection);
     interactorcollection->Delete();
@@ -505,19 +505,22 @@ void VarSegToolBox::startSegmentation()
     
     this->controller->SetInput(smallerImage);
     
-
-    for (int i = 0;i<medViews.size();i++)
+    if (!mprOn)
     {
-        // TODO : best way to visualize landmark on all views -> use the same vtkRenderWindow ? or interactor collection ? or same interactor ?
-        views2D->at(i)->AddDataSet (controller->GetOutput());
-        views3D->at(i)->AddDataSet (controller->GetOutput());
-        medViews[i]->widget()->setCursor(Qt::CrossCursor);
+        medViews.append(currentView);
+        views2D->append(static_cast<medVtkViewBackend*>(currentView->backend())->view2D);
+        views3D->append(static_cast<medVtkViewBackend*>(currentView->backend())->view3D);
     }
+        for (int i = 0;i<medViews.size();i++)
+        {
+            views2D->at(i)->AddDataSet (controller->GetOutput());
+            views3D->at(i)->AddDataSet (controller->GetOutput());
+            medViews[i]->widget()->setCursor(Qt::CrossCursor);
+        }
 
     this->controller->setViews2D(views2D);
     this->controller->setViews3D(views3D);
     
-    qDebug()<< "number of interactors " << this->controller->GetInteractorCollection()->GetNumberOfItems();
     binaryImageButton->setEnabled(true);
     applyMaskButton->setEnabled(true);
     segOn = true;
@@ -566,6 +569,8 @@ void VarSegToolBox::moveToMPRmode()
 {
     if (!currentView)
         return;
+
+    mprOn = true;
     
     medCustomViewContainer * segContainer = new medCustomViewContainer( workspace->stackedViewContainers() );
     segContainer->setPreset(5);

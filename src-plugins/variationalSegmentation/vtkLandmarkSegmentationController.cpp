@@ -309,7 +309,7 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
         l->SetCenter (pos);
         l->SetRadius (this->LandmarkRadius);
         l->SetValue (type);
-        l->SetViews2D(Views2D,cpt);
+        l->SetView2D(Views2D->at(cpt));
         l->SetView3D(Views3D->at(cpt));
         if (type == 1) {l->GetSphereProperty()->SetColor (1,0,0);pointRep->GetProperty()->SetColor(1,0,0); }
         if (type == 0) {l->GetSphereProperty()->SetColor (1,1,0);pointRep->GetProperty()->SetColor(1,1,0); }
@@ -325,10 +325,15 @@ vtkLandmarkWidget* vtkLandmarkSegmentationController::AddConstraint (double* pos
         l->SetInteractor (item);
         if (l->GetCurrentRenderer())
             l->Off();
-        l->showOrHide2DWidget(); // TODO OR NOT TODO THIS IS THE FREAKING QUESTION !!
+        //l->showOrHide2DWidget(); // TODO OR NOT TODO THIS IS THE FREAKING QUESTION !!
         this->GetTotalLandmarkCollection()->AddItem (l);
         if (!initial_landmark)
             initial_landmark = l;
+        else
+        {
+            initial_landmark->AddBrothers(l);
+            l->SetBigBrother(initial_landmark);
+        }
         l->Delete();
         item = vtkRenderWindowInteractor::SafeDownCast (this->GetInteractorCollection()->GetNextItemAsObject());
         cpt++;
@@ -492,42 +497,6 @@ void vtkLandmarkSegmentationController::setViews3D(QList<vtkImageView3D*> *views
 {
     this->Views3D = views;
 }
-
-//void vtkLandmarkSegmentationController::showOrHide2DWidget()
-//{
-//  for (int i=0; i<this->LandmarkCollection->GetNumberOfItems(); i++)
-//  {
-//    vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject(i));
-//    if (landmark->GetWidget2D()->GetInteractor() && landmark->GetWidget2D()->GetRepresentation()->GetRenderer())
-//    {
-//        vtkHandleWidget * widget  = landmark->GetWidget2D();
-//        if (widget->GetInteractor()->GetRenderWindow())
-//        {
-//            if (landmark->GetIndices()[view2d->GetSliceOrientation()]!=view2d->GetSlice())
-//                widget->Off();
-//            else
-//                widget->On();
-//        }
-//        
-//    }
-//  }
-//}                                              
-
-//void vtkLandmarkSegmentationController::updateLandmarksPosFromWidget2D()
-//{
-//    for (int i=0; i<this->LandmarkCollection->GetNumberOfItems(); i++)
-//    {
-//        vtkLandmarkWidget* landmark = vtkLandmarkWidget::SafeDownCast (this->LandmarkCollection->GetItemAsObject(i));
-//        vtkPointHandleRepresentation2D * pointRep = dynamic_cast<vtkPointHandleRepresentation2D*> (landmark->GetWidget2D()->GetRepresentation());
-//        landmark->SetCenter(pointRep->GetWorldPosition());
-//        int * previous_indices = landmark->GetIndices();
-//        int indices[3];
-//        view2d->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),indices);
-//        int orientation = view2d->GetViewOrientation();
-//        indices[orientation] = previous_indices[orientation]; // the slice id of the current Orientation cannot change does not make sense. This line is here to prevent that.
-//        landmark->SetIndices(indices);
-//    }
-//}
 
 //----------------------------------------------------------------------------
 int vtkLandmarkSegmentationController::RequestData(
