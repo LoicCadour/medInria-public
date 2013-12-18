@@ -50,11 +50,12 @@ public slots:
     void endSegmentation();
     void segmentation(bool);
     void bringBackOriginalImage();
-    void moveToMPRmode();
+    void moveToMPRmode(bool);
 
 private:
     vtkLandmarkSegmentationController* controller;
     medAbstractView * currentView;
+    medAbstractView * originalView;
     QList<medAbstractView*> medViews;
     QList<vtkImageView2D*> * views2D;
     QList<vtkImageView3D*> * views3D;
@@ -62,6 +63,7 @@ private:
     QPushButton * clearChanges;
     QPushButton * binaryImageButton;
     QPushButton * applyMaskButton;
+    QPushButton * mprMode;
     dtkSmartPointer<dtkAbstractData> originalInput;
     dtkSmartPointer<dtkAbstractData>  output;
     int inputSize[3];

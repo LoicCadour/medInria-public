@@ -652,3 +652,8 @@ void medAbstractView::setFullScreen( bool state )
 {
     emit fullScreen( state );
 }
+
+void medAbstractView::close()
+{
+    emit closing();
+}

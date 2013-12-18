@@ -82,13 +82,10 @@ public:
   vtkLandmarkWidget* AddConstraint (double* pos, int type);
   bool RemoveConstraint (vtkLandmarkWidget* arg);
 
-  //void setView2D(vtkImageView2D*);
   void setViews2D(QList<vtkImageView2D*> * views);
   QList<vtkImageView2D*> * getViews2D(){return Views2D;};
-  //void setView3D(vtkImageView3D*);
   void setViews3D(QList<vtkImageView3D*> * views);
   QList<vtkImageView3D*> * getViews3D(){return Views3D;};
-  //vtkImageView3D * getView3D(){return view3d;};
   
   void setMode3D(bool val){mode3D =val;};
   bool getMode3D(){return mode3D;};
