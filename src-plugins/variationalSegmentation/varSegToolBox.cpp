@@ -39,6 +39,7 @@
 #include <dtkCore/dtkAbstractProcess.h>
 
 #include <medTabbedViewContainers.h>
+#include <dtkCore\dtkSignalBlocker.h>
 
 
 namespace mseg {
@@ -260,7 +261,10 @@ void VarSegToolBox::startSegmentation()
             views3D->append(view3d);
         }
     else
+    {
         connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)),Qt::UniqueConnection);
+        connect(currentView, SIGNAL(closing()), this, SLOT(endSegmentation()));
+    }
 
     if (currentView->property("Orientation")=="3D")
         this->controller->setMode3D(true);
@@ -405,6 +409,12 @@ void VarSegToolBox::startSegmentation()
 
 void VarSegToolBox::endSegmentation()
 {
+    if (segButton->isChecked())
+    {
+        segButton->setChecked(false);
+        return;
+    }
+
     segButton->setText("Start Segmentation");
     segOn = false;
     if (!controller)
@@ -418,7 +428,13 @@ void VarSegToolBox::endSegmentation()
     }
 
     this->controller->EnabledOff();
-    this->controller->DeleteAllLandmarks(); 
+    this->controller->DeleteAllLandmarks();
+    qDebug() << "this->controller->GetReferenceCount() " << this->controller->GetReferenceCount();
+    this->controller->Delete(); 
+    // TODO: make sure that the controller is really deleted -> remove every reference for the time being I see now reference in the command I dont see where the other one is.
+    // TODO : Or do not delete it but find a way to give him a new input
+    qDebug() << "this->controller->GetReferenceCount() " << this->controller->GetReferenceCount();
+    this->controller = vtkLandmarkSegmentationController::New();
 
 }
 
@@ -484,6 +500,9 @@ void VarSegToolBox::moveToMPRmode(bool val)
     }    
     else
     {
+        if (segOn)
+            segButton->setChecked(false);
+        
         mprMode->setText("MPR Mode");
         mprOn = false;
         medViewContainer * segContainer = workspace->currentViewContainer();
@@ -495,6 +514,7 @@ void VarSegToolBox::moveToMPRmode(bool val)
             childContainerI->close();
         }
         workspace->stackedViewContainers()->removeContainer("Variational Segmentation");
+        currentView = originalView;
         workspace->stackedViewContainers()->unlockTabs();
         workspace->stackedViewContainers()->showTabBar();
     }

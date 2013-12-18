@@ -466,22 +466,6 @@ void vtkLandmarkSegmentationController::LinkInteractions ( void)
             {
                 int id2 = numberofinteractors * n + j;
                 l2 = vtkLandmarkWidget::SafeDownCast (collection->GetItemAsObject(id2));
-
-                if (l1 != l2)
-                {
-                    //if (!l1->HasObserver(vtkCommand::InteractionEvent, l2->GetCommand()))
-                    //    l1->AddObserver(vtkCommand::InteractionEvent, l2->GetCommand());
-                    //if (!l1->HasObserver(vtkCommand::EnableEvent, l2->GetCommand()))
-                    //    l1->AddObserver(vtkCommand::EnableEvent,      l2->GetCommand());
-                    //if (!l1->HasObserver(vtkCommand::DisableEvent, l2->GetCommand()))
-                    //    l1->AddObserver(vtkCommand::DisableEvent,     l2->GetCommand());
-                    //if (!l2->HasObserver(vtkCommand::InteractionEvent, l1->GetCommand()))
-                    //    l2->AddObserver(vtkCommand::InteractionEvent, l1->GetCommand());
-                    //if (!l2->HasObserver(vtkCommand::EnableEvent, l1->GetCommand()))
-                    //    l2->AddObserver(vtkCommand::EnableEvent,      l1->GetCommand());
-                    //if (!l2->HasObserver(vtkCommand::DisableEvent, l1->GetCommand()))
-                    //    l2->AddObserver(vtkCommand::DisableEvent,     l1->GetCommand());
-                }  
             }    
         }
     }
