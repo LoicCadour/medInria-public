@@ -60,6 +60,13 @@
 #include <QMenu>
 #include <QMouseEvent>
 
+
+#include <vtkCellArray.h>
+#include <vtkContourWidget.h>
+#include <vtkOrientedGlyphContourRepresentation.h>
+#include <vtkProperty.h>
+#include <vtkPolyData.h>
+
 //=============================================================================
 // Construct a QVector3d from pointer-to-double
 inline QVector3D doubleToQtVector3D ( const double * v )
@@ -402,6 +409,7 @@ v3dView::v3dView() : medAbstractView(), d ( new v3dViewPrivate )
     d->setPropertyFunctions["PositionLinked"] = &v3dView::onPositionLinkedPropertySet;
     d->setPropertyFunctions["WindowingLinked"] = &v3dView::onWindowingLinkedPropertySet;
     d->setPropertyFunctions["DepthPeeling"] = &v3dView::onDepthPeelingPropertySet;
+    d->setPropertyFunctions["vtkWidget"] = &v3dView::onVtkWidgetPropertySet;
 
     d->data       = 0;
     d->imageData  = 0;
@@ -1521,6 +1529,79 @@ void v3dView::onZoomModePropertySet ( const QString &value )
     else 
         d->view2d->GetInteractor()->SetInteractorStyle(d->interactorStyle2D);
 }
+
+void v3dView::onVtkWidgetPropertySet(const QString &value)
+{
+    if (value =="ContourWidget")
+    {
+        vtkSmartPointer<vtkOrientedGlyphContourRepresentation> contourRep = vtkSmartPointer<vtkOrientedGlyphContourRepresentation>::New();
+        contourRep->GetLinesProperty()->SetColor(1, 0, 0); //set color to red
+      
+        vtkSmartPointer<vtkContourWidget> contourWidget = vtkSmartPointer<vtkContourWidget>::New();
+        vtkSmartPointer<vtkRenderWindowInteractor> interactor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+        interactor->SetRenderWindow(d->view2d->GetRenderWindow());
+         contourWidget->SetInteractor(interactor);
+        contourWidget->SetRepresentation(contourRep);
+        contourWidget->On();
+ 
+      /*for (int i = 0; i < argc; i++)
+        {
+        if (strcmp("-Shift", argv[i]) == 0)
+          {
+          contourWidget->GetEventTranslator()->RemoveTranslation( 
+                                            vtkCommand::LeftButtonPressEvent );
+          contourWidget->GetEventTranslator()->SetTranslation( 
+                                            vtkCommand::LeftButtonPressEvent,
+                                            vtkWidgetEvent::Translate );
+          }
+        else if (strcmp("-Scale", argv[i]) == 0)
+          {
+          contourWidget->GetEventTranslator()->RemoveTranslation( 
+                                            vtkCommand::LeftButtonPressEvent );
+          contourWidget->GetEventTranslator()->SetTranslation( 
+                                            vtkCommand::LeftButtonPressEvent,
+                                            vtkWidgetEvent::Scale );
+          }
+        }
+ */
+ 
+      vtkSmartPointer<vtkPolyData> pd = vtkSmartPointer<vtkPolyData>::New();
+ 
+      vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+      vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+      vtkIdType* lineIndices = new vtkIdType[21];
+      for (int i = 0; i< 20; i++)
+        {
+        const double angle = 2.0*vtkMath::Pi()*i/20.0;
+        points->InsertPoint(static_cast<vtkIdType>(i), 0.1*cos(angle),
+                            0.1*sin(angle), 0.0 );
+        lineIndices[i] = static_cast<vtkIdType>(i);
+        }
+ 
+      lineIndices[20] = 0;
+      lines->InsertNextCell(21,lineIndices);
+      delete [] lineIndices;
+      pd->SetPoints(points);
+      pd->SetLines(lines);
+ 
+      contourWidget->Initialize(pd);
+      contourWidget->Render();
+      d->view2d->GetRenderer()->ResetCamera();
+      d->view2d->GetRenderWindow()->Render();
+
+      d->view2d->GetInteractor()->Initialize();
+      d->view2d->GetInteractor()->Start();
+
+      //contourWidget->Off(); 
+    }
+
+    if (value =="None")
+    {
+        
+    }
+}
+
+
 
 QString v3dView::getPreset ( int layer ) const
 {

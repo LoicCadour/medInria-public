@@ -24,7 +24,7 @@
 #include <vtkCamera.h>
 #include <vtkRenderer.h>
 #include "vtkCommand.h"
-
+#include <vtkCircleCursor.h>
 #include <vtkImageView2DCommand.h>
 
 
@@ -39,7 +39,8 @@ vtkInteractorStyleImageView2D::vtkInteractorStyleImageView2D()
 
   this->SliceStep = 0;
   this->RequestedPosition[0] = this->RequestedPosition[1] = 0;
-
+  this->CircleCursorActivated = false;
+  this->CircleCursor = 0;
   this->LeftButtonInteraction   = InteractionTypeWindowLevel;
   this->RightButtonInteraction  = InteractionTypeZoom;
   this->MiddleButtonInteraction = InteractionTypePan;
@@ -93,10 +94,12 @@ void vtkInteractorStyleImageView2D::OnMouseMove()
           break;
       default:
 	this->Superclass::OnMouseMove();
-	break;
+    break;
   }
-}
 
+  if (this->CircleCursorActivated)
+    this->CircleCursor->DrawCirleInPosition(this->Interactor->GetEventPosition()[0],this->Interactor->GetEventPosition()[1]);
+}
 
 //----------------------------------------------------------------------------
 void vtkInteractorStyleImageView2D::OnLeftButtonDown() 
@@ -200,36 +203,39 @@ void vtkInteractorStyleImageView2D::OnLeftButtonUp()
 //----------------------------------------------------------------------------
 void vtkInteractorStyleImageView2D::OnMiddleButtonDown()
 {
-  int x = this->Interactor->GetEventPosition()[0];
-  int y = this->Interactor->GetEventPosition()[1];
+    int x = this->Interactor->GetEventPosition()[0];
+    int y = this->Interactor->GetEventPosition()[1];
 
-  this->FindPokedRenderer(x, y);
-  if ( !this->CurrentRenderer )
-    return;
+    this->FindPokedRenderer(x, y);
+    if ( !this->CurrentRenderer )
+        return;
 
 
-this->GrabFocus(this->EventCallbackCommand);
-	
-  switch(this->GetMiddleButtonInteraction())
-  {
-      case InteractionTypeSlice:
-	this->StartSliceMove();
-	break;
-	  case InteractionTypeTime:
-		  this->StartTimeChange();
-		  break;		  
-      case InteractionTypeWindowLevel:
-	this->Superclass::OnLeftButtonDown();
-	break;
-      case InteractionTypeZoom:
-	this->Superclass::OnRightButtonDown();
-	break;
-      case InteractionTypePan:
-	this->Superclass::OnMiddleButtonDown();
-	break;
-      default:
-	break;
-  }
+    this->GrabFocus(this->EventCallbackCommand);
+
+    if (this->CircleCursorActivated)
+        this->CircleCursor->SetInitialize(true);	
+
+    switch(this->GetMiddleButtonInteraction())
+    {
+    case InteractionTypeSlice:
+        this->StartSliceMove();
+        break;
+    case InteractionTypeTime:
+        this->StartTimeChange();
+        break;		  
+    case InteractionTypeWindowLevel:
+        this->Superclass::OnLeftButtonDown();
+        break;
+    case InteractionTypeZoom:
+        this->Superclass::OnRightButtonDown();
+        break;
+    case InteractionTypePan:
+        this->Superclass::OnMiddleButtonDown();
+        break;
+    default:
+        break;
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -548,4 +554,21 @@ void vtkInteractorStyleImageView2D::TimeChange()
 void vtkInteractorStyleImageView2D::DefaultMoveAction()
 {
   this->InvokeEvent (vtkImageView2DCommand::DefaultMoveEvent ,this);
+}
+
+void vtkInteractorStyleImageView2D::CircleCursorOn()
+{
+    this->CircleCursorActivated = true;
+    if (!this->CircleCursor)
+        this->CircleCursor = vtkCircleCursor::New();
+
+    this->CircleCursor->SetInitialize(true);
+    this->CircleCursor->SetRenWin(this->Interactor->GetRenderWindow());
+    
+    this->Interactor->GetRenderWindow()->HideCursor();
+}
+void vtkInteractorStyleImageView2D::CircleCursorOff()
+{
+    this->CircleCursorActivated = false;
+    this->Interactor->GetRenderWindow()->ShowCursor();
 }

@@ -56,6 +56,9 @@ vtkImageView2DCommand::Execute(vtkObject*    caller,
     return;
   }
 
+  if (isi->GetCircleCursorActivated())
+      isi->GetCircleCursor()->SetInitialize(true);
+
   // Reset
   if (event == vtkImageView2DCommand::ResetViewerEvent)
   {
@@ -161,7 +164,8 @@ vtkImageView2DCommand::Execute(vtkObject*    caller,
       this->Viewer->SetInterpolate ((this->Viewer->GetInterpolate() + 1)%2);
       this->Viewer->Render();
    }
-
+    if (isi->GetCircleCursorActivated())
+            isi->GetCircleCursor()->SetInitialize(false);
     return;
   }
 
