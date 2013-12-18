@@ -78,6 +78,8 @@ public:
     QSpinBox *thresholdFilterValue;
     QSpinBox *kernelSize;
     QRadioButton *mmButton, *pixelButton;
+    QLabel *kernelDimensionsValue ;
+    double imageSpacingX, imageSpacingY, imageSpacingZ;
 
     unsigned int nb_voxels_freeWall, nb_voxels_fat;
     float fat, RV_volume;
@@ -142,39 +144,53 @@ davdWorkspace::davdWorkspace(QWidget *parent) : medWorkspace(parent), d(new davd
     d->kernelSize = new QSpinBox;
     d->kernelSize->setMaximum ( 10 );
     d->kernelSize->setValue ( 2 );
-    QLabel * dilateFilterLabel = new QLabel ( tr ( "Kernel radius:" ) );
-    QHBoxLayout * dilateFilterLayout = new QHBoxLayout;
 
-    d->mmButton = new QRadioButton(tr("mm"), d->dilateToolBox);
+    QLabel * dilateFilterLabel = new QLabel ( tr ( "Kernel radius:" ) );
+    d->mmButton = new QRadioButton(tr("mm (approx.)"), d->dilateToolBox);
     d->mmButton->setToolTip(tr("If \"mm\" is selected, the dimensions of the structuring element will be calculated in mm."));
     d->mmButton->setChecked(true);
 
     d->pixelButton = new QRadioButton(tr("pixels"), d->dilateToolBox);
     d->pixelButton->setToolTip(tr("If \"pixels\" is selected, the dimensions of the structuring element will be calculated in pixels."));
+    QLabel *kernelDimensionsLabel = new QLabel(tr("Real kernel dimensions (mm): "));
+    d->kernelDimensionsValue = new QLabel("");
 
-    dilateFilterLayout->addWidget ( dilateFilterLabel );
-    dilateFilterLayout->addWidget ( d->kernelSize );
-    dilateFilterLayout->addWidget ( d->mmButton );
-    dilateFilterLayout->addWidget ( d->pixelButton );
-    dilateFilterLayout->addStretch ( 1 );
+    QHBoxLayout * dilateFilterLine1Layout = new QHBoxLayout;
+    dilateFilterLine1Layout->addWidget ( dilateFilterLabel );
+    dilateFilterLine1Layout->addWidget ( d->kernelSize );
+    dilateFilterLine1Layout->addWidget ( d->mmButton );
+    dilateFilterLine1Layout->addWidget ( d->pixelButton );
+    dilateFilterLine1Layout->addStretch ( 1 );
+
+    QHBoxLayout * dilateFilterLine2Layout = new QHBoxLayout;
+    dilateFilterLine2Layout->addWidget ( kernelDimensionsLabel );
+    dilateFilterLine2Layout->addWidget ( d->kernelDimensionsValue );
+    dilateFilterLine2Layout->addStretch ( 1 );
+
+    QVBoxLayout * dilateFilterLayout = new QVBoxLayout;
+    dilateFilterLayout->addLayout(dilateFilterLine1Layout);
+    dilateFilterLayout->addLayout(dilateFilterLine2Layout);
+
     dilateWidget->setLayout ( dilateFilterLayout );
     d->dilateToolBox->addWidget(dilateWidget);
 
+    connect(d->kernelSize, SIGNAL(valueChanged(int)), this, SLOT(displayKernelDimensions()));
+    connect(d->mmButton, SIGNAL(toggled(bool)), this, SLOT(displayKernelDimensions()));
 
     d->thresholdToolBox = new medToolBox(parent);
+    d->thresholdToolBox->setTitle("5. Fat density pixels segmentation");
+    QString step5Description = " Myocardial fat is segmented on the histogram as \npixels with density < -10 Hounsfield Units.";
     QWidget *thresholdFilterWidget = new QWidget(d->thresholdToolBox);
     d->thresholdFilterValue = new QSpinBox;
     d->thresholdFilterValue->setRange ( -10000, 10000 );
     d->thresholdFilterValue->setValue ( -10 );
-    QLabel * thresholdFilterLabel = new QLabel ( tr ( "We ignore pixels with values lower than: " ) );
+    QLabel * thresholdFilterLabel = new QLabel ( tr ( "We ignore pixels with values strictly lower than: " ) );
     QHBoxLayout * thresholdFilterLayout = new QHBoxLayout;
     thresholdFilterLayout->addWidget(thresholdFilterLabel);
     thresholdFilterLayout->addWidget(d->thresholdFilterValue);
     thresholdFilterWidget->setLayout(thresholdFilterLayout);
     d->thresholdToolBox->addWidget(thresholdFilterWidget);
     //d->thresholdToolBox->setLayout(thresholdFilterLayout);
-    d->thresholdToolBox->setTitle("5. Fat density pixels segmentation");
-    QString step5Description = " Myocardial fat is segmented on the histogram as \npixels with density < 10 Hounsfield Units.";
 
 
     medToolBox *meshToolBox =medToolBoxFactory::instance()->createToolBox("medMeshToolsToolBox", parent);
@@ -320,7 +336,10 @@ void davdWorkspace::calculateVolume(dtkAbstractData* input)
     typedef itk::Image< unsigned char, 3 > ImageType;
     ImageType *image = dynamic_cast<ImageType *> ( ( itk::Object* ) ( input->data() ) );
     unsigned int nb_voxels = getNumberOfOnes(input);
-    float volumeInMm3 = nb_voxels*image->GetSpacing()[0]*image->GetSpacing()[1]*image->GetSpacing()[2];
+    d->imageSpacingX = image->GetSpacing()[0];
+    d->imageSpacingY = image->GetSpacing()[1];
+    d->imageSpacingZ = image->GetSpacing()[2];
+    float volumeInMm3 = nb_voxels*d->imageSpacingX*d->imageSpacingY*d->imageSpacingZ;
     d->RV_volume = volumeInMm3/1000; //volume in mL
     qDebug()<<"NOMBRE DE PIXELS DANS LE RV : "<<nb_voxels;
     qDebug()<<"Volume en mm3 : "<<volumeInMm3;
@@ -365,6 +384,7 @@ void davdWorkspace::dilateTheMask()
     d->process->update();
     dtkAbstractData * output = d->process->output();
     setOutputMetadata(data, output); //copy info
+    output->setMetaData ( medMetaDataKeys::SeriesDescription.key(), "Dilated Mask" );
     this->currentViewContainer()->open(output);
     medDataManager::instance()->importNonPersistent(output);
 }
@@ -390,6 +410,7 @@ void davdWorkspace::intersectMasks()
 
     dtkAbstractData * output = d->process->output();
     setOutputMetadata(dilatedMask, output); //copy info
+    output->setMetaData ( medMetaDataKeys::SeriesDescription.key(), "Binary Free wall" );
     medDataManager::instance()->importNonPersistent(output);
     d->nb_voxels_freeWall = this->getNumberOfOnes(output);
 }
@@ -429,6 +450,7 @@ void davdWorkspace::applyMaskToImage()
 
     dtkAbstractData * output = d->process->output();
     setOutputMetadata(mask, output);
+    output->setMetaData ( medMetaDataKeys::SeriesDescription.key(), "Free Wall" );
     medDataManager::instance()->importNonPersistent(output);
 }
 
@@ -475,11 +497,32 @@ void davdWorkspace::applyThresholdToImage()
     qDebug()<<"d->nb_voxels_freeWall : "<<d->nb_voxels_freeWall;
     qDebug()<<"fat : "<<d->fat;
     qDebug()<<"d->nb_voxels_fat*100/d->nb_voxels_freeWall : "<<(d->nb_voxels_fat*100.0/d->nb_voxels_freeWall);
-
+    output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), "Fat" );
     medDataManager::instance()->importNonPersistent(d->process->output());
     this->currentViewContainer()->open(d->process->output());
 
     d->fatValue->setText(QString::number(d->fat));
+}
+
+void davdWorkspace::displayKernelDimensions()
+{
+    double dimXInMm;
+    double dimYInMm;
+    double dimZInMm;
+    if(d->mmButton->isChecked())
+    {
+        dimXInMm = floor((d->kernelSize->value()/d->imageSpacingX)+0.5)*d->imageSpacingX;
+        dimYInMm = floor((d->kernelSize->value()/d->imageSpacingY)+0.5)*d->imageSpacingY;
+        dimZInMm = floor((d->kernelSize->value()/d->imageSpacingZ)+0.5)*d->imageSpacingZ;
+    }
+    else
+    {
+        dimXInMm = d->kernelSize->value()*d->imageSpacingX;
+        dimYInMm = d->kernelSize->value()*d->imageSpacingY;
+        dimZInMm = d->kernelSize->value()*d->imageSpacingZ;
+    }
+    d->kernelDimensionsValue->setText("("+QString::number(dimXInMm) + " x "
+        + QString::number(dimYInMm)+" x "+ QString::number(dimZInMm)+")");
 }
 
 void davdWorkspace::goToNextStep(){
@@ -504,6 +547,7 @@ void davdWorkspace::goToNextStep(){
         //double value = this->regionGrowingThreshold();
         //qDebug()<<" VALUE : "<<value;
         this->displayMask();
+        this->displayKernelDimensions();
     }   
 
     if (d->step == 4)

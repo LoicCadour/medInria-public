@@ -46,10 +46,12 @@ public:
     void calculateVolume(dtkAbstractData* input);
     unsigned int getNumberOfOnes(dtkAbstractData* input);
 
+
 public slots:
     virtual void connectToolboxesToCurrentContainer(const QString &name);
     void goToPreviousStep();
     void goToNextStep();
+    void displayKernelDimensions();
 
 
     
