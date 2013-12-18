@@ -79,6 +79,7 @@ class VTK_EXPORT vtkLandmarkWidget : public vtkSphereWidget
   void updateLandmarksPosFromWidget2D();
   void PropagateEventToLittleBrothers(unsigned long event,vtkLandmarkWidget * l);
   void updatePosition(double * worldPos);
+  void cleanUpLittleBrothersReferences();
 
  protected:
     vtkLandmarkWidget();

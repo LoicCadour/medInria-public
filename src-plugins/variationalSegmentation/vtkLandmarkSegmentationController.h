@@ -97,6 +97,8 @@ public:
 
   void setOutputSize(int x,int y,int z){outputSize[0]=x;outputSize[1]=y;outputSize[2]=z;};
 
+  void DeleteAllLandmarks();
+
  protected:
   vtkLandmarkSegmentationController();
   ~vtkLandmarkSegmentationController();

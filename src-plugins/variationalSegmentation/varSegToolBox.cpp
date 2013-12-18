@@ -90,6 +90,9 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     segOn = false;
     mprOn = false;
     workspace = segmentationToolBox()->getWorkspace();
+
+    views2D = new QList<vtkImageView2D*>();
+    views3D = new QList<vtkImageView3D*>();
 }
 
 VarSegToolBox::~VarSegToolBox()
@@ -370,9 +373,9 @@ void VarSegToolBox::startSegmentation()
     
     medViewContainer * container  = workspace->currentViewContainer();
 
-    QList<medAbstractView*> medViews;
-    QList<vtkImageView2D*> * views2D = new QList<vtkImageView2D*>();
-    QList<vtkImageView3D*> * views3D = new QList<vtkImageView3D*>(); // the question is simple, do we need several view3d or only a single one? if it is the latter then it means that we need to prevent the user from changing the orientations.
+    //QList<medAbstractView*> medViews;
+    //QList<vtkImageView2D*> * views2D = new QList<vtkImageView2D*>();
+    //QList<vtkImageView3D*> * views3D = new QList<vtkImageView3D*>(); // the question is simple, do we need several view3d or only a single one? if it is the latter then it means that we need to prevent the user from changing the orientations.
 
     if (mprOn)
         for(int i = 0;i<4;i++)
@@ -534,39 +537,17 @@ void VarSegToolBox::endSegmentation()
     segOn = false;
     if (!controller)
         return;
-    if (currentView)
+
+    for (int i = 0;i<medViews.size();i++)
     {
-        currentView->widget()->unsetCursor();
-        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(currentView->backend())->view2D;
-        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(currentView->backend())->view3D;
-        view2d->RemoveDataSet (controller->GetOutput());
-        view3d->RemoveDataSet (controller->GetOutput());
+        medViews[i]->widget()->unsetCursor();
+        views2D->at(i)->RemoveDataSet (controller->GetOutput());
+        views3D->at(i)->RemoveDataSet (controller->GetOutput());
     }
-    
+
     this->controller->EnabledOff();
-    this->controller->GetLandmarkCollection()->InitTraversal();
-    //vtkLandmarkWidget * toRemove = vtkLandmarkWidget::SafeDownCast(this->controller->GetLandmarkCollection()->GetNextItemAsObject());
-    //while(toRemove)
-    //{
-    //    toRemove->RemoveAllObservers();
-    //    toRemove = vtkLandmarkWidget::SafeDownCast (this->controller->GetLandmarkCollection()->GetNextItemAsObject());
-    //}
-    
+    this->controller->DeleteAllLandmarks(); 
 
-    this->controller->GetTotalLandmarkCollection()->InitTraversal();
-    vtkLandmarkWidget * toRemove = vtkLandmarkWidget::SafeDownCast(this->controller->GetTotalLandmarkCollection()->GetNextItemAsObject());
-    while(toRemove)
-    {
-        toRemove->RemoveAllObservers();
-        toRemove = vtkLandmarkWidget::SafeDownCast (this->controller->GetTotalLandmarkCollection()->GetNextItemAsObject());
-    }
-
-    
-    this->controller->GetTotalLandmarkCollection()->RemoveAllItems();
-    this->controller->GetLandmarkCollection()->RemoveAllItems();
-    qDebug() << "total = " << this->controller->GetTotalLandmarkCollection()->GetNumberOfItems();
-    qDebug() << "land = " <<  this->controller->GetLandmarkCollection()->GetNumberOfItems();
-    
 }
 
 void VarSegToolBox::segmentation(bool checked)

@@ -560,3 +560,28 @@ vtkLandmarkSegmentationController::binaryType::Pointer vtkLandmarkSegmentationCo
 
     return img;
 }
+
+void vtkLandmarkSegmentationController::DeleteAllLandmarks()
+{
+    this->GetLandmarkCollection()->InitTraversal();
+    vtkLandmarkWidget * toRemove = vtkLandmarkWidget::SafeDownCast(this->GetLandmarkCollection()->GetNextItemAsObject());
+    while(toRemove)
+    {
+        toRemove->RemoveAllObservers();
+        toRemove->cleanUpLittleBrothersReferences();
+        toRemove = vtkLandmarkWidget::SafeDownCast (this->GetLandmarkCollection()->GetNextItemAsObject());
+    }
+    
+    this->GetLandmarkCollection()->RemoveAllItems();
+
+    this->GetTotalLandmarkCollection()->InitTraversal();
+    toRemove = vtkLandmarkWidget::SafeDownCast(this->GetTotalLandmarkCollection()->GetNextItemAsObject());
+    while(toRemove)
+    {
+        toRemove->RemoveAllObservers();
+        toRemove = vtkLandmarkWidget::SafeDownCast (this->GetTotalLandmarkCollection()->GetNextItemAsObject());
+    }
+
+    this->GetTotalLandmarkCollection()->RemoveAllItems();
+    
+}

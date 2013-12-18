@@ -115,13 +115,12 @@ vtkLandmarkWidget::~vtkLandmarkWidget()
         this->RemoveObserver(BigBrother->GetCommand());
         BigBrother->GetLittleBrothers()->removeAt(BigBrother->GetLittleBrothers()->indexOf(this));
     }
-    else
-    {
-        for(int i = 0;i<LittleBrothers->size();i++)
+    
+    for(int i = 0;i<LittleBrothers->size();i++)
         LittleBrothers->at(i)->RemoveObserver(this->Command);
-        LittleBrothers->clear();
-        delete LittleBrothers;
-    }
+    LittleBrothers->clear();
+    delete LittleBrothers;
+
     this->Command->Delete();
     this->Widget2D->Delete();
 }
@@ -229,4 +228,10 @@ void vtkLandmarkWidget::updatePosition(double * worldPos)
     int new_indices[3];
     View2D->GetImageCoordinatesFromWorldCoordinates(pointRep->GetWorldPosition(),new_indices);
     SetIndices(new_indices);
+}
+
+void vtkLandmarkWidget::cleanUpLittleBrothersReferences()
+{
+    for(int i = 0;i<LittleBrothers->size();i++)
+        LittleBrothers->at(i)->SetBigBrother(NULL);
 }

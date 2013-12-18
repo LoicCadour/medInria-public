@@ -2,7 +2,9 @@
 #define VarSegToolBox_H
 
 #include "medSegmentationAbstractToolBox.h"
-
+#include <medAbstractView.h>
+#include <vtkImageView2D.h>
+#include <vtkImageView3D.h>
 #include <dtkCore/dtkAbstractData.h>
 #include <dtkCore/dtkSmartPointer.h>
 #include <medWorkspace.h>
@@ -53,6 +55,9 @@ public slots:
 private:
     vtkLandmarkSegmentationController* controller;
     medAbstractView * currentView;
+    QList<medAbstractView*> medViews;
+    QList<vtkImageView2D*> * views2D;
+    QList<vtkImageView3D*> * views3D;
     QPushButton * segButton;
     QPushButton * clearChanges;
     QPushButton * binaryImageButton;
