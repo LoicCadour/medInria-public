@@ -252,9 +252,9 @@ itkFiltersToolBox::itkFiltersToolBox ( QWidget *parent ) : medFilteringAbstractT
     d->thresholdFilterValue2 = new QSpinBox;
     d->thresholdFilterValue2->setRange ( -10000, 10000 );
     d->thresholdFilterValue2->setValue ( 0 );
-    d->greaterButton = new QRadioButton(tr("greater than :"), this);
+    d->greaterButton = new QRadioButton(tr(">= "), this);
     d->greaterButton->setChecked(true);
-    d->lowerButton = new QRadioButton(tr("lower than :"), this);
+    d->lowerButton = new QRadioButton(tr("<= "), this);
     QLabel * thresholdFilterLabel = new QLabel ( tr ( "Set pixels values  :" ) );
     QLabel * thresholdFilterLabel2 = new QLabel ( tr ( " to :" ) );
 
@@ -747,7 +747,7 @@ void itkFiltersToolBox::setupItkThresholdingProcess()
     d->process->setInput ( this->parentToolBox()->data() );
     d->process->setParameter ( d->thresholdFilterValue->value(), 0);
     d->process->setParameter ( d->thresholdFilterValue2->value(), 1);
-    d->process->setParameter ( (double)d->greaterButton->isChecked(), 2);
+    d->process->setParameter ( d->greaterButton->isChecked(), 2);
 }
 
 void itkFiltersToolBox::run ( void )

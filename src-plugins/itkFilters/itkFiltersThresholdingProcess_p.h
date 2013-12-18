@@ -46,7 +46,7 @@ public:
     
         thresholdFilter->SetInput ( dynamic_cast<ImageType *> ( ( itk::Object* ) ( input->data() ) ) );
         if (comparisonOperator)
-            thresholdFilter->SetUpper( threshold );
+            thresholdFilter->SetUpper( threshold ); // <= threshold
         else
             thresholdFilter->SetLower( threshold );
         thresholdFilter->SetOutsideValue( outsideValue );
