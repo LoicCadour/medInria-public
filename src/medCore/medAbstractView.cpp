@@ -185,6 +185,10 @@ bool medAbstractView::positionLinked() const
 void medAbstractView::setLinkWindowing (bool value)
 {
     d->linkWindowing = value;
+    if (value)
+        setProperty("WindowingLinked","true");
+    else
+        setProperty("WindowingLinked","false");
 }
 
 bool medAbstractView::windowingLinked() const
@@ -662,4 +666,9 @@ void medAbstractView::onAppendViewToPool( medAbstractView * viewAppended )
 void medAbstractView::setFullScreen( bool state )
 {
     emit fullScreen( state );
+}
+
+void medAbstractView::close()
+{
+    emit closing();
 }

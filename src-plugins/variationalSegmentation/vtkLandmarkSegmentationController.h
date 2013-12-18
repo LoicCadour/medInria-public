@@ -9,6 +9,7 @@
 #include <vtkLandmarkManager.h>
 #include <vtkImageView2D.h>
 #include <vtkImageView3D.h>
+#include <QList.h>
 
 class vtkMatrixToLinearTransform;
 class vtkContourFilter;
@@ -79,21 +80,21 @@ public:
   void RefreshConstraints (void);
   
   vtkLandmarkWidget* AddConstraint (double* pos, int type);
-  void RemoveConstraint (vtkLandmarkWidget* arg);
+  bool RemoveConstraint (vtkLandmarkWidget* arg);
 
-  void setView2D(vtkImageView2D*);
-  vtkImageView2D * getView2D(){return view2d;};
-  void setView3D(vtkImageView3D*);
-  vtkImageView3D * getView3D(){return view3d;};
-  void showOrHide2DWidget();
-  void updateLandmarksPosFromWidget2D();
-
+  void setViews2D(QList<vtkImageView2D*> * views);
+  QList<vtkImageView2D*> * getViews2D(){return Views2D;};
+  void setViews3D(QList<vtkImageView3D*> * views);
+  QList<vtkImageView3D*> * getViews3D(){return Views3D;};
+  
   void setMode3D(bool val){mode3D =val;};
   bool getMode3D(){return mode3D;};
 
   binaryType::Pointer GetBinaryImage();
 
   void setOutputSize(int x,int y,int z){outputSize[0]=x;outputSize[1]=y;outputSize[2]=z;};
+
+  void DeleteAllLandmarks();
 
  protected:
   vtkLandmarkSegmentationController();
@@ -122,8 +123,8 @@ private:
   vtkPolyDataMapper*          Mapper;
   vtkActor*                   Actor;
   double                      LandmarkRadius;
-  vtkImageView2D * view2d;
-  vtkImageView3D * view3d;
+  QList<vtkImageView2D*> * Views2D;
+  QList<vtkImageView3D*> * Views3D;
   bool mode3D;
   ImageType::Pointer implicitFunction;
   int outputSize[3]; // size expected for the output

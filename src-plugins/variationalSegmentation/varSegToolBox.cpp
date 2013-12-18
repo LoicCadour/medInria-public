@@ -38,6 +38,9 @@
 #include <dtkCore/dtkAbstractProcessFactory.h>
 #include <dtkCore/dtkAbstractProcess.h>
 
+#include <medTabbedViewContainers.h>
+#include <dtkCore\dtkSignalBlocker.h>
+
 
 namespace mseg {
 
@@ -53,7 +56,7 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
 
     QLabel * inside = new QLabel(QString("Inside VOI : Shift + right mouse button"),displayWidget);
     QLabel * outside = new QLabel(QString("On VOI : Shift + left mouse button"),displayWidget);
-    QLabel * on = new QLabel(QString("Outside VOI : Shift + middle mouse button"),displayWidget);
+    QLabel * on = new QLabel(QString("Outside VOI : Shift + Ctrl + right mouse button or Shift + middle mouse button"),displayWidget);
 
 
     segButton = new QPushButton(tr("Start Segmentation"),displayWidget);
@@ -61,9 +64,13 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     binaryImageButton = new QPushButton(tr("Generate binary image"),displayWidget);
     applyMaskButton = new QPushButton(tr("Apply segmentation"),displayWidget);
     clearChanges = new QPushButton(tr("Abandon all changes"),displayWidget);
+    mprMode = new QPushButton(tr("MPR Mode"),displayWidget);
+    mprMode->setCheckable(true);
+
     clearChanges->setEnabled(false);
     binaryImageButton->setEnabled(false);
     applyMaskButton->setEnabled(false);
+    layout->addWidget(mprMode);
     layout->addWidget(segButton);
     layout->addWidget(inside);
     layout->addWidget(outside);
@@ -76,11 +83,18 @@ VarSegToolBox::VarSegToolBox(QWidget * parent )
     connect(binaryImageButton,SIGNAL(clicked()),this,SLOT(addBinaryImage()));
     connect(applyMaskButton,SIGNAL(clicked()),this,SLOT(applyMaskToImage()));
     connect(clearChanges,SIGNAL(clicked()),this,SLOT(bringBackOriginalImage()));
-    
+    connect(mprMode,SIGNAL(toggled(bool)),this,SLOT(moveToMPRmode(bool)));
+
     controller = vtkLandmarkSegmentationController::New();
     output = output = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
-    currentView=0;
+    currentView = 0;
+    originalView = 0;
     segOn = false;
+    mprOn = false;
+    workspace = segmentationToolBox()->getWorkspace();
+
+    views2D = new QList<vtkImageView2D*>();
+    views3D = new QList<vtkImageView3D*>();
 }
 
 VarSegToolBox::~VarSegToolBox()
@@ -130,12 +144,16 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
     
     while(l)
     {
-        if ( (l->GetInteractor() == interactor))
-            if (value=="3D")
-                l->On();
-            else if (this->controller->getMode3D()) // test if previous orientation was 3d
-                if (l->GetCurrentRenderer())
-                    l->Off();
+        if (!this->controller->RemoveConstraint (l))
+        {
+            if ( (l->GetInteractor() == interactor))
+                if (value=="3D")
+                    l->On();
+                else if (this->controller->getMode3D()) // test if previous orientation was 3d
+                    if (l->GetCurrentRenderer())
+                        l->Off();
+        }
+        
         l = vtkLandmarkWidget::SafeDownCast(landmarks->GetNextItemAsObject());
     }
     
@@ -144,7 +162,15 @@ void VarSegToolBox::updateLandmarksRenderer(QString key, QString value)
     else
         this->controller->setMode3D(false);
     
-    this->controller->showOrHide2DWidget();
+    // This second loop is necessary especially in case of other orientation (not 3D). Not sure however since the slice event is called when the orientation is changed. 
+    // TODO : check the orientation and slice id when the slice event is called when the orientation is changed.
+    landmarks->InitTraversal(); 
+    l = vtkLandmarkWidget::SafeDownCast(landmarks->GetNextItemAsObject());
+    while(l)
+    {
+        l->showOrHide2DWidget();
+        l = vtkLandmarkWidget::SafeDownCast(landmarks->GetNextItemAsObject());
+    }
 }
 
 void VarSegToolBox::addBinaryImage()
@@ -185,8 +211,19 @@ void VarSegToolBox::applyMaskToImage()
     maskApplicationProcess->setInput(maskData,0);
     maskApplicationProcess->setInput(static_cast<dtkAbstractData*>(currentView->data()),1);
     maskApplicationProcess->update();
-    currentView->removeOverlay(0);
-    currentView->setData(maskApplicationProcess->output(),0);
+
+    for(int i = 0;i<medViews.size();i++)
+    {
+        medViews[i]->removeOverlay(0);
+        medViews[i]->setData(maskApplicationProcess->output(),0);
+    }
+
+    if (mprOn && originalView)
+    {
+        originalView->removeOverlay(0);
+        originalView->setData(maskApplicationProcess->output(),0);
+    }
+    
     clearChanges->setEnabled(true);
 }
 
@@ -208,8 +245,26 @@ void VarSegToolBox::startSegmentation()
         segButton->setChecked(false);
         return;
     }
-
-    connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)),Qt::UniqueConnection);
+    
+    medViewContainer * container  = workspace->currentViewContainer();
+    medViews.clear();
+    views2D->clear();
+    views3D->clear();
+    if (mprOn)
+        for(int i = 0;i<4;i++)
+        {
+            medAbstractView * medView = qobject_cast<medAbstractView*>(container->childContainers()[i]->view());
+            medViews.append(medView);
+            vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(medView->backend())->view2D;
+            vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(medView->backend())->view3D;
+            views2D->append(view2d);
+            views3D->append(view3d);
+        }
+    else
+    {
+        connect(currentView, SIGNAL(propertySet(QString,QString)), this, SLOT(updateLandmarksRenderer(QString,QString)),Qt::UniqueConnection);
+        connect(currentView, SIGNAL(closing()), this, SLOT(endSegmentation()));
+    }
 
     if (currentView->property("Orientation")=="3D")
         this->controller->setMode3D(true);
@@ -217,7 +272,12 @@ void VarSegToolBox::startSegmentation()
         this->controller->setMode3D(false);
 
     vtkCollection* interactorcollection = vtkCollection::New();
-    interactorcollection->AddItem(static_cast<medVtkViewBackend*>(currentView->backend())->renWin->GetInteractor());
+    if (mprOn)
+        for(int i = 0;i<4;i++)
+            interactorcollection->AddItem(static_cast<medVtkViewBackend*>(medViews[i]->backend())->renWin->GetInteractor());
+    else
+        interactorcollection->AddItem(static_cast<medVtkViewBackend*>(currentView->backend())->renWin->GetInteractor());
+    
     this->controller->SetInteractorCollection(interactorcollection);
     interactorcollection->Delete();
 
@@ -323,39 +383,59 @@ void VarSegToolBox::startSegmentation()
     smallerImage->SetSpacing(NewSpacing);
     
     this->controller->SetInput(smallerImage);
-    vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(currentView->backend())->view2D;
-    vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(currentView->backend())->view3D;
-
-    this->controller->setView2D(view2d);
-    this->controller->setView3D(view3d);
     
-    view2d->AddDataSet (controller->GetOutput());
-    view3d->AddDataSet (controller->GetOutput());
+    if (!mprOn)
+    {
+        medViews.append(currentView);
+        views2D->append(static_cast<medVtkViewBackend*>(currentView->backend())->view2D);
+        views3D->append(static_cast<medVtkViewBackend*>(currentView->backend())->view3D);
+    }
+        for (int i = 0;i<medViews.size();i++)
+        {
+            views2D->at(i)->AddDataSet (controller->GetOutput());
+            views3D->at(i)->AddDataSet (controller->GetOutput());
+            medViews[i]->widget()->setCursor(Qt::CrossCursor);
+        }
+
+    this->controller->setViews2D(views2D);
+    this->controller->setViews3D(views3D);
     
     binaryImageButton->setEnabled(true);
     applyMaskButton->setEnabled(true);
-    currentView->widget()->setCursor(Qt::CrossCursor);
     segOn = true;
 }
 
+
+
 void VarSegToolBox::endSegmentation()
 {
+    if (segButton->isChecked())
+    {
+        segButton->setChecked(false);
+        return;
+    }
+
     segButton->setText("Start Segmentation");
     segOn = false;
     if (!controller)
         return;
-    if (currentView)
+
+    for (int i = 0;i<medViews.size();i++)
     {
-        currentView->widget()->unsetCursor();
-        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(currentView->backend())->view2D;
-        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(currentView->backend())->view3D;
-        view2d->RemoveDataSet (controller->GetOutput());
-        view3d->RemoveDataSet (controller->GetOutput());
+        medViews[i]->widget()->unsetCursor();
+        views2D->at(i)->RemoveDataSet (controller->GetOutput());
+        views3D->at(i)->RemoveDataSet (controller->GetOutput());
     }
-    qDebug() << " reference count for the controller before delete : " << this->controller->GetReferenceCount();
+
     this->controller->EnabledOff();
-    this->controller->GetTotalLandmarkCollection()->RemoveAllItems();
-    this->controller->GetLandmarkCollection()->RemoveAllItems();
+    this->controller->DeleteAllLandmarks();
+    qDebug() << "this->controller->GetReferenceCount() " << this->controller->GetReferenceCount();
+    this->controller->Delete(); 
+    // TODO: make sure that the controller is really deleted -> remove every reference for the time being I see now reference in the command I dont see where the other one is.
+    // TODO : Or do not delete it but find a way to give him a new input
+    qDebug() << "this->controller->GetReferenceCount() " << this->controller->GetReferenceCount();
+    this->controller = vtkLandmarkSegmentationController::New();
+
 }
 
 void VarSegToolBox::segmentation(bool checked)
@@ -371,10 +451,74 @@ void VarSegToolBox::segmentation(bool checked)
 
 void VarSegToolBox::bringBackOriginalImage()
 {
-    currentView->removeOverlay(0);
-    currentView->setData(originalInput,0);
+    if (mprOn && originalView)
+    {
+        originalView->removeOverlay(0);
+        originalView->setData(originalInput,0);
+    }
+    for(int i = 0;i<medViews.size();i++)
+    {
+        medViews[i]->removeOverlay(0);
+        medViews[i]->setData(originalInput,0);
+    }
 }
 
+void VarSegToolBox::moveToMPRmode(bool val)
+{
+    if (!currentView)
+        return;
+    if (val)
+    {
+        originalView = currentView;
+        mprMode->setText("Exit MPR Mode");
+        mprOn = true;
+
+        medCustomViewContainer * segContainer = new medCustomViewContainer( workspace->stackedViewContainers() );
+        segContainer->setPreset(5);
+        segContainer->setAcceptDrops(false);
+
+        for (int i = 0;i<4;i++)
+        {
+            medViewContainer * childContainerI = segContainer->childContainers()[i];
+            childContainerI->open(static_cast<dtkAbstractData*>(currentView->data()));
+            medAbstractView * viewI = qobject_cast<medAbstractView*>(childContainerI->view());
+            viewI->setLinkWindowing(true);
+            viewI->setLinkPosition(true);  
+            viewI->setLinkCamera(true);    
+            viewI->setProperty("Closable","false");
+        }
+
+        workspace->stackedViewContainers()->addContainer ( "Variational Segmentation",segContainer );
+        workspace->setCurrentViewContainer ( "Variational Segmentation" );
+
+        workspace->stackedViewContainers()->lockTabs();
+        workspace->stackedViewContainers()->hideTabBar(); // increase the space
+
+        // TODO : hide navigator to increase space ?? you probably can access the navigator via the workspace area which is accesssible probably via the main window
+        //   QMainWindow * mainWindow = dynamic_cast< QMainWindow * >(
+        //qApp->property( "MainWindow" ).value< QObject * >() );
+    }    
+    else
+    {
+        if (segOn)
+            segButton->setChecked(false);
+        
+        mprMode->setText("MPR Mode");
+        mprOn = false;
+        medViewContainer * segContainer = workspace->currentViewContainer();
+        for (int i = 0;i<4;i++)
+        {
+            medViewContainer * childContainerI = segContainer->childContainers()[i];
+            medAbstractView * viewI = qobject_cast<medAbstractView*>(childContainerI->view());
+            viewI->close();
+            childContainerI->close();
+        }
+        workspace->stackedViewContainers()->removeContainer("Variational Segmentation");
+        currentView = originalView;
+        workspace->stackedViewContainers()->unlockTabs();
+        workspace->stackedViewContainers()->showTabBar();
+    }
+}
 
 } // namespace mseg
 

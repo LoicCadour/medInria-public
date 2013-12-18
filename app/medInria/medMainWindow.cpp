@@ -368,14 +368,14 @@ void medMainWindow::keyPressEvent( QKeyEvent *event )
         return;
     }
     
-    if ((event->key() == Qt::Key_Shift)&&(d->controlPressed))
+    /*if ((event->key() == Qt::Key_Shift)&&(d->controlPressed))
     {
         if (!d->shortcutAccessVisible)
             this->showShortcutAccess();
 
         d->shortcutAccessWidget->updateCurrentlySelectedRight();
         return;
-    }
+    }*/
 
     QMainWindow::keyPressEvent(event);
 }

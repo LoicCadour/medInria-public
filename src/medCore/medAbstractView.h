@@ -352,6 +352,8 @@ public slots:
      */
     virtual void setCurrentLayer(int layer);
 
+    virtual void close();
+
 protected:
     void emitViewSliceChangedEvent    (int slice);
     void emitViewPositionChangedEvent (const QVector3D &position);
