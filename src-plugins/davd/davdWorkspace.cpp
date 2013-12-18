@@ -65,7 +65,7 @@ public:
     medSegmentationSelectorToolBox *segmentationToolbox;
     medFilteringSelectorToolBox *morphoSelectorToolBox;
     medSegmentationAbstractToolBox *bezierSegToolBox;
-    pipelineToolBox *pipelineToolBox;
+    pipelineToolBox *pipelineTbx;
     medToolBox *dilateToolBox, *thresholdToolBox, *resultsToolBox;
     unsigned char step;
    
@@ -109,12 +109,12 @@ davdWorkspace::davdWorkspace(QWidget *parent) : medWorkspace(parent), d(new davd
     // -- View toolbox --
     d->viewPropertiesToolBox = new medViewPropertiesToolBox(parent);
 
-    d->pipelineToolBox = new pipelineToolBox(parent);
-    connect (d->pipelineToolBox, SIGNAL(previousClicked()),
+    d->pipelineTbx = new pipelineToolBox(parent);
+    connect (d->pipelineTbx, SIGNAL(previousClicked()),
              this,             SLOT(goToPreviousStep()));
-    connect (d->pipelineToolBox, SIGNAL(nextClicked()),
+    connect (d->pipelineTbx, SIGNAL(nextClicked()),
              this,             SLOT(goToNextStep()));
-    connect (d->pipelineToolBox, SIGNAL(nextClicked()),
+    connect (d->pipelineTbx, SIGNAL(nextClicked()),
              this,             SLOT(launchNextAlgo()));
 
     d->segmentationToolbox   = new medSegmentationSelectorToolBox(this, parent);
@@ -227,7 +227,7 @@ davdWorkspace::davdWorkspace(QWidget *parent) : medWorkspace(parent), d(new davd
 
     //this->addToolBox( d->layoutToolBox );
     this->addToolBox( d->viewPropertiesToolBox );
-    this->addToolBox( d->pipelineToolBox );
+    this->addToolBox( d->pipelineTbx );
     this->addToolBox( d->resultsToolBox );
     this->addToolBox( varSegToolBox );
     this->addToolBox( d->bezierSegToolBox );
@@ -246,8 +246,8 @@ davdWorkspace::davdWorkspace(QWidget *parent) : medWorkspace(parent), d(new davd
 
     d->step =0;
 
-    d->pipelineToolBox->setDescription(d->stepDescriptions[d->step]);
-    d->pipelineToolBox->setLabel(d->toolboxes[d->step]->header()->title());
+    d->pipelineTbx->setDescription(d->stepDescriptions[d->step]);
+    d->pipelineTbx->setLabel(d->toolboxes[d->step]->header()->title());
 
 }
 
@@ -317,6 +317,7 @@ void davdWorkspace::displayMask()
     data->addMetaData ( medMetaDataKeys::SeriesDescription.key(), "RV endocardium" );
     this->currentViewContainer()->open(data);
     this->calculateVolume(data);
+    this->createMeshFromData(data, "Mesh endocardium");
 }
 
 unsigned int davdWorkspace::getNumberOfOnes(dtkAbstractData* input)
@@ -359,24 +360,6 @@ void davdWorkspace::dilateTheMask()
     dtkSmartPointer<medAbstractView> currentView = dynamic_cast<medAbstractView *> (view);
 
     dtkAbstractData * data = currentView->dataInList(1);
-
-    //d->process = dtkAbstractProcessFactory::instance()->createSmartPointer ( "medMeshTools" );
-    //d->process->setInput(data);
-    ////Can we set mesh generation parameters ???
-    //d->process->setParameter(1, 0);
-    //d->process->setParameter(1, 1);
-    //d->process->setParameter(0.8, 2);
-    //d->process->setParameter(1, 3);
-    //d->process->setParameter(30, 4);
-    //d->process->setParameter(0.2, 5);
-    //d->process->update();
-
-    //dtkAbstractData * RVendoMesh = d->process->output();
-    //setOutputMetadata(data, RVendoMesh); //copy info
-    //RVendoMesh->addMetaData ( medMetaDataKeys::SeriesDescription.key(), "Mesh endocardium" );
-    //medDataManager::instance()->importNonPersistent(RVendoMesh);
-    //this->currentViewContainer()->open(RVendoMesh);
-
     //this->currentViewContainer()->open(data);
     d->process = dtkAbstractProcessFactory::instance()->createSmartPointer ( "itkDilateProcess" );
     d->process->setInput(data);
@@ -387,6 +370,27 @@ void davdWorkspace::dilateTheMask()
     output->setMetaData ( medMetaDataKeys::SeriesDescription.key(), "Dilated Mask" );
     this->currentViewContainer()->open(output);
     medDataManager::instance()->importNonPersistent(output);
+}
+
+void davdWorkspace::createMeshFromData(dtkAbstractData* data, QString seriesDescription)
+{
+    d->process = dtkAbstractProcessFactory::instance()->createSmartPointer ( "medMeshTools" );
+    d->process->setInput(data);
+    //Can we set mesh generation parameters ???
+    d->process->setParameter(1.0, 0);
+    d->process->setParameter(1.0, 1);
+    d->process->setParameter(0.8, 2);
+    d->process->setParameter(1.0, 3);
+    d->process->setParameter(30.0, 4);
+    d->process->setParameter(0.2, 5);
+    d->process->update();
+
+    dtkAbstractData * mesh = d->process->output();
+    setOutputMetadata(data, mesh); //copy info
+    mesh->addMetaData ( medMetaDataKeys::SeriesDescription.key(), seriesDescription );
+    medDataManager::instance()->importNonPersistent(mesh);
+    //this->currentViewContainer()->open(mesh);
+
 }
 
 void davdWorkspace::intersectMasks()
@@ -488,7 +492,7 @@ void davdWorkspace::applyThresholdToImage()
     CastFilter::Pointer castFilter = CastFilter::New();
 
     castFilter->SetInput(dynamic_cast<ImageType2*>((itk::Object*)(d->process->output()->data())));
-    dtkAbstractData* output = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
+    dtkSmartPointer<dtkAbstractData> output = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");
     output->setData(castFilter->GetOutput());
 
     d->nb_voxels_fat = this->getNumberOfOnes(output);
@@ -497,10 +501,12 @@ void davdWorkspace::applyThresholdToImage()
     qDebug()<<"d->nb_voxels_freeWall : "<<d->nb_voxels_freeWall;
     qDebug()<<"fat : "<<d->fat;
     qDebug()<<"d->nb_voxels_fat*100/d->nb_voxels_freeWall : "<<(d->nb_voxels_fat*100.0/d->nb_voxels_freeWall);
-    output->addMetaData ( medMetaDataKeys::SeriesDescription.key(), "Fat" );
+    setOutputMetadata(input, d->process->output());
+    d->process->output()->setMetaData ( medMetaDataKeys::SeriesDescription.key(), "Fat" );
+    //this->createMeshFromData(d->process->output(), "Mesh Fat");
     medDataManager::instance()->importNonPersistent(d->process->output());
     this->currentViewContainer()->open(d->process->output());
-
+    
     d->fatValue->setText(QString::number(d->fat));
 }
 
@@ -529,18 +535,18 @@ void davdWorkspace::goToNextStep(){
 
     if(d->step < d->toolboxes.size()-1)
     {
-        d->pipelineToolBox->getPreviousButton()->setDisabled(false);
+        d->pipelineTbx->getPreviousButton()->setDisabled(false);
         d->toolboxes[d->step]->switchMinimize(); //minimize current
         d->toolboxes[d->step]->setDisabled(true);
         d->toolboxes[d->step]->header()->blockSignals(true); //prevent the user from minimizing the toolbox
         d->step++;
         d->toolboxes[d->step]->switchMinimize();
         d->toolboxes[d->step]->setDisabled(false);
-        d->pipelineToolBox->setDescription(d->stepDescriptions[d->step]);
-        d->pipelineToolBox->setLabel(d->toolboxes[d->step]->header()->title());
+        d->pipelineTbx->setDescription(d->stepDescriptions[d->step]);
+        d->pipelineTbx->setLabel(d->toolboxes[d->step]->header()->title());
     }
     if (d->step == d->toolboxes.size()-1)
-        d->pipelineToolBox->getNextButton()->setDisabled(true);
+        d->pipelineTbx->getNextButton()->setDisabled(true);
 
     if (d->step == 3)
     {
@@ -563,17 +569,17 @@ void davdWorkspace::goToNextStep(){
 void davdWorkspace::goToPreviousStep(){
     if(d->step>0)
     {
-        d->pipelineToolBox->getNextButton()->setDisabled(false);
+        d->pipelineTbx->getNextButton()->setDisabled(false);
         d->toolboxes[d->step]->switchMinimize();
         d->toolboxes[d->step]->setDisabled(true);
         d->toolboxes[d->step]->header()->blockSignals(true);
         d->step--;
         d->toolboxes[d->step]->switchMinimize();
         d->toolboxes[d->step]->setDisabled(false);
-        d->pipelineToolBox->setDescription(d->stepDescriptions[d->step]);
-        d->pipelineToolBox->setLabel(d->toolboxes[d->step]->header()->title());
+        d->pipelineTbx->setDescription(d->stepDescriptions[d->step]);
+        d->pipelineTbx->setLabel(d->toolboxes[d->step]->header()->title());
     }
     if(d->step == 0)
-        d->pipelineToolBox->getPreviousButton()->setDisabled(true);
+        d->pipelineTbx->getPreviousButton()->setDisabled(true);
 }
 

@@ -45,7 +45,7 @@ public:
     void setOutputMetadata(const dtkAbstractData * inputData, dtkAbstractData * outputData);
     void calculateVolume(dtkAbstractData* input);
     unsigned int getNumberOfOnes(dtkAbstractData* input);
-
+    void createMeshFromData(dtkAbstractData* data, QString seriesDescription);
 
 public slots:
     virtual void connectToolboxesToCurrentContainer(const QString &name);
