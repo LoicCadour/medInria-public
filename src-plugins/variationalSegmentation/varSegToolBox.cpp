@@ -340,6 +340,16 @@ void VarSegToolBox::startSegmentation()
         caster->Update();
         image = caster->GetOutput();
     }
+    else if (originalInput->identifier() == "itkDataImageUChar3")
+    {
+        typedef itk::Image<unsigned char, 3> InputImage;
+        InputImage::Pointer imgView = dynamic_cast< InputImage*>((itk::Object*)(originalInput->data()));
+        typedef itk::CastImageFilter< InputImage, ImageType > CasterType;
+        CasterType::Pointer caster = CasterType::New();
+        caster->SetInput(imgView);
+        caster->Update();
+        image = caster->GetOutput();
+    }
     else
     {
         qDebug() << "Failed : type " << originalInput->identifier();
