@@ -74,6 +74,8 @@ public:
 
     dtkSmartPointer<dtkAbstractProcess> process;
 
+    dtkSmartPointer<dtkAbstractData> segmentedImage;
+
 
     QSpinBox *thresholdFilterValue;
     QSpinBox *kernelSize;
@@ -177,9 +179,16 @@ davdWorkspace::davdWorkspace(QWidget *parent) : medWorkspace(parent), d(new davd
     connect(d->kernelSize, SIGNAL(valueChanged(int)), this, SLOT(displayKernelDimensions()));
     connect(d->mmButton, SIGNAL(toggled(bool)), this, SLOT(displayKernelDimensions()));
 
+
+    medSegmentationAbstractToolBox *varSegToolBox2 = 
+        qobject_cast<medSegmentationAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("mseg::VarSegToolBox", d->segmentationToolbox));
+    varSegToolBox2->setTitle("5. Remove septum");
+    QString step5Description = "Remove septum";
+
+
     d->thresholdToolBox = new medToolBox(parent);
-    d->thresholdToolBox->setTitle("5. Fat density pixels segmentation");
-    QString step5Description = " Myocardial fat is segmented on the histogram as \npixels with density < -10 Hounsfield Units.";
+    d->thresholdToolBox->setTitle("6. Fat density pixels segmentation");
+    QString step6Description = " Myocardial fat is segmented on the histogram as \npixels with density < -10 Hounsfield Units.";
     QWidget *thresholdFilterWidget = new QWidget(d->thresholdToolBox);
     d->thresholdFilterValue = new QSpinBox;
     d->thresholdFilterValue->setRange ( -10000, 10000 );
@@ -194,8 +203,8 @@ davdWorkspace::davdWorkspace(QWidget *parent) : medWorkspace(parent), d(new davd
 
 
     medToolBox *meshToolBox =medToolBoxFactory::instance()->createToolBox("medMeshToolsToolBox", parent);
-    meshToolBox->setTitle("6. 3D fat distribution model");
-    QString step6Description = " Segmented images are then used to compute patient-specific \n3D models displaying fat distribution. ";
+    meshToolBox->setTitle("7. 3D fat distribution model");
+    QString step7Description = " Segmented images are then used to compute patient-specific \n3D models displaying fat distribution. ";
 
     d->resultsToolBox = new medToolBox(parent);
     d->resultsToolBox->setTitle("Results");
@@ -222,6 +231,7 @@ davdWorkspace::davdWorkspace(QWidget *parent) : medWorkspace(parent), d(new davd
     //d->tb1->switchMinimize();
     paintSegToolBox->switchMinimize();
     d->dilateToolBox->switchMinimize();
+    varSegToolBox2->switchMinimize();
     d->thresholdToolBox->switchMinimize();
     meshToolBox->switchMinimize();
 
@@ -233,16 +243,17 @@ davdWorkspace::davdWorkspace(QWidget *parent) : medWorkspace(parent), d(new davd
     this->addToolBox( d->bezierSegToolBox );
     this->addToolBox( paintSegToolBox);
     this->addToolBox( d->dilateToolBox);
+    this->addToolBox( varSegToolBox2 );
     this->addToolBox( d->thresholdToolBox);
     this->addToolBox( meshToolBox);
 
-    d->toolboxes<<varSegToolBox<<d->bezierSegToolBox<<paintSegToolBox<<d->dilateToolBox<<d->thresholdToolBox<<meshToolBox;
+    d->toolboxes<<varSegToolBox<<d->bezierSegToolBox<<paintSegToolBox<<d->dilateToolBox<<varSegToolBox2<<d->thresholdToolBox<<meshToolBox;
     for(int i=1;i<d->toolboxes.size();i++)
     {
         d->toolboxes[i]->setDisabled(true);
         d->toolboxes[i]->header()->blockSignals(true);
     }
-    d->stepDescriptions<<step1Description<<step2Description<<step3Description<<step4Description<<step5Description<<step6Description;
+    d->stepDescriptions<<step1Description<<step2Description<<step3Description<<step4Description<<step5Description<<step6Description<<step7Description;
 
     d->step =0;
 
@@ -313,6 +324,9 @@ void davdWorkspace::displayMask()
     dtkSmartPointer<medAbstractView> currentView = dynamic_cast<medAbstractView *> (view);
 
     dtkAbstractData * data = currentView->dataInList(1);
+
+    d->segmentedImage = currentView->dataInList(0);//save segmented image, used later to apply the mask on it
+
     setOutputMetadata(currentView->dataInList(0), data); //copy info
     data->addMetaData ( medMetaDataKeys::SeriesDescription.key(), "RV endocardium" );
     this->currentViewContainer()->open(data);
@@ -416,7 +430,7 @@ void davdWorkspace::intersectMasks()
     setOutputMetadata(dilatedMask, output); //copy info
     output->setMetaData ( medMetaDataKeys::SeriesDescription.key(), "Binary Free wall" );
     medDataManager::instance()->importNonPersistent(output);
-    d->nb_voxels_freeWall = this->getNumberOfOnes(output);
+    this->currentViewContainer()->open(output);
 }
 
 void davdWorkspace::setOutputMetadata(const dtkAbstractData * inputData, dtkAbstractData * outputData)
@@ -439,28 +453,37 @@ void davdWorkspace::applyMaskToImage()
         return;
     
     qDebug()<<"STEP 4 Apply mask";
-    dtkAbstractData * mask = d->process->output();
+    //dtkAbstractData * mask = d->process->output();
 
     dtkAbstractView *view =this->currentViewContainer()->childContainers()[0]->view();
     if(!view)
         return;
     dtkSmartPointer<medAbstractView> currentView = dynamic_cast<medAbstractView *> (view);
-    dtkAbstractData * data = currentView->dataInList(0);
+    dtkAbstractData * mask = currentView->dataInList(0);
+
+    d->nb_voxels_freeWall = this->getNumberOfOnes(mask);
 
     d->process = dtkAbstractProcessFactory::instance()->createSmartPointer ( "medMaskApplication" );
     d->process->setInput(mask, 0);
-    d->process->setInput(data, 1);
+    d->process->setInput(d->segmentedImage, 1); //segmented image previously saved
     d->process->update();
 
     dtkAbstractData * output = d->process->output();
     setOutputMetadata(mask, output);
     output->setMetaData ( medMetaDataKeys::SeriesDescription.key(), "Free Wall" );
     medDataManager::instance()->importNonPersistent(output);
+    this->currentViewContainer()->open(output);
 }
 
 void davdWorkspace::applyThresholdToImage()
 {
     dtkAbstractData * input = d->process->output();
+    //dtkAbstractView *view =this->currentViewContainer()->childContainers()[0]->view();
+    //if(!view)
+    //    return;
+    //dtkSmartPointer<medAbstractView> currentView = dynamic_cast<medAbstractView *> (view);
+    //dtkAbstractData * input = static_cast<dtkAbstractData*>(currentView->data());
+
     d->process = dtkAbstractProcessFactory::instance()->createSmartPointer ( "itkThresholdingProcess" );
     d->process->setInput(input);
     //Background pixels (< -1023) to 0
@@ -560,10 +583,11 @@ void davdWorkspace::goToNextStep(){
     {
         this->dilateTheMask();
         this->intersectMasks();
-        this->applyMaskToImage();
+        
     }
-    if (d->step == 5)
-        this->applyThresholdToImage();
+    if (d->step == 6){
+        this->applyMaskToImage();
+        this->applyThresholdToImage();}
 }
 
 void davdWorkspace::goToPreviousStep(){
