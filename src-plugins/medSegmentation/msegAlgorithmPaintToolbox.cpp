@@ -1464,10 +1464,19 @@ void AlgorithmPaintToolbox::addSliceToStack(medAbstractView * view,const unsigne
 void AlgorithmPaintToolbox::onViewClosed()
 {
     medAbstractView *viewClosed = qobject_cast<medAbstractView*>(QObject::sender());
-    m_undoStacks->value(viewClosed)->clear();
-    m_redoStacks->value(viewClosed)->clear();
-    m_undoStacks->remove(viewClosed);
-    m_redoStacks->remove(viewClosed);
+    if (m_undoStacks->value(viewClosed))
+    {
+        m_undoStacks->value(viewClosed)->clear();
+        m_redoStacks->value(viewClosed)->clear();
+        m_undoStacks->remove(viewClosed);
+        m_redoStacks->remove(viewClosed);
+    }
+    if(m_magicWandButton->isChecked())
+        m_magicWandButton->setChecked(false);
+
+    if(m_strokeButton ->isChecked())
+        m_strokeButton->setChecked(false);
+
     if (viewClosed==currentView)
         currentView = NULL;
 }
@@ -1479,7 +1488,7 @@ void AlgorithmPaintToolbox::setCurrentView(medAbstractView * view)
     if (!m_undoStacks->contains(currentView)){
         m_redoStacks->insert(currentView,new QStack<PairListSlicePlaneId>());
         m_undoStacks->insert(currentView,new QStack<PairListSlicePlaneId>());
-        connect(view,SIGNAL(closed()),this,SLOT(onViewClosed()));
+        connect(view,SIGNAL(closing()),this,SLOT(onViewClosed()));
     }
 }
 
