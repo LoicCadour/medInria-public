@@ -86,11 +86,13 @@ public:
     template <class ImageType> void convertMmInPixels ( void )
     {
         ImageType *image = dynamic_cast<ImageType *> ( ( itk::Object* ) ( input->data() ) );
-        for (int i=0; i<image->GetSpacing().Size(); i++)
+        for (int i=0; i<image->GetSpacing().Size()-1; i++)
         {
             radius[i] = floor((radius[i]/image->GetSpacing()[i])+0.5); //rounding
             radiusMm[i] = radius[i] * image->GetSpacing()[i];
         }
+        radius[2] = floor((radius[2]/image->GetSpacing()[2])); //rounding
+        radiusMm[2] = radius[2] * image->GetSpacing()[2];
     }
 };
 

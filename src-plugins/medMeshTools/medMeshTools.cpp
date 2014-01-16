@@ -22,6 +22,7 @@
 
 #include <itkImage.h>
 #include <itkImageToVTKImageFilter.h>
+#include <itkVTKImageToImageFilter.h>
 #include <vtkImageToIsosurface.h>
 #include <vtkMetaDataSet.h>
 #include <vtkMetaSurfaceMesh.h>
@@ -97,6 +98,16 @@ template <class PixelType> int medMeshToolsPrivate::update()
     contour->SetInput( vtkImage );
     contour->SetValue(0, isoValue);
     contour->Update();
+
+    //typedef itk::VTKImageToImageFilter<ImageType> VTKImageToImageType;
+    //VTKImageToImageType::Pointer vtkImageToImageFilter = VTKImageToImageType::New();
+    //vtkImageToImageFilter->SetInput(contour->GetOutput()); //! needs vtkImagedata
+    //vtkImageToImageFilter->Update();
+    //itk::Image<unsigned char, 3>::Pointer image = itk::Image<unsigned char, 3>::New();
+    //dtkSmartPointer<dtkAbstractData> out = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageUChar3");;
+    //out->setData(vtkImageToImageFilter->GetOutput());
+    ////this->currentViewContainer()->open(out);
+
 
     vtkTriangleFilter* contourTrian = vtkTriangleFilter::New();
     contourTrian->SetInputConnection(contour->GetOutputPort());

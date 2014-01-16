@@ -393,7 +393,7 @@ void itkFiltersToolBox::update ( dtkAbstractView* view )
         }
 
         QString identifier = this->parentToolBox()->data()->identifier();
-
+        
         if ( identifier == "itkDataImageChar3" )
         {
             d->dataTypeValue->setText ( "Char" );

@@ -46,6 +46,7 @@ public:
     void calculateVolume(dtkAbstractData* input);
     unsigned int getNumberOfOnes(dtkAbstractData* input);
     void createMeshFromData(dtkAbstractData* data, QString seriesDescription);
+    void calculateDistanceBetweenMeshes();
 
 public slots:
     virtual void connectToolboxesToCurrentContainer(const QString &name);

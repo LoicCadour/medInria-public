@@ -41,7 +41,8 @@
 #include "itkCommand.h"
 #include "itkStatisticsImageFilter.h"
 #include "itkCastImageFilter.h"
-
+#include <itkHausdorffDistanceImageFilter.h>
+#include <itkSimpleContourExtractorImageFilter.h>
 
 static QString s_identifier()
 {
@@ -533,6 +534,67 @@ void davdWorkspace::applyThresholdToImage()
     d->fatValue->setText(QString::number(d->fat));
 }
 
+void davdWorkspace::calculateDistanceBetweenMeshes()
+{
+    //GET THE IMAGES
+    //-------------------
+    dtkAbstractData * mesh0, *mesh1;
+    dtkAbstractView *view0 =this->currentViewContainer()->childContainers()[0]->view();
+    if(!view0)
+        return;
+    dtkSmartPointer<medAbstractView> currentView0 = dynamic_cast<medAbstractView *> (view0);
+    mesh0 = static_cast<dtkAbstractData*>(currentView0->data());
+
+    dtkAbstractView *view1 =this->currentViewContainer()->childContainers()[1]->view();
+    if(!view1)
+        return;
+    dtkSmartPointer<medAbstractView> currentView1 = dynamic_cast<medAbstractView *> (view1);
+    mesh1 = static_cast<dtkAbstractData*>(currentView1->data());
+
+    //GET THE CONTOUR
+    //-------------------
+    typedef itk::Image< int, 3 > ImageType;
+    typedef itk::SimpleContourExtractorImageFilter<ImageType, ImageType> ContourExtractorImageFilterType;
+    ImageType *image1 = dynamic_cast<ImageType *> ( ( itk::Object* ) ( mesh0->data() ) );
+    ImageType *image2 = dynamic_cast<ImageType *> ( ( itk::Object* ) ( mesh1->data() ) );
+
+    ContourExtractorImageFilterType::Pointer contourFilter = ContourExtractorImageFilterType::New();
+    contourFilter->SetInput(0, image1);
+    contourFilter->SetInputForegroundValue(1);
+    contourFilter->SetInputBackgroundValue(0);
+    contourFilter->Update();
+    dtkSmartPointer<dtkAbstractData> out = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageInt3");;
+    out->setData(contourFilter->GetOutput());
+    this->currentViewContainer()->open(out);
+
+    ContourExtractorImageFilterType::Pointer contourFilter2 = ContourExtractorImageFilterType::New();
+    contourFilter2->SetInput(0, image2);
+    contourFilter2->SetInputForegroundValue(1);
+    contourFilter2->SetInputBackgroundValue(0);
+    contourFilter2->Update();
+    dtkSmartPointer<dtkAbstractData> out2 = dtkAbstractDataFactory::instance()->createSmartPointer("itkDataImageInt3");;
+    out2->setData(contourFilter2->GetOutput());
+    this->currentViewContainer()->open(out2);
+
+    //typedef itk::Image< unsigned char, 3 > ImageType;
+    typedef itk::HausdorffDistanceImageFilter<ImageType, ImageType> HausdorffDistanceImageFilterType;
+    HausdorffDistanceImageFilterType::Pointer hausdorffDistanceFilter = HausdorffDistanceImageFilterType::New();
+    //ImageType *image1 = dynamic_cast<ImageType *> ( ( itk::Object* ) ( mesh0->data() ) );
+    //ImageType *image2 = dynamic_cast<ImageType *> ( ( itk::Object* ) ( mesh1->data() ) );
+
+    hausdorffDistanceFilter->SetInput1 (contourFilter->GetOutput());
+    hausdorffDistanceFilter->SetInput2 (contourFilter2->GetOutput());
+    //if(!image1 || !image2)
+    //    qDebug()<<"une image est vide";
+    //hausdorffDistanceFilter->SetUseImageSpacing(false);
+    try{
+    hausdorffDistanceFilter->Update();
+    qDebug()<<"GetHausdorffDistance() : "<<hausdorffDistanceFilter->GetHausdorffDistance();
+    qDebug()<<"GetAverageHausdorffDistance() : "<<hausdorffDistanceFilter->GetAverageHausdorffDistance();
+    } catch (itk::ExceptionObject &e){
+        qDebug()<<e.GetDescription();}
+}
+
 void davdWorkspace::displayKernelDimensions()
 {
     double dimXInMm;
@@ -571,23 +633,26 @@ void davdWorkspace::goToNextStep(){
     if (d->step == d->toolboxes.size()-1)
         d->pipelineTbx->getNextButton()->setDisabled(true);
 
-    if (d->step == 3)
-    {
-        //double value = this->regionGrowingThreshold();
-        //qDebug()<<" VALUE : "<<value;
-        this->displayMask();
-        this->displayKernelDimensions();
-    }   
+    //if (d->step == 3)
+    //{
+    //    //double value = this->regionGrowingThreshold();
+    //    //qDebug()<<" VALUE : "<<value;
+    //    this->displayMask();
+    //    this->displayKernelDimensions();
+    //}   
 
-    if (d->step == 4)
-    {
-        this->dilateTheMask();
-        this->intersectMasks();
-        
-    }
-    if (d->step == 6){
-        this->applyMaskToImage();
-        this->applyThresholdToImage();}
+    //if (d->step == 4)
+    //{
+    //    this->dilateTheMask();
+    //    this->intersectMasks();
+    //    
+    //}
+    //if (d->step == 6){
+    //    this->applyMaskToImage();
+    //    this->applyThresholdToImage();}
+
+    //if(d->step == 7)
+        this->calculateDistanceBetweenMeshes();
 }
 
 void davdWorkspace::goToPreviousStep(){
