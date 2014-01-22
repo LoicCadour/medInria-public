@@ -553,7 +553,7 @@ void davdWorkspace::calculateDistanceBetweenMeshes()
 
     //GET THE CONTOUR
     //-------------------
-    typedef itk::Image< int, 3 > ImageType;
+    typedef itk::Image< unsigned char, 3 > ImageType;
     typedef itk::SimpleContourExtractorImageFilter<ImageType, ImageType> ContourExtractorImageFilterType;
     ImageType *image1 = dynamic_cast<ImageType *> ( ( itk::Object* ) ( mesh0->data() ) );
     ImageType *image2 = dynamic_cast<ImageType *> ( ( itk::Object* ) ( mesh1->data() ) );
