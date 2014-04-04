@@ -1,0 +1,45 @@
+/*=========================================================================
+
+ medInria
+
+ Copyright (c) INRIA 2013. All rights reserved.
+ See LICENSE.txt for details.
+ 
+  This software is distributed WITHOUT ANY WARRANTY; without even
+  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+  PURPOSE.
+
+=========================================================================*/
+
+#pragma once
+
+#include <dtkCore/dtkAbstractData.h>
+#include "itkFiltersProcessBase.h"
+
+#include "itkFiltersPluginExport.h"
+
+class itkN4BiasCorrectionProcessPrivate;
+class dtkAbstractData;
+
+class ITKFILTERSPLUGIN_EXPORT itkN4BiasCorrectionProcess : public itkFiltersProcessBase
+{
+    Q_OBJECT
+    
+public:
+    itkN4BiasCorrectionProcess(itkN4BiasCorrectionProcess * parent = 0);
+    itkN4BiasCorrectionProcess(const itkN4BiasCorrectionProcess& other);
+    virtual ~itkN4BiasCorrectionProcess(void);
+
+    static bool registered ( void );
+    
+public slots:
+
+    void setParameter ( double  data, int channel );
+    void setParameter ( std::vector<int> data, int channel );
+    int update ( void );
+
+private:
+    DTK_DECLARE_PRIVATE(itkN4BiasCorrectionProcess)
+};
+
+dtkAbstractProcess * createitkN4BiasCorrectionProcess(void);

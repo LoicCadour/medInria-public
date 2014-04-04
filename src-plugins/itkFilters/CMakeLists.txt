@@ -59,12 +59,14 @@ set(${PROJECT_NAME}_HEADERS
   itkFiltersErodeProcess_p.h
   itkFiltersCloseProcess_p.h
   itkFiltersOpenProcess_p.h
+  itkN4BiasCorrectionProcess_p.h
 )
 
 set(${PROJECT_NAME}_HEADERS_MOC
   itkFiltersPlugin.h
   itkFiltersToolBox.h
   itkMorphologicalFiltersToolBox.h
+  itkN4BiasCorrectionProcessToolBox.h
   itkFiltersProcessBase.h
   itkFiltersAddProcess.h
   itkFiltersSubtractProcess.h
@@ -80,12 +82,14 @@ set(${PROJECT_NAME}_HEADERS_MOC
   itkFiltersErodeProcess.h
   itkFiltersCloseProcess.h
   itkFiltersOpenProcess.h
+  itkN4BiasCorrectionProcess.h
 )
 
 set(${PROJECT_NAME}_SOURCES
   itkFiltersPlugin.cpp
   itkFiltersToolBox.cpp
   itkMorphologicalFiltersToolBox.cpp
+  itkN4BiasCorrectionProcessToolBox.cpp
   itkFiltersProcessBase.cpp
   itkFiltersAddProcess.cpp
   itkFiltersSubtractProcess.cpp
@@ -101,6 +105,7 @@ set(${PROJECT_NAME}_SOURCES
   itkFiltersErodeProcess.cpp
   itkFiltersCloseProcess.cpp
   itkFiltersOpenProcess.cpp
+  itkN4BiasCorrectionProcess.cpp
 )
 
 ## #################################################################
@@ -126,6 +131,10 @@ target_link_libraries(${PROJECT_NAME}
   medCore
   medGui
   ITKCommon
+  ITKPolynomials
+  ITKOptimizers
+  ITKBiasCorrection
+  ITKStatistics
   )
 
 #dtk_build_doc(itkAddConstantToImageFilterPlugin)
