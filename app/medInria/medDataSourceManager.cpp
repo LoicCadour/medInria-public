@@ -102,6 +102,9 @@ void medDataSourceManager::connectDataSource(medAbstractDataSource *dataSource)
     connect(dataSource, SIGNAL(dataToImportReceived(QString)),
             this, SLOT(importFile(QString)));
 
+    connect(dataSource, SIGNAL(load(QString)),
+        this, SLOT(loadFile(QString)));
+
     connect(dataSource, SIGNAL(dataToIndexReceived(QString)),
             this, SLOT(indexFile(QString)));
 }
@@ -141,6 +144,11 @@ void medDataSourceManager::exportData(const medDataIndex &index)
 void medDataSourceManager::importFile(QString path)
 {
     medDataManager::instance()->import(path,false);
+}
+
+void medDataSourceManager::loadFile(QString path)
+{
+    medDataManager::instance()->importNonPersistent(path);
 }
 
 void medDataSourceManager::indexFile(QString path)
