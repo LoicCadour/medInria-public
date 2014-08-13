@@ -147,7 +147,6 @@ public:\
     virtual QString identifier() const {return staticIdentifier();}\
     virtual QString name() const {return staticName();}\
     virtual QString description() const {return staticDescription();}
-
 #define MED_DATA_INTERFACE(_name,_desc) \
 public:\
     static QString staticIdentifier() {return QString(staticMetaObject.className());}\

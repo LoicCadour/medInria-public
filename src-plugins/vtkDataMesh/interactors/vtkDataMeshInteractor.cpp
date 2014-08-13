@@ -199,9 +199,9 @@ bool vtkDataMeshInteractor::registered()
 }
 
 
-void vtkDataMeshInteractor::setData(medAbstractData *data)
+void vtkDataMeshInteractor::setInputData(medAbstractData *data)
 {
-    medAbstractInteractor::setData(data);
+    medAbstractInteractor::setInputData(data);
 
     if(data->identifier() == "vtkDataMesh4D" || data->identifier() == "vtkDataMesh")
     {
@@ -299,7 +299,7 @@ void vtkDataMeshInteractor::setupParameters()
     connect(d->slicingParameter, SIGNAL(valueChanged(int)), this, SLOT(moveToSlice(int)));
     connect(d->view->positionBeingViewedParameter(), SIGNAL(valueChanged(QVector3D)), this, SLOT(updateSlicingParam()));
 
-    d->parameters << this->visibiltyParameter();
+    d->parameters << this->visibilityParameter();
 
     d->PointSizeParam = new medIntParameter("Point Size",this);
     d->PointSizeParam->setValue(1);
@@ -508,7 +508,7 @@ void vtkDataMeshInteractor::updatePipeline ()
             d->actor2d->SetProperty( d->actorProperty );
             d->actor3d->SetProperty( d->actorProperty );
 
-            d->view2d->UpdateBounds(pointSet->GetBounds(), 0, d->view->layer(this->data()));
+            d->view2d->UpdateBounds(pointSet->GetBounds(), 0, d->view->layer(this->inputData()));
         }
     }
     d->view3d->ResetCamera();
