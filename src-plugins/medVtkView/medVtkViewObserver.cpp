@@ -85,7 +85,14 @@ void medVtkViewObserver::Execute(vtkObject *caller, unsigned long event, void *c
     {
     case vtkImageView::CurrentPointChangedEvent:
     {
-        const double *pos = this->view2d->GetCurrentPoint();
+        qDebug()<<"BADOUMBA";
+
+        const double *pos;
+        if (caller == view2d)
+            pos = this->view2d->GetCurrentPoint();
+        else
+            pos = this->view3d->GetCurrentPoint();
+
         QVector3D qpos(doubleToQtVector3D(pos));
         if(m_view->positionBeingViewedParameter())
             m_view->positionBeingViewedParameter()->setValue(qpos);

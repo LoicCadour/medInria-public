@@ -138,6 +138,7 @@ medVtkView::medVtkView(QObject* parent): medAbstractImageView(parent),
     d->observer->setView(this);
 
     d->view2d->AddObserver(vtkImageView::CurrentPointChangedEvent, d->observer, 0);
+    d->view3d->AddObserver(vtkImageView::CurrentPointChangedEvent, d->observer, 0);
     d->view2d->AddObserver(vtkImageView::WindowLevelChangedEvent,  d->observer, 0);
     d->view2d->GetInteractorStyle()->AddObserver(vtkImageView2DCommand::CameraZoomEvent, d->observer, 0);
     d->view2d->GetInteractorStyle()->AddObserver(vtkImageView2DCommand::CameraPanEvent, d->observer, 0);
