@@ -64,12 +64,14 @@ public slots:
     void setRenderingType(const QString &type);
     void setAttribute(const QString & attribute);
     void setLut(const QString &lutName);
+    void setPointSize(int size);
+    void setPointPicked(double * point);
+    void reSetInteractorStyle();
 
     virtual void removeData();
     virtual void setUpViewForThumbnail();
     virtual void moveToSlice  (int slice);
-
-
+    
     virtual void updateWidgets();
 
 

@@ -52,7 +52,48 @@
 #include <medIntParameter.h>
 #include <medVtkViewBackend.h>
 
+#include <vtkSmartPointer.h>
+#include <vtkPointPicker.h>
+#include <vtkRenderWindow.h>
+#include <vtkRendererCollection.h>
+#include <vtkInteractorStyleTrackballCamera2.h>
+
 #include <vector>
+
+// Define interaction style
+class MouseInteractorStylePP : public vtkInteractorStyleTrackballCamera2
+{
+public:
+    static MouseInteractorStylePP* New();
+    vtkTypeMacro(MouseInteractorStylePP, vtkInteractorStyleTrackballCamera2);
+
+    virtual void OnLeftButtonDown() 
+    {
+        qDebug()<<"BLOUPPPPPPP";
+        if (this->Interactor->GetShiftKey() )
+        {
+            QString text1("Picking pixel: " + QString::number(this->Interactor->GetEventPosition()[0]) + " " + QString::number(this->Interactor->GetEventPosition()[1]));
+            this->Interactor->GetPicker()->Pick(this->Interactor->GetEventPosition()[0],
+                this->Interactor->GetEventPosition()[1],
+                0, // always zero.
+                this->Interactor->GetRenderWindow()->GetRenderers()->GetFirstRenderer());
+            double picked[3];
+            this->Interactor->GetPicker()->GetPickPosition(picked);
+            qDebug()<<"Picked value: " + QString::number(picked[0]) + " " + QString::number(picked[1]) + " " + QString::number(picked[2]);
+            meshInteractor->setPointPicked(picked);
+            /*tb->setCoordsOfVertice(text2);*/
+            // Forward events
+        }
+        vtkInteractorStyleTrackballCamera2::OnLeftButtonDown();
+    }
+
+    void SetMedInteractor(vtkDataMeshInteractor * meshInteractor){this->meshInteractor = meshInteractor;}
+
+private:
+    vtkDataMeshInteractor *meshInteractor; 
+};
+
+vtkStandardNewMacro(MouseInteractorStylePP);
 
 typedef QPair<vtkSmartPointer<vtkLookupTable>, QString> LutPair;
 
@@ -78,12 +119,16 @@ public:
     LutPair lut;
     AttributeSmartPointer attribute;
     double imageBounds[6];
+    double pointPicked[3];
+
+    QLabel *pointCoordLabel;
 
     medStringListParameter *attributesParam;
     medStringListParameter *LUTParam;
     medBoolParameter *edgeVisibleParam;
     medStringListParameter *colorParam;
     medStringListParameter *renderingParam;
+    medIntParameter * PointSizeParam;
 
     QList <medAbstractParameter*> parameters;
 
@@ -110,6 +155,8 @@ vtkDataMeshInteractor::vtkDataMeshInteractor(medAbstractView *parent):
     d->colorParam = NULL;
     d->renderingParam = NULL;
     d->slicingParameter = NULL;
+    d->pointCoordLabel = new QLabel;
+    connect(d->view, SIGNAL(orientationChanged()), this, SLOT(reSetInteractorStyle()));
 }
 
 
@@ -254,7 +301,30 @@ void vtkDataMeshInteractor::setupParameters()
 
     d->parameters << this->visibiltyParameter();
 
+    d->PointSizeParam = new medIntParameter("Point Size",this);
+    d->PointSizeParam->setValue(1);
+    connect(d->PointSizeParam,SIGNAL(valueChanged(int)),this,SLOT(setPointSize(int)));
+    d->parameters << d->PointSizeParam;
+
     this->updateWidgets();
+}
+
+void vtkDataMeshInteractor::setPointSize(int size)
+{
+    d->actorProperty->SetPointSize(size);
+    d->render->Render();
+}
+
+void vtkDataMeshInteractor::setPointPicked(double * point)
+{
+    d->pointPicked[0] = point[0];
+    d->pointPicked[1] = point[1];
+    d->pointPicked[2] = point[2];
+    int indices[3];
+    d->view2d->GetImageCoordinatesFromWorldCoordinates(d->pointPicked,indices);
+    QString text("Picked point: " + QString::number(indices[0]+1) + " " + QString::number(indices[1]+1) + " " + QString::number(indices[2]+1));
+    d->pointCoordLabel->setText(text);
+    d->view3d->SetCurrentPoint(d->pointPicked);
 }
 
 void vtkDataMeshInteractor::setOpacity(double value)
@@ -528,7 +598,8 @@ QWidget* vtkDataMeshInteractor::buildToolBoxWidget()
     layout->addRow(d->edgeVisibleParam->getLabel(), d->edgeVisibleParam->getCheckBox());
     layout->addRow(d->colorParam->getLabel(), d->colorParam->getComboBox());
     layout->addRow(d->renderingParam->getLabel(), d->renderingParam->getComboBox());
-
+    layout->addRow(d->PointSizeParam->getLabel(),d->PointSizeParam->getWidget());
+    layout->addWidget(d->pointCoordLabel);
     return toolbox;
 }
 
@@ -590,4 +661,15 @@ void vtkDataMeshInteractor::updateSlicingParam()
     d->slicingParameter->blockSignals(false);
 
     d->slicingParameter->setValue(d->view2d->GetSlice());
+}
+
+void vtkDataMeshInteractor::reSetInteractorStyle()
+{
+    if (d->view->orientation() == medImageView::VIEW_ORIENTATION_3D)
+    {
+        vtkSmartPointer<MouseInteractorStylePP> style = vtkSmartPointer<MouseInteractorStylePP>::New();
+        d->view3d->GetInteractor()->SetInteractorStyle( style );
+        style->SetMedInteractor(this);
+    }
+
 }
