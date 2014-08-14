@@ -69,7 +69,6 @@ public:
 
     virtual void OnLeftButtonDown() 
     {
-        qDebug()<<"BLOUPPPPPPP";
         if (this->Interactor->GetShiftKey() )
         {
             QString text1("Picking pixel: " + QString::number(this->Interactor->GetEventPosition()[0]) + " " + QString::number(this->Interactor->GetEventPosition()[1]));
