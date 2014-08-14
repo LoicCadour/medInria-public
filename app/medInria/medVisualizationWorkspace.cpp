@@ -17,15 +17,21 @@
 #include <medTabbedViewContainers.h>
 #include <medSettingsManager.h>
 #include <medToolBoxFactory.h>
+#include <medToolBox.h>
 
 class medVisualizationWorkspacePrivate
 {
 public:
-
+    medToolBox* meshToolBox;
 };
 
 medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medAbstractWorkspace(parent), d(new medVisualizationWorkspacePrivate)
 {
+    d->meshToolBox = medToolBoxFactory::instance()->createToolBox("medMeshToolsToolBox");
+    if(d->meshToolBox ){
+        this->addToolBox(d->meshToolBox );
+        d->meshToolBox->setWorkspace(this);
+    }
 }
 
 void medVisualizationWorkspace::setupViewContainerStack()

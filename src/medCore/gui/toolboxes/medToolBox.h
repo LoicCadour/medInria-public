@@ -14,6 +14,7 @@
 #pragma once
 
 #include <medCoreExport.h>
+#include <medAbstractWorkspace.h>
 
 #include <QtGui>
 
@@ -51,6 +52,8 @@ public:
      * @param void
     */
     virtual ~medToolBox();
+
+    virtual void setWorkspace(medAbstractWorkspace* workspace){}
 
     /**
      * @brief Adds a widget to the toolbox.
