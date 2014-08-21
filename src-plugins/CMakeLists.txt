@@ -62,6 +62,7 @@ set(PLUGIN_LIST
   itkProcessRegistrationDiffeomorphicDemons ON
   medVtkView                                ON
   medMeshTools								ON
+  medClut									ON
   )   
 
 
