@@ -15,6 +15,7 @@
 
 #include <medVtkView.h>
 #include <medVtkViewNavigator.h>
+#include "meshModify.h"
 
 #include <dtkLog/dtkLog.h>
 
@@ -49,6 +50,8 @@ bool medVtkViewPlugin::initialize()
     if (!medVtkView::registered()) { dtkWarn() << "Unable to register medVtkView type"; }
 
     if (!medVtkViewNavigator::registered()) { dtkWarn() << "Unable to register medVtkViewNavigator type"; }
+
+    if (!meshModifyToolBox::registered()) { dtkWarn() << "Unable to register medVtkView type"; }
 
     return true;
 }

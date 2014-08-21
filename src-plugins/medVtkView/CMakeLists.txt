@@ -51,6 +51,7 @@ endif()
 
 list_source_files(${PROJECT_NAME}
   ${CMAKE_CURRENT_SOURCE_DIR}
+  meshModify.cpp
   )
 
 set(${PROJECT_NAME}_QRC resources/medVtkView.qrc)
@@ -61,6 +62,7 @@ set(${PROJECT_NAME}_QRC resources/medVtkView.qrc)
 
 list_header_directories_to_include(${PROJECT_NAME}
   ${${PROJECT_NAME}_HEADERS}
+  meshModify.h
   )
 
 include_directories(${${PROJECT_NAME}_INCLUDE_DIRS}
