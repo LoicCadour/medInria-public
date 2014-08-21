@@ -15,7 +15,7 @@
 
 #include <medToolBox.h>
 #include "medVtkViewPluginExport.h"
-#include <medVtkView.h>
+#include <medAbstractLayeredView.h>
 #include <medAbstractWorkspace.h>
 
 #include <vtkSmartPointer.h>
@@ -50,12 +50,11 @@ public slots:
 
 private:
     medAbstractWorkspace* workspace;
-    medVtkView * _view;
+    medAbstractLayeredView * _view;
     QPushButton * _modifyButton;
     QPushButton * _cancelButton;
     QPushButton * _exportButton;
     QPushButton * _importButton;
-    QSpinBox * _spinBox;
     vtkSmartPointer<vtkBoxWidget> _boxWidget;
     vtkSmartPointer<vtkMyCallback> _callback;
     vtkMetaDataSet * _dataset;

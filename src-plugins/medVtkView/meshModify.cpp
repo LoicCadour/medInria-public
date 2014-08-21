@@ -49,12 +49,13 @@ public:
         for(unsigned int i = 0; i < _dataset->GetNumberOfActors(); i++) {
             _dataset->GetActor(i)->SetUserTransform(t);
         }
-
     }
     void setDataSet(vtkMetaDataSet * dataset) {_dataset = dataset;}
+    void setView(medAbstractLayeredView* view) {_view = view;}
 
 private:
     vtkMetaDataSet * _dataset;
+    medAbstractLayeredView* _view;
 };
 
 
@@ -70,14 +71,6 @@ meshModifyToolBox::meshModifyToolBox(QWidget * parent)
     this->addWidget(w);
     w->setLayout(new QVBoxLayout);
     
-    _spinBox = new QSpinBox();
-    _spinBox->setRange(0,100);
-    QLabel * _spinBoxLabel = new QLabel("Set the layer number for the mesh you wish to modify : ");
-    QHBoxLayout * _spinBoxLayout = new QHBoxLayout;
-    _spinBoxLayout->addWidget(_spinBoxLabel);
-    _spinBoxLayout->addWidget(_spinBox);
-    qobject_cast<QVBoxLayout*>(w->layout())->addLayout(_spinBoxLayout);
-
     _modifyButton = new QPushButton("Modify");
     _modifyButton->setEnabled(false);
     w->layout()->addWidget(_modifyButton);
@@ -132,7 +125,7 @@ void meshModifyToolBox::updateView()
     if (_view != view)
         cancel();
 
-    medVtkView * view3d = qobject_cast<medVtkView*>(view);
+    medAbstractLayeredView * view3d = qobject_cast<medAbstractLayeredView*>(view);
     if (! view3d) {
         _modifyButton->setEnabled(false);
         return;
@@ -154,7 +147,7 @@ void meshModifyToolBox::setWorkspace(medAbstractWorkspace* workspace)
 
 void meshModifyToolBox::toggleWidget()
 {
-    medAbstractData * data = _view->layerData(_spinBox->value());
+    medAbstractData * data = _view->layerData(_view->currentLayer());
 
     if ( ! _dataset && ! data->identifier().contains("vtkDataMesh"))
         return;
@@ -177,10 +170,10 @@ void meshModifyToolBox::toggleWidget()
         _boxWidget->PlaceWidget(bounds);
         _callback = vtkSmartPointer<vtkMyCallback>::New();
         _callback->setDataSet(_dataset);
+        _callback->setView(_view);
         _boxWidget->AddObserver(vtkCommand::InteractionEvent, _callback);
 
         _boxWidget->On();
-        _spinBox->setEnabled(false);
         _cancelButton->setEnabled(true);
         _exportButton->setEnabled(true);
         _importButton->setEnabled(true);
@@ -265,7 +258,6 @@ void meshModifyToolBox::cancel()
 
     _modifying = true;
     _modifyButton->setText("Modify");
-    _spinBox->setEnabled(true);
     _cancelButton->setEnabled(false);
     _exportButton->setEnabled(false);
     _importButton->setEnabled(false);
