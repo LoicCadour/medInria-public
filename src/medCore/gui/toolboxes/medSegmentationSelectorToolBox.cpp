@@ -26,6 +26,7 @@
 class medSegmentationSelectorToolBoxPrivate
 {
 public:
+    medAbstractWorkspace *workspace;
     QComboBox *chooseSegmentationComboBox;
     medSegmentationAbstractToolBox * currentSegmentationToolBox;
     QHash<QString, medSegmentationAbstractToolBox*> segmentationToolBoxes;
@@ -127,5 +128,4 @@ void medSegmentationSelectorToolBox::changeCurrentToolBox(int index)
 
     connect ( d->currentSegmentationToolBox, SIGNAL(success()), this, SIGNAL(success()));
 }
-
 

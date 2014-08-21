@@ -53,8 +53,6 @@ public:
     */
     virtual ~medToolBox();
 
-    virtual void setWorkspace(medAbstractWorkspace* workspace){}
-
     /**
      * @brief Adds a widget to the toolbox.
      * This widget will be horizontally or vertically added to the layout given the toolbox's orientation.
@@ -99,6 +97,9 @@ public:
      * @return medToolBoxBody *
     */
     medToolBoxBody   *body()   const;
+
+    virtual void setWorkspace(medAbstractWorkspace* workspace);
+    medAbstractWorkspace* getWorkspace();
 
     /**
      * @brief Enables or disable the aboutPlugin button.
