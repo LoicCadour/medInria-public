@@ -22,16 +22,30 @@
 class medVisualizationWorkspacePrivate
 {
 public:
-    medToolBox* meshToolBox;
+
 };
 
 medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medAbstractWorkspace(parent), d(new medVisualizationWorkspacePrivate)
 {
-    d->meshToolBox = medToolBoxFactory::instance()->createToolBox("medMeshToolsToolBox");
-    if(d->meshToolBox ){
-        this->addToolBox(d->meshToolBox );
-        d->meshToolBox->setWorkspace(this);
+	medToolBox* meshToolBox = medToolBoxFactory::instance()->createToolBox("medMeshToolsToolBox");
+	if(meshToolBox){
+		this->addToolBox(meshToolBox);
+		meshToolBox->setWorkspace((this));
+	}
+
+    medToolBox* meshClutToolBox = medToolBoxFactory::instance()->createToolBox("medClutToolBox");
+    if(meshClutToolBox){
+        this->addToolBox(meshClutToolBox);
+        meshClutToolBox->setWorkspace((this));
     }
+
+    medToolBox* meshModifyToolBox = medToolBoxFactory::instance()->createToolBox("meshModifyToolBox");
+    if(meshModifyToolBox){
+        this->addToolBox(meshModifyToolBox);
+        meshModifyToolBox->setWorkspace((this));
+    }
+    else 
+        qDebug()<<"PAS DE MESHMODIFY TBX";
 }
 
 void medVisualizationWorkspace::setupViewContainerStack()
