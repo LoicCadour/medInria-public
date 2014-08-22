@@ -33,7 +33,7 @@ public:
 
     static bool registered();
 
-    virtual void setData(medAbstractData *data);
+    virtual void setInputData(medAbstractData *data);
     virtual medAbstractData *data() const;
 
     virtual QWidget* buildLayerWidget();
@@ -45,7 +45,7 @@ public:
 
 
     double getCurrentTime();
-    /** Assigns ranfe array the minimum and maximum time of the sequence */
+    /** Assigns range array the minimum and maximum time of the sequence */
     void timeRange (double* range);
     /** Returns minimum time step for the sequence */
     double frameRate();

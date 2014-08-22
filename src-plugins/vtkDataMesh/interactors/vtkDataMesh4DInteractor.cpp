@@ -91,7 +91,7 @@ bool vtkDataMesh4DInteractor::registered()
                                                                           vtkDataMesh4DInteractor::dataHandled());
 }
 
-void vtkDataMesh4DInteractor::setData(medAbstractData *data)
+void vtkDataMesh4DInteractor::setInputData(medAbstractData *data)
 {
     double range[2]={0,0};
     double mintimestep, mintime, maxtime;
