@@ -17,6 +17,7 @@
 #include <medTabbedViewContainers.h>
 #include <medSettingsManager.h>
 #include <medToolBoxFactory.h>
+#include <medToolBox.h>
 
 class medVisualizationWorkspacePrivate
 {
@@ -26,6 +27,18 @@ public:
 
 medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medAbstractWorkspace(parent), d(new medVisualizationWorkspacePrivate)
 {
+    medToolBox* ICPToolBox = medToolBoxFactory::instance()->createToolBox("iterativeClosestPointToolBox");
+    if (ICPToolBox)
+    {
+        ICPToolBox->setWorkspace(this);
+        this->addToolBox(ICPToolBox);
+    }
+    medToolBox* meshToolBox = medToolBoxFactory::instance()->createToolBox("scarAnalysisToolBox");
+    if (meshToolBox)
+    {
+        meshToolBox->setWorkspace(this);
+        this->addToolBox(meshToolBox);
+    }
 }
 
 void medVisualizationWorkspace::setupViewContainerStack()

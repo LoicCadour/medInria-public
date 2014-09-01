@@ -72,6 +72,8 @@ public:
     virtual medAbstractViewNavigator* primaryNavigator();
     virtual QList<medAbstractNavigator*> extraNavigators();
 
+    virtual void setTransferFunctions( QList<double> scalars, QList<QColor> colors );
+
 public slots:
     virtual void reset() = 0;
     virtual void update() = 0;

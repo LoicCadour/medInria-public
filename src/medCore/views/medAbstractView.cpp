@@ -246,3 +246,9 @@ QImage medAbstractView::generateThumbnail(const QSize &size)
     emit aboutToBuildThumbnail();
     return this->buildThumbnail(size);
 }
+
+void medAbstractView::setTransferFunctions( QList<double> scalars,
+                                            QList<QColor> colors )
+{
+    DTK_DEFAULT_IMPLEMENTATION;
+}
