@@ -100,17 +100,38 @@
         <file>icons/user_edit.png</file>
         <file>medInria.qss</file>
         <file>pixmaps/unknown.jpg</file>
+        <file>pixmaps/frame.png</file>
+        <file>pixmaps/scrollbar-horizontal-addline.png</file>
+        <file>pixmaps/scrollbar-horizontal-background.png</file>
+        <file>pixmaps/scrollbar-horizontal-handle.png</file>
+        <file>pixmaps/scrollbar-horizontal-subline.png</file>
+        <file>pixmaps/scrollbar-vertical-addline.png</file>
+        <file>pixmaps/scrollbar-vertical-background.png</file>
+        <file>pixmaps/scrollbar-vertical-handle.png</file>
+        <file>pixmaps/scrollbar-vertical-subline.png</file>
+        <file>pixmaps/treeview-frame.png</file>
+        <file>pixmaps/toolbox-body.png</file>
+        <file>pixmaps/toolbox-header.png</file>
+        <file>pixmaps/tabwidget-pane.png</file>
         <file>pixmaps/checkbox.png</file>
         <file>pixmaps/checkbox-checked.png</file>
         <file>pixmaps/checkbox-partial.png</file>
         <file>pixmaps/radio.png</file>
         <file>pixmaps/radio-checked.png</file>
         <file>pixmaps/radio-partial.png</file>
+        <file>pixmaps/slider-vertical-groove.png</file>
+        <file>pixmaps/statusbar.png</file>
+        <file>pixmaps/slider-horizontal-groove.png</file>
         <file>pixmaps/drop-down.png</file>
         <file>pixmaps/treeview-branch-closed.png</file>
         <file>pixmaps/treeview-branch-open.png</file>
+        <file>pixmaps/database_preview_thumbnail_default.tiff</file>
         <file>pixmaps/database_navigator_item_checker_checked.png</file>
         <file>pixmaps/database_navigator_item_checker_unchecked.png</file>
+        <file>pixmaps/database_navigator_item_count.png</file>
+        <file>pixmaps/database_navigator_item_label.png</file>
+        <file>pixmaps/mediseen-logo.png</file>
+        <file>pixmaps/medInria-logo.png</file>
         <file>pixmaps/medInria-logo-homepage.png</file>
         <file>pixmaps/medInria-splash.png</file>
         <file>pixmaps/delete.png</file>
@@ -136,20 +157,23 @@
         <file>icons/whitecross.svg</file>
         <file>icons/link.svg</file>
         <file>icons/broken_link.svg</file>
+        <file>icons/link_wl.svg</file>
+        <file>icons/broken_link_wl.svg</file>
         <file>icons/un_maximize.svg</file>
-        <file>pixmaps/radio-disabled.png</file>
-        <file>pixmaps/radio-checked-disabled.png</file>
-        <file>pixmaps/plus-button.png</file>
-        <file>pixmaps/checkbox-disabled.png</file>
-        <file>pixmaps/checkbox-checked-disabled.png</file>
-        <file>pixmaps/arrow-top-disabled.png</file>
-        <file>pixmaps/arrow-top.png</file>
-        <file>pixmaps/arrow-right-disabled.png</file>
-        <file>pixmaps/arrow-right.png</file>
-        <file>pixmaps/arrow-left-disabled.png</file>
-        <file>pixmaps/arrow-left.png</file>
-        <file>pixmaps/arrow-bot-disabled.png</file>
         <file>pixmaps/arrow-bot.png</file>
-        <file>icons/adjust_size.png</file>
+        <file>pixmaps/arrow-left.png</file>
+        <file>pixmaps/arrow-right.png</file>
+        <file>pixmaps/arrow-top.png</file>
+        <file>pixmaps/plus-button.png</file>
+        <file>pixmaps/radio-checked-disabled.png</file>
+        <file>pixmaps/radio-disabled.png</file>
+        <file>pixmaps/checkbox-checked-disabled.png</file>
+        <file>pixmaps/checkbox-disabled.png</file>
+        <file>pixmaps/arrow-bot-disabled.png</file>
+        <file>pixmaps/arrow-left-disabled.png</file>
+        <file>pixmaps/arrow-right-disabled.png</file>
+        <file>pixmaps/arrow-top-disabled.png</file>
+        <file>music_logo.png</file>
+        <file>music_logo_small.png</file>
     </qresource>
 </RCC>

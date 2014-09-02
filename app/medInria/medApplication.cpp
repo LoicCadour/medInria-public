@@ -120,12 +120,12 @@ medApplication::medApplication(int & argc, char**argv) :
 {
     d->mainWindow = NULL;
 
-    this->setApplicationName("medInria");
+    this->setApplicationName("MUSIC");
     qDebug() << "Version:" << MEDINRIA_VERSION;
     this->setApplicationVersion(MEDINRIA_VERSION);
     this->setOrganizationName("inria");
     this->setOrganizationDomain("fr");
-    this->setWindowIcon(QIcon(":/medInria.ico"));
+    this->setWindowIcon(QIcon(":/music_logo_small.ico"));
 
     d->fixSettingsPath(this->organizationName(),this->applicationName());
 
