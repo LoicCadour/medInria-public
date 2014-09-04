@@ -125,7 +125,7 @@ medApplication::medApplication(int & argc, char**argv) :
     this->setApplicationVersion(MEDINRIA_VERSION);
     this->setOrganizationName("inria");
     this->setOrganizationDomain("fr");
-    this->setWindowIcon(QIcon(":/music_logo_small.ico"));
+    this->setWindowIcon(QIcon(":music_logo_small.png"));
 
     d->fixSettingsPath(this->organizationName(),this->applicationName());
 

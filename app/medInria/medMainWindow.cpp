@@ -252,7 +252,7 @@ medMainWindow::medMainWindow ( QWidget *parent ) : QMainWindow ( parent ), d ( n
     connect(d->homepageArea, SIGNAL(showWorkspace(QString)), this, SLOT(showWorkspace(QString)));
 
     this->setCentralWidget ( d->stack );
-    this->setWindowTitle("MUSIC"); //name of the software - title of window
+    this->setWindowTitle ( qApp->applicationName() );
 
     //  Connect the messageController with the status for notification messages management
     connect(medMessageController::instance(), SIGNAL(addMessage(medMessage*)),    d->statusBar, SLOT(addMessage(medMessage*)));
