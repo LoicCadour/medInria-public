@@ -2033,7 +2033,8 @@ void AlgorithmPaintToolbox::interpolate()
     img1 = extract2DImageSlice(m_itkMask, 2, 0, size, start);
     isD1 = isData(img1,label);
     isD0 = false;
-    unsigned int slice0,slice1=0; 
+    unsigned int slice0=0;
+    unsigned int slice1=0;
         
         for (int i=0; i<(sizeZ-1); ++i)
         {

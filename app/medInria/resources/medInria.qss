@@ -130,13 +130,13 @@ $WIDGET_COLOR                       = $GREY11;
 
 $TOOLTIP_COLOR                      = $GREY04;
 
-$DISABLE_COLOR                      = $DARKGRAY; /*Text of disabled widgets*/
+$DISABLE_COLOR                      = $DARKGRAY; /*Text color of disabled widgets*/
 
 $GRIDLINE_COLOR                     = $GREY09;
 
-$EDITION_COLOR                      = $GREY11;
+$EDITION_COLOR                      = $GREY11;   /*Text color of some headers and labels*/
 
-$HEADER_COLOR                       = $GREY11;
+$HEADER_COLOR                       = $GREY11;   /*Text color of some headers and labels*/
 
 $PROGRESS_BAR_COLOR                 = $HIGHLIGHT_COLOR;
 
@@ -165,7 +165,7 @@ $VIEW_PROPERTY_COLOR                = $GREY11;
 $VIEW_PROPERTY_ITEM_COLOR           = $WIDGET_COLOR;
 $VIEW_PROPERTY_ITEM_SELECTED_COLOR  = $COMBO_BOX_ITEM_SELECTED_COLOR;
 
-$HOME_PAGE_BUTTON_COLOR            = $HIGHLIGHT_COLOR;
+$HOME_PAGE_BUTTON_COLOR             = $HIGHLIGHT_COLOR;
 
 
 /*******************************************************************************

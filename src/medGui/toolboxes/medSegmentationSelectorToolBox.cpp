@@ -118,7 +118,6 @@ void medSegmentationSelectorToolBox::changeCurrentToolBox(int index)
         return;
     }
 
-
     d->currentSegmentationToolBox = toolbox;
     d->currentSegmentationToolBox->header()->hide();
 
