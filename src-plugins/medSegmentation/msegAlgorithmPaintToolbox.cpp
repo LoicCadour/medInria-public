@@ -96,7 +96,7 @@ public:
             return false;
         m_cb->setCurrentView(imageView);
 
-        // let's take the first non medImageMaskAnnotationData as the reference data
+        // let's take the first non medImageMaskAnnotation as the reference data
         // TODO: to improve...
         foreach(medAbstractData * data, imageView->dataList())
         {
@@ -677,7 +677,10 @@ void AlgorithmPaintToolbox::updateView()
 
     updateMouseInteraction();
 
-    // TODO : get rid of similar lines in mousePressEvent, we need this here otherwise we cannot use interpolate/copy/paste 
+    if ( !m_imageData ) // no data = return
+        return;
+
+    // TODO : get rid of similar lines in mousePressEvent, we need this here otherwise we cannot use interpolate/copy/paste
     //                     //  on the view as long as the setData is not called for this view
     if (currentView)
     {

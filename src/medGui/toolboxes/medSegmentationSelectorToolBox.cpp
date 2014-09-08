@@ -60,7 +60,6 @@ medSegmentationSelectorToolBox::medSegmentationSelectorToolBox(QWidget *parent) 
 
     QWidget *mainWidget = new QWidget;
     d->mainLayout = new QVBoxLayout;
-
     d->chooseSegmentationComboBox->adjustSize();
     d->mainLayout->addWidget(d->chooseSegmentationComboBox);
     mainWidget->setLayout(d->mainLayout);
@@ -86,7 +85,9 @@ void medSegmentationSelectorToolBox::changeCurrentToolBox(int index)
     //get identifier for toolbox.
     QString identifier = d->chooseSegmentationComboBox->itemData(index).toString();
     if (d->segmentationToolBoxes.contains (identifier))
+    {
         toolbox = d->segmentationToolBoxes[identifier];
+    }
     else
     {
         medToolBox* tb = medToolBoxFactory::instance()->createToolBox(identifier, this);
@@ -95,7 +96,9 @@ void medSegmentationSelectorToolBox::changeCurrentToolBox(int index)
         {
             medAbstractWorkspace* workspace = getWorkspace();
             if(workspace)
+            {
                 toolbox->setWorkspace(workspace);
+            }
             toolbox->setStyleSheet("medToolBoxBody {border:none}");
             d->segmentationToolBoxes[identifier] = toolbox;
             connect(toolbox, SIGNAL(installEventFilterRequest(medViewEventFilter*)),

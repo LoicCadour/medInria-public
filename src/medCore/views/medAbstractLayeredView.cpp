@@ -180,7 +180,7 @@ void medAbstractLayeredView::addLayer(medAbstractData *data)
 
 QList<dtkSmartPointer<medAbstractData> > medAbstractLayeredView::dataList() const
 {
-    return d->layersDataList;
+        return d->layersDataList;
 }
 
 unsigned int medAbstractLayeredView::layer(medAbstractData * data)
