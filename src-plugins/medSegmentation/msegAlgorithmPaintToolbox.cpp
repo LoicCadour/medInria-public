@@ -372,6 +372,7 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_wandUpperThresholdSpinBox->setMaximum(1000000);
     m_wandUpperThresholdSpinBox->setDecimals(2);
     m_wandUpperThresholdSpinBox->hide();
+    m_wandUpperThresholdSpinBox->setPrefix("Max: ");
 
     m_wandLowerThresholdSpinBox = new QDoubleSpinBox(displayWidget);
     m_wandLowerThresholdSpinBox->setToolTip(tr("Lower Threshold"));
@@ -379,6 +380,7 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_wandLowerThresholdSpinBox->setMaximum(1000000);
     m_wandLowerThresholdSpinBox->setDecimals(2);
     m_wandLowerThresholdSpinBox->hide();
+    m_wandLowerThresholdSpinBox->setPrefix("Min: ");
 
     wandTimer = QTime();
 
@@ -424,13 +426,15 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     magicWandLayout = new QFormLayout(this);
     magicWandLayout->addRow(m_wandInfo);
     magicWandLayout->addRow(magicWandCheckboxes);
-    magicWandLayout->addRow(magicWandLayout1);
-    magicWandLayout->addRow(magicWandLayout2);
+    magicWandLayout->addRow(magicWandLayout2);  // Min // Lower
+    magicWandLayout->addRow(magicWandLayout1);  // Max // Upper
     magicWandLayout->addRow(magicWandLayout3);
     
     layout->addLayout(magicWandLayout);
 
     this->generateLabelColorMap(24);
+
+    m_ROIVolumeLabel = new QLabel();
 
     QHBoxLayout * labelSelectionLayout = new QHBoxLayout();
 
@@ -453,6 +457,7 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_colorLabel = new QLabel(tr("Label:"), displayWidget);
     m_colorLabel->hide();
 
+    labelSelectionLayout->addWidget(m_ROIVolumeLabel);
     labelSelectionLayout->addStretch();
     labelSelectionLayout->addWidget(m_colorLabel );
     labelSelectionLayout->addWidget( m_labelColorWidget );
@@ -721,6 +726,7 @@ void AlgorithmPaintToolbox::clearMask()
         m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
 
         m_maskAnnotationData->invokeModified();
+        calculateROIStatistics();
     }
 }
 
@@ -938,7 +944,7 @@ void AlgorithmPaintToolbox::updateWandRegion(medAbstractImageView * view, QVecto
 
     bool isInside;
     unsigned int planeIndex = computePlaneIndex(vec,index,isInside);
-    unsigned int currentSlice = index[planeIndex];
+
     if (isInside)
     {
         RunConnectedFilter < itk::Image <char,3> > (index,planeIndex);
@@ -1090,6 +1096,7 @@ AlgorithmPaintToolbox::RunConnectedFilter (MaskType::IndexType &index, unsigned 
     m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
 
     m_maskAnnotationData->invokeModified();
+    calculateROIStatistics();
 }
 
 template <typename IMAGE>
@@ -1247,6 +1254,7 @@ void AlgorithmPaintToolbox::updateStroke(ClickAndMoveEventFilter * filter, medAb
     }
 
     m_maskAnnotationData->invokeModified();
+    calculateROIStatistics();
 }
 
 void AlgorithmPaintToolbox::updateFromGuiItems()
@@ -1450,6 +1458,7 @@ void AlgorithmPaintToolbox::undo()
     m_itkMask->GetPixelContainer()->Modified();
     m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
     m_maskAnnotationData->invokeModified();
+    calculateROIStatistics();
 
     //saveCurrentStateForCursor(currentView,currentPlaneIndex,currentIdSlice);
 }
@@ -1725,9 +1734,6 @@ void AlgorithmPaintToolbox::copySliceMask()
     
     int slice = index3D[planeIndex];
 
-    typedef itk::ImageLinearIteratorWithIndex< Mask2dType > LinearIteratorType;
-    typedef itk::ImageSliceIteratorWithIndex< MaskType> SliceIteratorType;
-
     Mask2dType::RegionType region;
     Mask2dType::RegionType::SizeType size;
     Mask2dType::RegionType::IndexType index2d;
@@ -1738,7 +1744,7 @@ void AlgorithmPaintToolbox::copySliceMask()
     char direction[2];
     for (i = 0, j = 0; i < 3; ++i )
     {
-        if (i != planeIndex)
+        if (i != (unsigned int)planeIndex)
         {
             direction[j] = i;
             j++;
@@ -1787,15 +1793,11 @@ void AlgorithmPaintToolbox::pasteSliceMask()
     
     int slice = index3D[planeIndex];
 
-    Mask2dType::RegionType region;
-    Mask2dType::RegionType::SizeType size;
-    Mask2dType::RegionType::IndexType index2d;
-
     unsigned int i, j;
     char direction[2];
     for (i = 0, j = 0; i < 3; ++i )
     {
-        if (i != planeIndex)
+        if (i != (unsigned int)planeIndex)
         {
             direction[j] = i;
             j++;
@@ -1817,6 +1819,7 @@ void AlgorithmPaintToolbox::pasteSliceMask()
     m_itkMask->GetPixelContainer()->Modified();
     m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
     m_maskAnnotationData->invokeModified();
+    calculateROIStatistics();
 }
 
 char AlgorithmPaintToolbox::computePlaneIndex(const QVector3D & vec,MaskType::IndexType & index,bool & isInside)
@@ -1952,6 +1955,7 @@ void AlgorithmPaintToolbox::removeCursorDisplay()
     m_itkMask->GetPixelContainer()->Modified();
     m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
     m_maskAnnotationData->invokeModified();
+    calculateROIStatistics();
 }
 
 void AlgorithmPaintToolbox::increaseBrushSize()
@@ -2055,10 +2059,10 @@ void AlgorithmPaintToolbox::interpolate()
                     unsigned int coord0[2],coord1[2];
                     computeCentroid(iterator0,coord0);
                     computeCentroid(iterator1,coord1);
-                    unsigned int center[2]={size[0]/2,size[1]/2};
-                    int C0C1[2] = {coord1[0]- coord0[0],coord1[1]-coord0[1]};
-                    int C0center[2] = {center[0]- coord0[0],center[1]-coord0[1]};
-                    int C1center[2] = {center[0]- coord1[0],center[1]-coord1[1]};
+                    unsigned int center[2]={(unsigned int)(size[0]/2),(unsigned int)(size[1]/2)};
+                    int C0C1[2] =       {(int)(coord1[0]- coord0[0]),(int)(coord1[1]-coord0[1])};
+                    int C0center[2] =   {(int)(center[0]- coord0[0]),(int)(center[1]-coord0[1])};
+                    int C1center[2] =   {(int)(center[0]- coord1[0]),(int)(center[1]-coord1[1])};
                     Mask2dType::Pointer      img0tr             = Mask2dType::New();
                     Mask2dType::Pointer      img1tr             = Mask2dType::New();
                     img0tr = translateImageByVec(img0,C0center);
@@ -2073,7 +2077,7 @@ void AlgorithmPaintToolbox::interpolate()
                     addSliceToStack(currentView,planeIndex,listIdSlice); 
                     // -------------------------------------------------
                     // Interpolate the "j" intermediate slice (float) // float->unsigned char 0/255 and copy into output volume
-                    for (int j=slice0+1; j<slice1; ++j) // for each intermediate slice
+                    for (unsigned int j=slice0+1; j<slice1; ++j) // for each intermediate slice
                     {
                         double vec[2];
                         vec[0]= (((j-slice0)*(C0C1[0]/(float)(slice1-slice0))+coord0[0])-center[0]);
@@ -2084,6 +2088,7 @@ void AlgorithmPaintToolbox::interpolate()
                 isD0=false;
             }
         } // end for each slice
+        calculateROIStatistics();
 }
 
 // Is there data to observe in the image ?
@@ -2278,4 +2283,31 @@ void AlgorithmPaintToolbox::computeIntermediateSlice(Mask2dFloatType::Pointer di
     }
 }
 
-
+void AlgorithmPaintToolbox::calculateROIStatistics()
+{
+     if(!m_itkMask)
+         return;
+     MaskType::SizeType size = m_itkMask->GetLargestPossibleRegion().GetSize();
+     MaskType::IndexType px;
+     int nbPixInMask = 0;
+     for (int sl=0 ; sl<(int)size[2] ; sl++)
+     {
+         for (int y=0 ; y<(int)size[1] ; y++)
+         {
+             for (int x=0 ; x<(int)size[0] ; x++)
+             {
+                 px[0] = x;
+                 px[1] = y;
+                 px[2] = sl;
+                 if (m_itkMask->GetPixel(px)>0)
+                 {
+                     nbPixInMask++;
+                 }
+             }
+         }
+     }
+     MaskType::SpacingType spacing = m_itkMask->GetSpacing();
+     double volumeOfOneVox = spacing[0]*spacing[1]*spacing[2]; //in mm3
+     double maskVolume = nbPixInMask * volumeOfOneVox / 1000;
+     m_ROIVolumeLabel->setText("<b>ROI Volume: </b>" + QString::number(maskVolume) + " cm<sup>3</sup> (" + QString::number(nbPixInMask) + " voxels)");
+}

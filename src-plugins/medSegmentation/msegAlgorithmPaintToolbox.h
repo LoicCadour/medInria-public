@@ -94,6 +94,8 @@ public:
     void computeCentroid(Mask2dIterator itmask,unsigned int *coord);
     Mask2dType::Pointer translateImageByVec(Mask2dType::Pointer img,int *vec);
 
+    void calculateROIStatistics();
+
     dtkPlugin* plugin();
 
     medAbstractData* processOutput();
@@ -192,6 +194,7 @@ private:
     QShortcut *removeSeed_shortcut;
     QCheckBox *m_wand3DCheckbox, *m_wand3DRealTime;
     QLabel * m_wandInfo;
+    QLabel *m_ROIVolumeLabel;
     QTime wandTimer;
     
     bool seedPlanted;
