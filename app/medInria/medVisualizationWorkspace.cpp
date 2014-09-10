@@ -33,6 +33,13 @@ medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medAbstr
     //    ICPToolBox->setWorkspace(this);
     //    this->addToolBox(ICPToolBox);
     //}
+
+    medToolBox* manualRegistrationToolBox = medToolBoxFactory::instance()->createToolBox("manualRegistrationToolBox");
+    if (manualRegistrationToolBox)
+    {
+        manualRegistrationToolBox->setWorkspace(this);
+        this->addToolBox(manualRegistrationToolBox);
+    }
 }
 
 void medVisualizationWorkspace::setupViewContainerStack()
