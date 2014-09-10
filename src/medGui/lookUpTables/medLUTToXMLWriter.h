@@ -19,7 +19,7 @@
 
 class medLUTToXMLWriterPrivate;
 
-class medLUTToXMLWriter {
+class MEDGUI_EXPORT medLUTToXMLWriter {
 public:
     medLUTToXMLWriter(const QList<medClutEditorTable*> & tables);
     ~medLUTToXMLWriter();

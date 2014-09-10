@@ -93,16 +93,12 @@ itkFiltersToolBox::itkFiltersToolBox ( QWidget *parent ) : medFilteringAbstractT
                 << "Multiply image by constant" 
                 << "Divide image by constant"
                 << "Gaussian blur" 
-                << "Median filter"
                 << "Normalize image filter" 
-                << "Intensity windowing filter"
+                << "Median filter"
                 << "Invert intensity filter"
-                << "Threshold an image"
                 << "Shrink image filter"
-                << "Dilate image filter"
-                << "Erode image filter"
-                << "Close image filter"
-                << "Open image filter"
+                << "Intensity windowing filter"
+                << "Threshold an image"
                 << "Component threshold filter"  ;
     
     d->filters->addItems ( filtersList );

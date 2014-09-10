@@ -13,10 +13,11 @@
 
 #pragma once
 
+#include "medGuiExport.h"
 #include <QInputDialog>
 #include <QWidget>
 
-class medSaveLUTDialog : public QInputDialog
+class MEDGUI_EXPORT medSaveLUTDialog : public QInputDialog
 {
     Q_OBJECT
 public:
