@@ -40,6 +40,14 @@ medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medAbstr
         manualRegistrationToolBox->setWorkspace(this);
         this->addToolBox(manualRegistrationToolBox);
     }
+
+    /*medToolBox* meshToolBox = medToolBoxFactory::instance()->createToolBox("scarAnalysisToolBox");
+    if (meshToolBox)
+    {
+         meshToolBox->setWorkspace(this);
+         this->addToolBox(meshToolBox);
+    }*/
+
 }
 
 void medVisualizationWorkspace::setupViewContainerStack()
