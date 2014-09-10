@@ -27,18 +27,12 @@ public:
 
 medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medAbstractWorkspace(parent), d(new medVisualizationWorkspacePrivate)
 {
-    medToolBox* ICPToolBox = medToolBoxFactory::instance()->createToolBox("iterativeClosestPointToolBox");
-    if (ICPToolBox)
-    {
-        ICPToolBox->setWorkspace(this);
-        this->addToolBox(ICPToolBox);
-    }
-    medToolBox* meshToolBox = medToolBoxFactory::instance()->createToolBox("scarAnalysisToolBox");
-    if (meshToolBox)
-    {
-        meshToolBox->setWorkspace(this);
-        this->addToolBox(meshToolBox);
-    }
+    //medToolBox* ICPToolBox = medToolBoxFactory::instance()->createToolBox("iterativeClosestPointToolBox");
+    //if (ICPToolBox)
+    //{
+    //    ICPToolBox->setWorkspace(this);
+    //    this->addToolBox(ICPToolBox);
+    //}
 }
 
 void medVisualizationWorkspace::setupViewContainerStack()
