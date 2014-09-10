@@ -21,7 +21,7 @@
 
 class medXMLToLUTReaderPrivate;
 
-class medXMLToLUTReader {
+class MEDGUI_EXPORT medXMLToLUTReader {
 public:
     medXMLToLUTReader(QList<medClutEditorTable*> * tables);
     ~medXMLToLUTReader();
