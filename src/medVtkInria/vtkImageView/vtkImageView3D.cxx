@@ -360,6 +360,7 @@ void vtkImageView3D::SetupVolumeRendering()
     this->VolumeProperty->SetScalarOpacity(0, this->GetOpacityTransferFunction(0) );
     this->VolumeProperty->SetColor(0, this->GetColorTransferFunction(0) );
     this->PlanarWindowLevel->SetLookupTable(this->GetColorTransferFunction(0));
+    
   }
   else if (!this-VolumeProperty->GetIndependentComponents())
   {
@@ -854,32 +855,37 @@ void vtkImageView3D::SetColorLevel (double s,int layer)
 //----------------------------------------------------------------------------
 void vtkImageView3D::UpdateVolumeFunctions(int layer)
 {
-  vtkLookupTable* lookuptable = this->GetLookupTable(layer);
-  if ( !this->GetUseLookupTable(layer) || lookuptable == NULL )
-    return;
+  //vtkLookupTable* lookuptable = this->GetLookupTable(layer);
+  //
+  //if ( !this->GetUseLookupTable(layer) || lookuptable == NULL )
+  //  return;
 
-  vtkColorTransferFunction * color   =
-  this->VolumeProperty->GetRGBTransferFunction(layer);
-  vtkPiecewiseFunction     * opacity =
-  this->VolumeProperty->GetScalarOpacity(layer);
+  //vtkColorTransferFunction * color   =
+  //this->VolumeProperty->GetRGBTransferFunction(layer);
+  //vtkPiecewiseFunction     * opacity =
+  //this->VolumeProperty->GetScalarOpacity(layer);
+  //
+  //const double * range = lookuptable->GetRange();
+  //double width = range[1] - range[0];
 
-  const double * range = lookuptable->GetRange();
-  double width = range[1] - range[0];
+  //int numColors = lookuptable->GetNumberOfTableValues();
+  //double factor = 1.0 / static_cast< double >( numColors - 1 );
+  //color->RemoveAllPoints();
+  //opacity->RemoveAllPoints();
+  //std::cout<<"NOUVEUA PASSAGE DANS LA FONCTION !"<<std::endl;
+  //// this->OpacityFunction->AddPoint (0.0,  0.0);
+  //for ( int i = 0; i < numColors; ++i )
+  //{
+  //  double x = range[0] + factor * static_cast< double >( i ) * width;
 
-  int numColors = lookuptable->GetNumberOfTableValues();
-  double factor = 1.0 / static_cast< double >( numColors - 1 );
-  color->RemoveAllPoints();
-  opacity->RemoveAllPoints();
-
-  // this->OpacityFunction->AddPoint (0.0,  0.0);
-  for ( int i = 0; i < numColors; ++i )
-  {
-    double x = range[0] + factor * static_cast< double >( i ) * width;
-
-    double * val = lookuptable->GetTableValue( i );
-    color->AddRGBPoint( x, val[0], val[1], val[2]);
-    opacity->AddPoint( x, val[3] );
-  }
+  //  double * val = lookuptable->GetTableValue( i );
+  //  std::cout<<"x : "<<x<<" i : "<<i<<" val[0] : "<<val[0]<<" val[1] : "<<val[1]<<" val[2] : "<<val[2]<<" val[3] : "<<val[3]<<std::endl;
+  //  color->AddRGBPoint( x, val[0], val[1], val[2]);
+  //  opacity->AddPoint( x, val[3] );
+  //}
+  //this->Render();
+  //opacity->Modified();
+  //color->Modified();
 }
 
 //----------------------------------------------------------------------------

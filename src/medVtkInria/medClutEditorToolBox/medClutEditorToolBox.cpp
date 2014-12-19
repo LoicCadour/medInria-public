@@ -24,7 +24,7 @@
 
 #include <vtkColorTransferFunction.h>
 #include <vtkPiecewiseFunction.h>
-#include <vtkLookupTable.h>
+#include <medVtkLookUpTable.h>
 #include <vtkImageView2D.h>
 #include <vtkImageView3D.h>
 #include <qsizepolicy.h>
@@ -534,12 +534,12 @@ void medClutEditorToolBox::setColorLookupTable ( medAbstractView *view, QList<do
 
     double * range = ctf->GetRange();
     static_cast<medVtkViewBackend*>(view->backend())->view2D->SetColorRange(range);
-    static_cast<medVtkViewBackend*>(view->backend())->view2D->SetColorTransferFunction(ctf);
-    static_cast<medVtkViewBackend*>(view->backend())->view2D->SetOpacityTransferFunction(pf);
+    //static_cast<medVtkViewBackend*>(view->backend())->view2D->SetColorTransferFunction(ctf);
+    //static_cast<medVtkViewBackend*>(view->backend())->view2D->SetOpacityTransferFunction(pf);
 
     //static_cast<medVtkViewBackend*>(view->backend())->view3D->SetColorRange(range);
-    //static_cast<medVtkViewBackend*>(view->backend())->view3D->SetTransferFunctions(ctf, pf, d->layerForced);
     
+  
     //static_cast<medVtkViewBackend*>(view->backend())->view3D->vtkImageView::SetColorTransferFunction(ctf);
     //static_cast<medVtkViewBackend*>(view->backend())->view3D->vtkImageView::SetOpacityTransferFunction(pf);
 
@@ -549,20 +549,28 @@ void medClutEditorToolBox::setColorLookupTable ( medAbstractView *view, QList<do
     pf->GetTable ( min,max,n,alphaTable );
     pf->Delete();
 
-    vtkLookupTable * lut = vtkLookupTable::New();
-    lut->SetNumberOfTableValues ( n + 2 );
+    medVtkLookUpTable * lut = medVtkLookUpTable::New();
+    lut->SetNumberOfTableValues ( n + 1 );
     lut->SetTableRange ( min - 1.0, max + 1.0 );
+    lut->UseAboveRangeColorOn();
+    lut->SetAboveRangeColor(0, 1, 0, 1);
+    lut->UseBelowRangeColorOn();
+    lut->SetBelowRangeColor(1, 0, 0, 1);
           
     lut->SetTableValue ( 0, 0.0, 0.0, 0.0, 0.0 );
     int i, j;
-    for ( i = 0, j = 0; i < n; ++i, j += 3 )
+    for ( i = 0, j = 0; i < n; ++i, j += 3 ){
         lut->SetTableValue ( i+1, table[j], table[j+1], table[j+2], alphaTable[i] );
+        //std::cout<<" i : "<<i<<" val[0] : "<<table[j]<<" val[1] : "<<table[j+1]<<" val[2] : "<<table[j+2]<<" val[3] : "<<table[j+3]<<std::endl;
+    }
     //lut->SetTableValue ( n + 1, table[j-3], table[j-2], table[j-1], alphaTable[i-1] ); //last value of the lut
-    lut->SetTableValue ( n + 1, 0, 0, 0, 0); //last value of the lut (values above max are black )
+    //lut->SetTableValue ( n + 1, 0, 0, 0, 0); //last value of the lut (values above max are black )
 
-    static_cast<medVtkViewBackend*>(view->backend())->view2D->SetLookupTable ( lut );
     unsigned int layer = static_cast<medAbstractLayeredView*>(view)->currentLayer();
+    static_cast<medVtkViewBackend*>(view->backend())->view2D->SetLookupTable ( lut );
+    //static_cast<medVtkViewBackend*>(view->backend())->view3D->SetTransferFunctions(ctf, pf, d->layerForced);
     static_cast<medVtkViewBackend*>(view->backend())->view3D->SetLookupTable ( lut, layer );
+    static_cast<medVtkViewBackend*>(view->backend())->view3D->Render();
 
     lut->Delete();
     delete [] table;

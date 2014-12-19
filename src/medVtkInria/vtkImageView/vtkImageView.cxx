@@ -698,15 +698,15 @@ void vtkImageView::SetLookupTable (vtkLookupTable* lookuptable,int layer)
     this->StoreLookupTable(lookuptable,layer);
     this->ScalarBar->SetLookupTable( lookuptable );
 
-    if ( this->GetColorTransferFunction(layer) != NULL )
-    {
-      this->StoreColorTransferFunction(NULL,layer);
-    }
-    if ( this->GetOpacityTransferFunction(layer) != NULL )
-    {
-      this->StoreOpacityTransferFunction(NULL,layer);
-    }
-    this->SetTransferFunctionRangeFromWindowSettings(layer);
+    //if ( this->GetColorTransferFunction(layer) != NULL )
+    //{
+    //  this->StoreColorTransferFunction(NULL,layer);
+    //}
+    //if ( this->GetOpacityTransferFunction(layer) != NULL )
+    //{
+    //  this->StoreOpacityTransferFunction(NULL,layer);
+    //}
+    //this->SetTransferFunctionRangeFromWindowSettings(layer);
   }
 }
 
