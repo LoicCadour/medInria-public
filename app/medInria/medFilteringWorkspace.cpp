@@ -126,8 +126,6 @@ void medFilteringWorkspace::onProcessSuccess()
     d->filterOutput = d->filteringToolBox->currentToolBox()->processOutput();
     if ( !d->filterOutput ) return;
 
-    qDebug() << "d->filterOutput->identifier()" << d->filterOutput->identifier();
-
     medAbstractData *inputData(d->filteringToolBox->data());
 
     if (inputData) // filters without data in "Input" container
