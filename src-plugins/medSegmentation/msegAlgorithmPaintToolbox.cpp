@@ -528,6 +528,8 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     connect(removeSeed_shortcut,SIGNAL(activated()),this,SLOT(removeSeed()));
     connect(addBrushSize_shortcut,SIGNAL(activated()),this,SLOT(increaseBrushSize()));
     connect(reduceBrushSize_shortcut,SIGNAL(activated()),this,SLOT(reduceBrushSize()));
+
+    maskHasBeenSaved = false;
 }
 
 AlgorithmPaintToolbox::~AlgorithmPaintToolbox()
@@ -666,6 +668,7 @@ void AlgorithmPaintToolbox::import()
 {
     setOutputMetadata(m_imageData, m_maskData);
     medDataManager::instance()->importData(m_maskData, true);
+    maskHasBeenSaved = true;
 }
 
 void AlgorithmPaintToolbox::setWorkspace(medAbstractWorkspace* workspace)
@@ -745,6 +748,12 @@ void AlgorithmPaintToolbox::clearMask()
         m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
 
         m_maskAnnotationData->invokeModified();
+
+        if(maskHasBeenSaved)
+        {
+            m_imageData->removeAttachedData(m_maskAnnotationData);
+            maskHasBeenSaved = false;
+        }
     }
 }
 
