@@ -367,13 +367,13 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     magicWandCheckboxes->addWidget(m_wand3DCheckbox);
     magicWandCheckboxes->addWidget(m_wand3DRealTime);
     QHBoxLayout * magicWandLayout1 = new QHBoxLayout();
-    magicWandLayout1->addWidget( m_wandUpperThresholdLabel );
-    magicWandLayout1->addWidget( m_wandUpperThresholdSlider );
-    magicWandLayout1->addWidget( m_wandUpperThresholdSpinBox );
+    magicWandLayout1->addWidget( m_wandLowerThresholdLabel );
+    magicWandLayout1->addWidget( m_wandLowerThresholdSlider );
+    magicWandLayout1->addWidget( m_wandLowerThresholdSpinBox );
     QHBoxLayout * magicWandLayout2 = new QHBoxLayout();
-    magicWandLayout2->addWidget( m_wandLowerThresholdLabel );
-    magicWandLayout2->addWidget( m_wandLowerThresholdSlider );
-    magicWandLayout2->addWidget( m_wandLowerThresholdSpinBox );
+    magicWandLayout2->addWidget( m_wandUpperThresholdLabel );
+    magicWandLayout2->addWidget( m_wandUpperThresholdSlider );
+    magicWandLayout2->addWidget( m_wandUpperThresholdSpinBox );
     QHBoxLayout * magicWandLayout3 = new QHBoxLayout();
     magicWandLayout3->addWidget( m_removeSeedButton );
 
@@ -616,7 +616,7 @@ void AlgorithmPaintToolbox::import()
     m_maskData->copyMetaDataFrom(m_imageData);
     QString newSeriesDescription = m_imageData->metadata ( medMetaDataKeys::SeriesDescription.key() ) + " painted";
     m_maskData->setMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-    medDataManager::instance()->importData(m_maskData, true);
+    medDataManager::instance()->importData(m_maskData, false);
     maskHasBeenSaved = true;
 }
 
@@ -936,12 +936,7 @@ void AlgorithmPaintToolbox::updateWandRegion(medAbstractImageView * view, QVecto
     if(!view->contains(m_maskAnnotationData))
     {
         view->addLayer(m_maskAnnotationData);
-        m_maskData->copyMetaDataFrom(m_imageData);
-        QString newSeriesDescription = m_imageData->metadata ( medMetaDataKeys::SeriesDescription.key() ) + " painted";
-        m_maskData->setMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-        medDataManager::instance()->importData(m_maskData);
     }
-
 }
 
 template <typename IMAGE>
@@ -1207,10 +1202,6 @@ void AlgorithmPaintToolbox::updateStroke(ClickAndMoveEventFilter * filter, medAb
     if(!view->contains(m_maskAnnotationData))
     {
         view->addLayer(m_maskAnnotationData);
-        m_maskData->copyMetaDataFrom(m_imageData);
-        QString newSeriesDescription = m_imageData->metadata ( medMetaDataKeys::SeriesDescription.key() ) + " painted";
-        m_maskData->setMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-        medDataManager::instance()->importData(m_maskData);
     }
 
     m_maskAnnotationData->invokeModified();
