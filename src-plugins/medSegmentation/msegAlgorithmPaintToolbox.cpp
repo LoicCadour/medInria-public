@@ -14,19 +14,20 @@
 #include <msegAlgorithmPaintToolbox.h>
 
 #include <medAbstractData.h>
+#include <medAbstractDataFactory.h>
 #include <medAbstractImageData.h>
 #include <medAbstractImageView.h>
 #include <medDataIndex.h>
+#include <medDataManager.h>
 #include <medImageMaskAnnotationData.h>
 #include <medMetaDataKeys.h>
 #include <medMessageController.h>
-#include <medSegmentationSelectorToolBox.h>
 #include <medPluginManager.h>
-#include <medDataManager.h>
-#include <medAbstractDataFactory.h>
+#include <medSegmentationSelectorToolBox.h>
 #include <medTabbedViewContainers.h>
-#include <medViewContainer.h>
 #include <medToolBoxFactory.h>
+#include <medViewContainer.h>
+#include <medVtkViewBackend.h>
 
 #include <dtkCore/dtkAbstractProcessFactory.h>
 #include <dtkLog/dtkLog.h>
@@ -54,6 +55,7 @@
 #include <set>
 
 #include <limits>
+#include <numeric>
 
 class ClickAndMoveEventFilter : public medViewEventFilter
 {
@@ -136,7 +138,29 @@ public:
     {
         medAbstractImageView * imageView = dynamic_cast<medAbstractImageView *>(view);
         if(!imageView)
+        {
             return false;
+        }
+
+        // Manage cursors
+        vtkRenderWindow * vtkView = (static_cast<medVtkViewBackend *>(view->backend()))->renWin;
+        if (vtkView)
+        {
+            // Remove circular cursor if cursor out of view
+            int* si = vtkView->GetSize();
+            if (mouseEvent->x() < 0 ||
+                    mouseEvent->y() < 0 ||
+                    mouseEvent->x() >= si[0] ||
+                    mouseEvent->y() >= si[1])
+            {
+                m_cb->deactivateCustomedCursor();
+            }
+            else
+            {
+                // Add circular cursor for painting
+                m_cb->activateCustomedCursor();
+            }
+        }
 
         if (m_paintState == PaintState::None 
             && (m_cb->m_paintState == PaintState::Stroke || m_cb->m_paintState == PaintState::DeleteStroke) 
@@ -148,7 +172,9 @@ public:
 
             qDebug() << elapsed;
             if (elapsed<10) // 1000/24 (24 images per second)
+            {
                 return false;
+            }
 
             if (imageView->is2D())
             {
@@ -174,7 +200,9 @@ public:
         }
 
         if ( this->m_paintState == PaintState::None )
+        {
             return false;
+        }
 
         mouseEvent->accept();
 
@@ -185,6 +213,7 @@ public:
             this->m_points.push_back(posImage);
             m_cb->updateStroke( this,imageView );
         }
+
         return mouseEvent->isAccepted();
     }
 
@@ -546,7 +575,6 @@ void AlgorithmPaintToolbox::activateStroke()
 {
     if ( this->m_strokeButton->isChecked() )
     {
-        deactivateCustomedCursor(); // deactivate painting cursor
         this->m_viewFilter->removeFromAllViews();
         m_paintState = (PaintState::None);
         updateButtons();        
@@ -559,8 +587,6 @@ void AlgorithmPaintToolbox::activateStroke()
     emit installEventFilterRequest(m_viewFilter);
     addBrushSize_shortcut->setEnabled(true);
     reduceBrushSize_shortcut->setEnabled(true);
-
-    activateCustomedCursor(); // cursor for painting
 }
 
 void AlgorithmPaintToolbox::activateCustomedCursor()
@@ -1874,12 +1900,15 @@ void AlgorithmPaintToolbox::reduceBrushSize()
 
 void AlgorithmPaintToolbox::interpolate()
 {
-    if(!m_itkMask) return;
+    if(!m_itkMask)
+    {
+        return;
+    }
 
     MaskType::IndexType index3D;
-    QVector3D vec = currentView->mapDisplayToWorldCoordinates(QPointF(0,0));
+    QVector3D vector = currentView->mapDisplayToWorldCoordinates(QPointF(0,0));
     bool isInside;
-    char planeIndex = AlgorithmPaintToolbox::computePlaneIndex(vec,index3D,isInside);
+    char planeIndex = AlgorithmPaintToolbox::computePlaneIndex(vector,index3D,isInside);
 
     unsigned char label = this->m_strokeLabel;
         
@@ -1894,7 +1923,7 @@ void AlgorithmPaintToolbox::interpolate()
     volumOut->SetRegions( region );
     volumOut->Allocate();
 
-    MaskFloatIterator itVolumOut(volumOut,volumOut->GetBufferedRegion()); //Create image iterator
+    MaskFloatIterator itVolumOut(volumOut,volumOut->GetBufferedRegion()); //Create output iterator
     itVolumOut.GoToBegin();
 
     MaskIterator itMask(m_itkMask,m_itkMask->GetBufferedRegion()); //Create image iterator
@@ -1902,73 +1931,75 @@ void AlgorithmPaintToolbox::interpolate()
 
     Mask2dType::Pointer      img0              = Mask2dType::New();
     Mask2dType::Pointer      img1              = Mask2dType::New();
+    Mask2dType::Pointer      img0tr            = Mask2dType::New();
+    Mask2dType::Pointer      img1tr            = Mask2dType::New();
     Mask2dFloatType::Pointer distanceMapImg0   = Mask2dFloatType::New();
     Mask2dFloatType::Pointer distanceMapImg1   = Mask2dFloatType::New();
 
     bool isD0,isD1;
     unsigned int sizeZ = size[2];
+    unsigned int center[2]={(unsigned int)size[0]/2u,(unsigned int)size[1]/2u};
     img1 = extract2DImageSlice(m_itkMask, 2, 0, size, start);
     isD1 = isData(img1,label);
     isD0 = false;
     unsigned int slice0=0,slice1=0;
-        
-        for (unsigned int i=0; i<(sizeZ-1); ++i)
+    unsigned int coord0[2],coord1[2];
+    double vec[2];
+
+    for (unsigned int i=0; i<(sizeZ-1); ++i)
+    {
+        if (!isD0 && isD1)
         {
-            if (!isD0 && isD1)
-            {
             img0 = img1;
             isD0 = isD1;
             slice0=slice1;
-            }
-            
-            img1 = extract2DImageSlice(m_itkMask, 2, i+1, size, start);
-            isD1 = isData(img1,label);
-            slice1= i+1;
+        }
 
-            if (isD0 && isD1)       //if both images not empty
+        img1 = extract2DImageSlice(m_itkMask, 2, i+1, size, start);
+        isD1 = isData(img1,label);
+        slice1= i+1;
+
+        if (isD0 && isD1)       //if both images not empty
+        {
+            if(slice1-slice0>1)
             {
-                if(slice1-slice0>1)
+                Mask2dIterator iterator0(img0,img0->GetBufferedRegion()); //Create image iterator
+                iterator0.GoToBegin();
+                Mask2dIterator iterator1(img1,img1->GetBufferedRegion()); //Create image iterator
+                iterator1.GoToBegin();
+
+                computeCentroid(iterator0,coord0);
+                computeCentroid(iterator1,coord1);
+
+                int C0C1[2]     = {(int)(coord1[0]-coord0[0]),(int)(coord1[1]-coord0[1])};
+                int C0center[2] = {(int)(center[0]-coord0[0]),(int)(center[1]-coord0[1])};
+                int C1center[2] = {(int)(center[0]-coord1[0]),(int)(center[1]-coord1[1])};
+
+                img0tr = translateImageByVec(img0,C0center);
+                img1tr = translateImageByVec(img1,C1center);
+
+                distanceMapImg0 = computeDistanceMap(img0tr);
+                distanceMapImg1 = computeDistanceMap(img1tr);
+
+                // For undo/redo purposes
+                QList<int> listIdSlice;
+                for (unsigned int j=slice0+1; j<slice1; ++j) // for each intermediate slice
                 {
-                    Mask2dIterator iterator0(img0,img0->GetBufferedRegion()); //Create image iterator
-                    iterator0.GoToBegin();
-                    Mask2dIterator iterator1(img1,img1->GetBufferedRegion()); //Create image iterator
-                    iterator1.GoToBegin();
-                    unsigned int coord0[2],coord1[2];
-                    computeCentroid(iterator0,coord0);
-                    computeCentroid(iterator1,coord1);
-
-                    unsigned int center[2]={(unsigned int)size[0]/2u,(unsigned int)size[1]/2u};
-                    int C0C1[2] = {(int)(coord1[0]-coord0[0]),(int)(coord1[1]-coord0[1])};
-                    int C0center[2] = {(int)(center[0]-coord0[0]),(int)(center[1]-coord0[1])};
-                    int C1center[2] = {(int)(center[0]-coord1[0]),(int)(center[1]-coord1[1])};
-
-                    Mask2dType::Pointer      img0tr             = Mask2dType::New();
-                    Mask2dType::Pointer      img1tr             = Mask2dType::New();
-                    img0tr = translateImageByVec(img0,C0center);
-                    img1tr = translateImageByVec(img1,C1center);
-
-                    distanceMapImg0 = computeDistanceMap(img0tr);
-                    distanceMapImg1 = computeDistanceMap(img1tr);
-                    // For undo/redo purposes -------------------------
-                    QList<int> listIdSlice;
-
-                    for (unsigned int j=slice0+1; j<slice1; ++j)
-                        listIdSlice.append(j);
-                    addSliceToStack(currentView,planeIndex,listIdSlice); 
-                    // -------------------------------------------------
-                    // Interpolate the "j" intermediate slice (float) // float->unsigned char 0/255 and copy into output volume
-
-                    for (unsigned int j=slice0+1; j<slice1; ++j) // for each intermediate slice
-                    {
-                        double vec[2];
-                        vec[0]= (((j-slice0)*(C0C1[0]/(float)(slice1-slice0))+coord0[0])-center[0]);
-                        vec[1]= (((j-slice0)*(C0C1[1]/(float)(slice1-slice0))+coord0[1])-center[1]);
-                        computeIntermediateSlice(distanceMapImg0, distanceMapImg1,slice0,slice1, j,itVolumOut,itMask,vec);
-                    }
+                    listIdSlice.append(j);
                 }
-                isD0=false;
+                addSliceToStack(currentView,planeIndex,listIdSlice);
+
+                for (unsigned int j=slice0+1; j<slice1; ++j) // for each intermediate slice
+                {
+                    // Interpolate the "j" intermediate slice and copy into output volume
+                    vec[0]= (((j-slice0)*(C0C1[0]/(float)(slice1-slice0))+coord0[0])-center[0]);
+                    vec[1]= (((j-slice0)*(C0C1[1]/(float)(slice1-slice0))+coord0[1])-center[1]);
+                    computeIntermediateSlice(distanceMapImg0, distanceMapImg1,slice0,slice1, j,itVolumOut,itMask,vec);
+                }
             }
-        } // end for each slice
+            isD0=false;
+        }
+    } // end for each slice
 }
 
 // Is there data to observe in the image ?
