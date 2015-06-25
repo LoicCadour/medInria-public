@@ -575,9 +575,10 @@ void AlgorithmPaintToolbox::activateStroke()
 {
     if ( this->m_strokeButton->isChecked() )
     {
+        deactivateCustomedCursor(); // deactivate painting cursor
         this->m_viewFilter->removeFromAllViews();
         m_paintState = (PaintState::None);
-        updateButtons();        
+        updateButtons();
         return;
     }
     setPaintState(PaintState::Stroke);
@@ -598,7 +599,7 @@ void AlgorithmPaintToolbox::activateCustomedCursor()
 
     // Get size of the brush
     medAbstractImageView * imageView = dynamic_cast<medAbstractImageView *>(currentView);
-    int si = (int)((float)(m_brushSizeSpinBox->value()*2.0f)/imageView->sliceThickness());
+    int si = floor((float)(m_brushSizeSpinBox->value())*2.0f/imageView->sliceThickness() + 0.5);
 
     // Create shape of the new cursor
     QPixmap pix(si,si);
