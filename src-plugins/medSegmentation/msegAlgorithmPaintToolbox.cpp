@@ -27,7 +27,6 @@
 #include <medTabbedViewContainers.h>
 #include <medToolBoxFactory.h>
 #include <medViewContainer.h>
-#include <medVtkViewBackend.h>
 
 #include <dtkCore/dtkAbstractProcessFactory.h>
 #include <dtkLog/dtkLog.h>
@@ -55,7 +54,6 @@
 #include <set>
 
 #include <limits>
-#include <numeric>
 
 class ClickAndMoveEventFilter : public medViewEventFilter
 {
