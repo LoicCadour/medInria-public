@@ -205,7 +205,6 @@ private:
     QLabel *m_colorLabel;
     QShortcut *undo_shortcut, *redo_shortcut, *copy_shortcut, *paste_shortcut;
     unsigned int m_strokeLabel;
-    bool isCustomedCursor;
     //
 
     double m_MinValueImage;
