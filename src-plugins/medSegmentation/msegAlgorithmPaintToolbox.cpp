@@ -480,7 +480,6 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     connect(reduceBrushSize_shortcut,SIGNAL(activated()),this,SLOT(reduceBrushSize()));
 
     maskHasBeenSaved = false;
-    isCustomedCursor = false;
 }
 
 AlgorithmPaintToolbox::~AlgorithmPaintToolbox()
@@ -555,7 +554,7 @@ void AlgorithmPaintToolbox::activateStroke()
 {
     if ( this->m_strokeButton->isChecked() )
     {
-        deactivateCustomedCursor(); // deactivate painting cursor
+        deactivateCustomedCursor(); // Deactivate painting cursor
         this->m_viewFilter->removeFromAllViews();
         m_paintState = (PaintState::None);
         updateButtons();
@@ -602,16 +601,16 @@ void AlgorithmPaintToolbox::activateCustomedCursor()
 
     // Update the cursor
     currentView->viewWidget()->setCursor(QCursor(pix, -1, -1));
-    isCustomedCursor = true;
 }
 
 void AlgorithmPaintToolbox::deactivateCustomedCursor()
 {
-    if (isCustomedCursor)
+    if (!currentView) // no data
     {
-        currentView->viewWidget()->setCursor(Qt::CrossCursor);
-        isCustomedCursor = false;
+        return;
     }
+
+    currentView->viewWidget()->setCursor(Qt::CrossCursor);
 }
 
 void AlgorithmPaintToolbox::activateMagicWand()
@@ -702,7 +701,9 @@ void AlgorithmPaintToolbox::updateView()
     }
 
     if (view)
+    {
         setCurrentView(qobject_cast<medAbstractImageView*>(view));
+    }
 
     updateMouseInteraction();
 
@@ -718,6 +719,16 @@ void AlgorithmPaintToolbox::updateView()
         {
             setData( data );
         }
+    }
+
+    // Update cursor to new view
+    if ( this->m_strokeButton->isChecked() )
+    {
+        activateCustomedCursor(); // Add circular cursor for painting
+    }
+    else
+    {
+        deactivateCustomedCursor(); // Deactivate painting cursor
     }
 }
 
