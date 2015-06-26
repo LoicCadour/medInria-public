@@ -142,26 +142,6 @@ public:
             return false;
         }
 
-        // Manage cursors
-        vtkRenderWindow * vtkView = (static_cast<medVtkViewBackend *>(view->backend()))->renWin;
-        if (vtkView)
-        {
-            // Remove circular cursor if cursor out of view
-            int* si = vtkView->GetSize();
-            if (mouseEvent->x() < 0 ||
-                    mouseEvent->y() < 0 ||
-                    mouseEvent->x() >= si[0] ||
-                    mouseEvent->y() >= si[1])
-            {
-                m_cb->deactivateCustomedCursor();
-            }
-            else
-            {
-                // Add circular cursor for painting
-                m_cb->activateCustomedCursor();
-            }
-        }
-
         if (m_paintState == PaintState::None 
             && (m_cb->m_paintState == PaintState::Stroke || m_cb->m_paintState == PaintState::DeleteStroke) 
             && (m_cb->undoRedoCopyPasteModeOn))
@@ -588,6 +568,8 @@ void AlgorithmPaintToolbox::activateStroke()
     emit installEventFilterRequest(m_viewFilter);
     addBrushSize_shortcut->setEnabled(true);
     reduceBrushSize_shortcut->setEnabled(true);
+
+    activateCustomedCursor(); // Add circular cursor for painting
 }
 
 void AlgorithmPaintToolbox::activateCustomedCursor()
@@ -619,8 +601,7 @@ void AlgorithmPaintToolbox::activateCustomedCursor()
     painter.drawPoint(si/2,   si/2+1);
 
     // Update the cursor
-    QApplication::setOverrideCursor(QCursor(pix, -1, -1));
-    QApplication::processEvents();
+    currentView->viewWidget()->setCursor(QCursor(pix, -1, -1));
     isCustomedCursor = true;
 }
 
@@ -628,8 +609,7 @@ void AlgorithmPaintToolbox::deactivateCustomedCursor()
 {
     if (isCustomedCursor)
     {
-        QApplication::setOverrideCursor(Qt::ArrowCursor);
-        QApplication::processEvents();
+        currentView->viewWidget()->setCursor(Qt::CrossCursor);
         isCustomedCursor = false;
     }
 }
