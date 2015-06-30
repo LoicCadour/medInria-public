@@ -285,6 +285,7 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_brushSizeSlider->setToolTip(tr("Changes the brush radius."));
     m_brushSizeSlider->setValue(this->m_strokeRadius);
     m_brushSizeSlider->setRange(1, 10);
+    m_brushSizeSlider->setPageStep(1);
     m_brushSizeSlider->hide();
     m_brushSizeSpinBox = new QSpinBox(displayWidget);
     m_brushSizeSpinBox->setToolTip(tr("Changes the brush radius."));
@@ -314,17 +315,19 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     m_wandUpperThresholdSlider = new QSlider(Qt::Horizontal, displayWidget);
     m_wandUpperThresholdSlider->setToolTip(tr("Upper Threshold"));
     m_wandUpperThresholdSlider->setObjectName("Upper Threshold");
-    m_wandUpperThresholdSlider->setValue(100);
+    m_wandUpperThresholdSlider->setValue(0);
     m_wandUpperThresholdSlider->setMinimum(0);
     m_wandUpperThresholdSlider->setMaximum(10000);
+    m_wandUpperThresholdSlider->setPageStep(1000);
     m_wandUpperThresholdSlider->hide();
 
     m_wandLowerThresholdSlider = new QSlider(Qt::Horizontal, displayWidget);
     m_wandLowerThresholdSlider->setToolTip(tr("Lower Threshold"));
     m_wandLowerThresholdSlider->setObjectName("Lower Threshold");
-    m_wandLowerThresholdSlider->setValue(100);
+    m_wandLowerThresholdSlider->setValue(0);
     m_wandLowerThresholdSlider->setMinimum(0);
     m_wandLowerThresholdSlider->setMaximum(10000);
+    m_wandLowerThresholdSlider->setPageStep(1000);
     m_wandLowerThresholdSlider->hide();
 
     m_wandUpperThresholdSpinBox = new QDoubleSpinBox(displayWidget);
@@ -1141,7 +1144,9 @@ AlgorithmPaintToolbox::GenerateMinMaxValuesFromImage ()
     IMAGE *tmpPtr = dynamic_cast<IMAGE *> ((itk::Object*)(m_imageData->data()));
 
     if (!tmpPtr)
+    {
         return;
+    }
 
     typedef typename itk::MinimumMaximumImageCalculator< IMAGE > MinMaxCalculatorType;
 
@@ -1157,6 +1162,10 @@ AlgorithmPaintToolbox::GenerateMinMaxValuesFromImage ()
     m_wandUpperThresholdSlider->setMaximum(m_MaxValueImage);
     m_wandLowerThresholdSlider->setMinimum(m_MinValueImage);
     m_wandUpperThresholdSlider->setMinimum(m_MinValueImage);
+
+    // Set step when click on slider
+    m_wandLowerThresholdSlider->setPageStep((m_MaxValueImage-m_MinValueImage)/10);
+    m_wandUpperThresholdSlider->setPageStep((m_MaxValueImage-m_MinValueImage)/10);
 }
 
 void AlgorithmPaintToolbox::updateStroke(ClickAndMoveEventFilter * filter, medAbstractImageView * view)
