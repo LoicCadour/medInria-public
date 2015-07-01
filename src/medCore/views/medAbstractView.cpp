@@ -388,6 +388,9 @@ QWidget* medAbstractView::navigatorWidget()
     {
         d->navigatorWidget = new QWidget;
         QVBoxLayout* navigatorLayout = new QVBoxLayout(d->navigatorWidget);
+        navigatorLayout->setSpacing(0);
+        navigatorLayout->setContentsMargins(QMargins(0,0,0,0));
+        navigatorLayout->setAlignment(Qt::AlignCenter);
 
         navigatorLayout->addWidget(primaryNavigator()->toolBoxWidget());
         foreach (medAbstractNavigator* navigator, this->extraNavigators())

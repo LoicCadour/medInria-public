@@ -323,7 +323,7 @@ void medAbstractWorkspace::updateLayersToolBox()
                 QString name = medMetaDataKeys::SeriesDescription.getFirstValue(data,"<i>no name</i>");
 
                 QHBoxLayout* layout = new QHBoxLayout(layerWidget);
-                layout->setContentsMargins(0,0,10,0);
+                layout->setContentsMargins(0,0,0,0);
 
                 medBoolParameter* visibilityParam = dynamic_cast<medBoolParameter*>(layeredView->visibilityParameter(layer));
                 QPushButton* thumbnailButton = visibilityParam->getPushButton();
@@ -605,6 +605,9 @@ QWidget* medAbstractWorkspace::buildViewLinkMenu()
 {
     QWidget *linkWidget = new QWidget;
     QHBoxLayout* linkLayout = new QHBoxLayout(linkWidget);
+    linkLayout->setContentsMargins(0, 0, 5, 5);
+    linkLayout->setSpacing(0);
+    linkLayout->setAlignment(Qt::AlignRight);
 
     d->viewLinkMenu = new medLinkMenu(linkWidget);
     connect(d->viewLinkMenu, SIGNAL(groupChecked(QString)), this, SLOT(addViewstoGroup(QString)));
@@ -710,6 +713,9 @@ QWidget* medAbstractWorkspace::buildLayerLinkMenu(QList<QListWidgetItem*> select
 
     QWidget *linkWidget = new QWidget;
     QHBoxLayout* linkLayout = new QHBoxLayout(linkWidget);
+    linkLayout->setContentsMargins(0, 5, 5, 5);
+    linkLayout->setSpacing(0);
+    linkLayout->setAlignment(Qt::AlignRight);
 
     d->layerLinkMenu = new medLinkMenu(linkWidget);
     connect(d->layerLinkMenu, SIGNAL(groupChecked(QString)), this, SLOT(addLayerstoGroup(QString)));
