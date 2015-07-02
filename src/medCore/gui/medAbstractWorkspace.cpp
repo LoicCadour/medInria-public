@@ -497,8 +497,8 @@ void medAbstractWorkspace::updateInteractorsToolBox()
             interactorsIdentifier << interactorIdentifier;
             QGroupBox *groupBox = new QGroupBox;
             QVBoxLayout *groupBoxLayout = new QVBoxLayout(groupBox);
-
             groupBoxLayout->setContentsMargins(0,0,0,0);
+
             QWidget *intercatorWidget = interactor->toolBoxWidget();
             if(intercatorWidget)
             {
@@ -605,9 +605,8 @@ QWidget* medAbstractWorkspace::buildViewLinkMenu()
 {
     QWidget *linkWidget = new QWidget;
     QHBoxLayout* linkLayout = new QHBoxLayout(linkWidget);
-    linkLayout->setContentsMargins(0, 0, 5, 5);
+    linkLayout->setContentsMargins(80, 0, 5, 5);
     linkLayout->setSpacing(0);
-    linkLayout->setAlignment(Qt::AlignRight);
 
     d->viewLinkMenu = new medLinkMenu(linkWidget);
     connect(d->viewLinkMenu, SIGNAL(groupChecked(QString)), this, SLOT(addViewstoGroup(QString)));
@@ -713,9 +712,8 @@ QWidget* medAbstractWorkspace::buildLayerLinkMenu(QList<QListWidgetItem*> select
 
     QWidget *linkWidget = new QWidget;
     QHBoxLayout* linkLayout = new QHBoxLayout(linkWidget);
-    linkLayout->setContentsMargins(0, 5, 5, 5);
+    linkLayout->setContentsMargins(80, 5, 5, 5);
     linkLayout->setSpacing(0);
-    linkLayout->setAlignment(Qt::AlignRight);
 
     d->layerLinkMenu = new medLinkMenu(linkWidget);
     connect(d->layerLinkMenu, SIGNAL(groupChecked(QString)), this, SLOT(addLayerstoGroup(QString)));
