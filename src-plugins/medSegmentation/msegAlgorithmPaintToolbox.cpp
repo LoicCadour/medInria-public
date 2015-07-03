@@ -1138,10 +1138,8 @@ AlgorithmPaintToolbox::GenerateMinMaxValuesFromImage ()
     m_MinValueImage = minMaxFilter->GetMinimum();
     m_MaxValueImage = minMaxFilter->GetMaximum();
 
-    m_wandLowerThresholdSlider->getSlider()->setMaximum(m_MaxValueImage);
-    m_wandUpperThresholdSlider->getSlider()->setMaximum(m_MaxValueImage);
-    m_wandLowerThresholdSlider->getSlider()->setMinimum(m_MinValueImage);
-    m_wandUpperThresholdSlider->getSlider()->setMinimum(m_MinValueImage);
+    m_wandLowerThresholdSlider->setRange(m_MinValueImage, m_MaxValueImage);
+    m_wandUpperThresholdSlider->setRange(m_MinValueImage, m_MaxValueImage);
 
     // Set step when click on slider
     m_wandLowerThresholdSlider->getSlider()->setPageStep((m_MaxValueImage-m_MinValueImage)/10);
