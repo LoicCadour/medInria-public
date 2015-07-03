@@ -489,6 +489,7 @@ void medAbstractWorkspace::updateInteractorsToolBox()
         return;
     }
 
+    // Windowing/Level sliders, Lut and Preset comboboxes.
     foreach (medAbstractInteractor* interactor, view->layerInteractors(currentLayer))
     {
         QString interactorIdentifier = interactor->identifier();

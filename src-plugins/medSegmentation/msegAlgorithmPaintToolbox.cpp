@@ -280,81 +280,64 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     ButtonLayout->addWidget( m_interpolateButton );
     layout->addLayout( ButtonLayout );
 
+    // Brush radius label/slider/spinbox
     QHBoxLayout * brushSizeLayout = new QHBoxLayout();
-    m_brushSizeSlider = new QSlider(Qt::Horizontal, displayWidget);
+    m_brushSizeSlider = new medIntParameter("Brush Radius", displayWidget);
     m_brushSizeSlider->setToolTip(tr("Changes the brush radius."));
     m_brushSizeSlider->setValue(this->m_strokeRadius);
     m_brushSizeSlider->setRange(1, 10);
+    m_brushSizeSlider->getSlider()->setPageStep(1);
+    m_brushSizeSlider->getSlider()->setOrientation(Qt::Horizontal);
     m_brushSizeSlider->hide();
-    m_brushSizeSpinBox = new QSpinBox(displayWidget);
-    m_brushSizeSpinBox->setToolTip(tr("Changes the brush radius."));
-    m_brushSizeSpinBox->setValue(this->m_strokeRadius);
-    m_brushSizeSpinBox->setMinimum(1);
-    m_brushSizeSpinBox->setMaximum(10);
-    m_brushSizeSpinBox->hide();
-    m_brushRadiusLabel = new QLabel(tr("Brush Radius"), displayWidget);
-    m_brushRadiusLabel->hide();
 
-    connect(m_brushSizeSpinBox, SIGNAL(valueChanged(int)),m_brushSizeSlider,SLOT(setValue(int)) );
-    connect(m_brushSizeSlider,  SIGNAL(valueChanged(int)),m_brushSizeSpinBox,SLOT(setValue(int)) );
-    connect(m_brushSizeSpinBox, SIGNAL(valueChanged(int)),this,SLOT(activateCustomedCursor(void)) );
-    connect(m_brushSizeSlider,  SIGNAL(valueChanged(int)),this,SLOT(activateCustomedCursor(void)) );
+    connect(m_brushSizeSlider->getSpinBox(),
+            SIGNAL(valueChanged(int)),m_brushSizeSlider->getSlider(), SLOT(setValue(int)) );
+    connect(m_brushSizeSlider->getSlider(),
+            SIGNAL(valueChanged(int)),m_brushSizeSlider->getSpinBox(),SLOT(setValue(int)) );
+    connect(m_brushSizeSlider->getSpinBox(),
+            SIGNAL(valueChanged(int)),this,SLOT(activateCustomedCursor(void)) );
+    connect(m_brushSizeSlider->getSlider(),
+            SIGNAL(valueChanged(int)),this,SLOT(activateCustomedCursor(void)) );
 
-    brushSizeLayout->addWidget(m_brushRadiusLabel);
-    brushSizeLayout->addWidget( m_brushSizeSlider );
-    brushSizeLayout->addWidget( m_brushSizeSpinBox );
+    brushSizeLayout->addWidget( m_brushSizeSlider->getLabel() );
+    brushSizeLayout->addWidget( m_brushSizeSlider->getSlider() );
+    brushSizeLayout->addWidget( m_brushSizeSlider->getSpinBox() );
     layout->addLayout( brushSizeLayout );
 
-       // magic wand 's  widgets //
-    m_wandUpperThresholdLabel = new QLabel("Upper Threshold");
-    m_wandUpperThresholdLabel->hide();
-    m_wandLowerThresholdLabel = new QLabel("Lower Threshold");
-    m_wandLowerThresholdLabel->hide();
-
-    m_wandUpperThresholdSlider = new QSlider(Qt::Horizontal, displayWidget);
-    m_wandUpperThresholdSlider->setToolTip(tr("Upper Threshold"));
-    m_wandUpperThresholdSlider->setObjectName("Upper Threshold");
-    m_wandUpperThresholdSlider->setValue(100);
-    m_wandUpperThresholdSlider->setMinimum(0);
-    m_wandUpperThresholdSlider->setMaximum(10000);
+    // Magic wand's widgets
+    m_wandUpperThresholdSlider = new medDoubleParameter("Upper Threshold", this);
+    m_wandUpperThresholdSlider->setToolTip(tr("Changes the upper threshold."));
+    m_wandUpperThresholdSlider->setValue(0);
+    m_wandUpperThresholdSlider->setRange(0, 10000);
+    m_wandUpperThresholdSlider->getSlider()->setPageStep(1000);
+    m_wandUpperThresholdSlider->getSlider()->setOrientation(Qt::Horizontal);
     m_wandUpperThresholdSlider->hide();
 
-    m_wandLowerThresholdSlider = new QSlider(Qt::Horizontal, displayWidget);
-    m_wandLowerThresholdSlider->setToolTip(tr("Lower Threshold"));
-    m_wandLowerThresholdSlider->setObjectName("Lower Threshold");
-    m_wandLowerThresholdSlider->setValue(100);
-    m_wandLowerThresholdSlider->setMinimum(0);
-    m_wandLowerThresholdSlider->setMaximum(10000);
+    m_wandLowerThresholdSlider = new medDoubleParameter("Lower Threshold", this);
+    m_wandLowerThresholdSlider->setToolTip(tr("Changes the lower threshold."));
+    m_wandLowerThresholdSlider->setValue(0);
+    m_wandLowerThresholdSlider->setRange(0, 10000);
+    m_wandLowerThresholdSlider->getSlider()->setPageStep(1000);
+    m_wandLowerThresholdSlider->getSlider()->setOrientation(Qt::Horizontal);
     m_wandLowerThresholdSlider->hide();
 
-    m_wandUpperThresholdSpinBox = new QDoubleSpinBox(displayWidget);
-    m_wandUpperThresholdSpinBox->setToolTip(tr("Upper Threshold"));
-    m_wandUpperThresholdSpinBox->setObjectName("Upper Threshold");
-    m_wandUpperThresholdSpinBox->setMinimum(0);
-    m_wandUpperThresholdSpinBox->setMaximum(1000000);
-    m_wandUpperThresholdSpinBox->setDecimals(2);
-    m_wandUpperThresholdSpinBox->hide();
-
-    m_wandLowerThresholdSpinBox = new QDoubleSpinBox(displayWidget);
-    m_wandLowerThresholdSpinBox->setToolTip(tr("Lower Threshold"));
-    m_wandLowerThresholdSpinBox->setObjectName("Lower Threshold");
-    m_wandLowerThresholdSpinBox->setMinimum(0);
-    m_wandLowerThresholdSpinBox->setMaximum(1000000);
-    m_wandLowerThresholdSpinBox->setDecimals(2);
-    m_wandLowerThresholdSpinBox->hide();
+    connect(m_wandUpperThresholdSlider->getSlider(),
+            SIGNAL(valueChanged(int)),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
+    connect(m_wandLowerThresholdSlider->getSlider(),
+            SIGNAL(valueChanged(int)),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
+    connect(m_wandUpperThresholdSlider->getSpinBox(),
+            SIGNAL(editingFinished()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
+    connect(m_wandLowerThresholdSlider->getSpinBox(),
+            SIGNAL(editingFinished()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
 
     wandTimer = QTime();
 
+    // Remove seed button
     m_removeSeedButton = new QPushButton("Remove seed",this);
     m_removeSeedButton->hide();
     seedPlanted = false;
     
     connect(m_removeSeedButton,SIGNAL(clicked()),this,SLOT(removeSeed()));
-
-    connect(m_wandUpperThresholdSlider,SIGNAL(valueChanged(int)),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
-    connect(m_wandLowerThresholdSlider,SIGNAL(valueChanged(int)),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
-    connect(m_wandUpperThresholdSpinBox, SIGNAL(editingFinished()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
-    connect(m_wandLowerThresholdSpinBox, SIGNAL(editingFinished()),this,SLOT(synchronizeWandSpinBoxesAndSliders()));
 
     m_wand3DCheckbox = new QCheckBox (tr("Activate 3D mode"), displayWidget);
     m_wand3DCheckbox->setObjectName("Activate 3D mode");
@@ -375,13 +358,13 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     magicWandCheckboxes->addWidget(m_wand3DCheckbox);
     magicWandCheckboxes->addWidget(m_wand3DRealTime);
     QHBoxLayout * magicWandLayout1 = new QHBoxLayout();
-    magicWandLayout1->addWidget( m_wandUpperThresholdLabel );
-    magicWandLayout1->addWidget( m_wandUpperThresholdSlider );
-    magicWandLayout1->addWidget( m_wandUpperThresholdSpinBox );
+    magicWandLayout1->addWidget( m_wandUpperThresholdSlider->getLabel() );
+    magicWandLayout1->addWidget( m_wandUpperThresholdSlider->getSlider() );
+    magicWandLayout1->addWidget( m_wandUpperThresholdSlider->getSpinBox() );
     QHBoxLayout * magicWandLayout2 = new QHBoxLayout();
-    magicWandLayout2->addWidget( m_wandLowerThresholdLabel );
-    magicWandLayout2->addWidget( m_wandLowerThresholdSlider );
-    magicWandLayout2->addWidget( m_wandLowerThresholdSpinBox );
+    magicWandLayout2->addWidget( m_wandLowerThresholdSlider->getLabel() );
+    magicWandLayout2->addWidget( m_wandLowerThresholdSlider->getSlider() );
+    magicWandLayout2->addWidget( m_wandLowerThresholdSlider->getSpinBox() );
     QHBoxLayout * magicWandLayout3 = new QHBoxLayout();
     magicWandLayout3->addWidget( m_removeSeedButton );
 
@@ -503,13 +486,13 @@ void AlgorithmPaintToolbox::synchronizeWandSpinBoxesAndSliders()
     if (sender == m_wandUpperThresholdSlider)
     {
         val = m_wandUpperThresholdSlider->value();
-        m_wandUpperThresholdSpinBox->blockSignals(true);
-        m_wandUpperThresholdSpinBox->setValue(val);
-        m_wandUpperThresholdSpinBox->blockSignals(false);
+        m_wandUpperThresholdSlider->getSpinBox()->blockSignals(true);
+        m_wandUpperThresholdSlider->getSpinBox()->setValue(val);
+        m_wandUpperThresholdSlider->getSpinBox()->blockSignals(false);
     }
-    else if (sender == m_wandUpperThresholdSpinBox)
+    else if (sender == m_wandUpperThresholdSlider->getSpinBox())
     {
-        val = m_wandUpperThresholdSpinBox->value();
+        val = m_wandUpperThresholdSlider->getSpinBox()->value();
         m_wandUpperThresholdSlider->blockSignals(true);
         m_wandUpperThresholdSlider->setValue(val);
         m_wandUpperThresholdSlider->blockSignals(false);
@@ -517,13 +500,13 @@ void AlgorithmPaintToolbox::synchronizeWandSpinBoxesAndSliders()
     else if (sender == m_wandLowerThresholdSlider)
     {
         val = m_wandLowerThresholdSlider->value();
-        m_wandLowerThresholdSpinBox->blockSignals(true);
-        m_wandLowerThresholdSpinBox->setValue(val);
-        m_wandLowerThresholdSpinBox->blockSignals(false);
+        m_wandLowerThresholdSlider->getSpinBox()->blockSignals(true);
+        m_wandLowerThresholdSlider->getSpinBox()->setValue(val);
+        m_wandLowerThresholdSlider->getSpinBox()->blockSignals(false);
     }
-    else if (sender == m_wandLowerThresholdSpinBox)
+    else if (sender == m_wandLowerThresholdSlider->getSpinBox())
     {
-        val = m_wandLowerThresholdSpinBox->value();
+        val = m_wandLowerThresholdSlider->getSpinBox()->value();
         m_wandLowerThresholdSlider->blockSignals(true);
         m_wandLowerThresholdSlider->setValue(val);
         m_wandLowerThresholdSlider->blockSignals(false);
@@ -579,7 +562,7 @@ void AlgorithmPaintToolbox::activateCustomedCursor()
 
     // Get size of the brush
     medAbstractImageView * imageView = dynamic_cast<medAbstractImageView *>(currentView);
-    int si = floor((float)(m_brushSizeSpinBox->value())*2.0f/imageView->sliceThickness() + 0.5);
+    int si = floor((float)(m_brushSizeSlider->getSpinBox()->value())*2.0f/imageView->sliceThickness() + 0.5);
 
     // Create shape of the new cursor
     QPixmap pix(si,si);
@@ -1141,7 +1124,9 @@ AlgorithmPaintToolbox::GenerateMinMaxValuesFromImage ()
     IMAGE *tmpPtr = dynamic_cast<IMAGE *> ((itk::Object*)(m_imageData->data()));
 
     if (!tmpPtr)
+    {
         return;
+    }
 
     typedef typename itk::MinimumMaximumImageCalculator< IMAGE > MinMaxCalculatorType;
 
@@ -1153,10 +1138,12 @@ AlgorithmPaintToolbox::GenerateMinMaxValuesFromImage ()
     m_MinValueImage = minMaxFilter->GetMinimum();
     m_MaxValueImage = minMaxFilter->GetMaximum();
 
-    m_wandLowerThresholdSlider->setMaximum(m_MaxValueImage);
-    m_wandUpperThresholdSlider->setMaximum(m_MaxValueImage);
-    m_wandLowerThresholdSlider->setMinimum(m_MinValueImage);
-    m_wandUpperThresholdSlider->setMinimum(m_MinValueImage);
+    m_wandLowerThresholdSlider->setRange(m_MinValueImage, m_MaxValueImage);
+    m_wandUpperThresholdSlider->setRange(m_MinValueImage, m_MaxValueImage);
+
+    // Set step when click on slider
+    m_wandLowerThresholdSlider->getSlider()->setPageStep((m_MaxValueImage-m_MinValueImage)/10);
+    m_wandUpperThresholdSlider->getSlider()->setPageStep((m_MaxValueImage-m_MinValueImage)/10);
 }
 
 void AlgorithmPaintToolbox::updateStroke(ClickAndMoveEventFilter * filter, medAbstractImageView * view)
@@ -1287,8 +1274,8 @@ void AlgorithmPaintToolbox::updateFromGuiItems()
 {
     this->m_strokeRadius = m_brushSizeSlider->value();
     this->m_strokeLabel = m_strokeLabelSpinBox->value();
-    this->m_wandLowerThreshold = m_wandLowerThresholdSpinBox->value();
-    this->m_wandUpperThreshold = m_wandUpperThresholdSpinBox->value();
+    this->m_wandLowerThreshold = m_wandLowerThresholdSlider->getSpinBox()->value();
+    this->m_wandUpperThreshold = m_wandUpperThresholdSlider->getSpinBox()->value();
 }
 
 void AlgorithmPaintToolbox::showButtons( bool value )
@@ -1309,18 +1296,12 @@ void AlgorithmPaintToolbox::updateButtons()
 {
 
    if ( m_paintState == PaintState::None ) {
-        m_wandLowerThresholdLabel->hide();
-        m_wandUpperThresholdLabel->hide();
         m_wandLowerThresholdSlider->hide();
         m_wandUpperThresholdSlider->hide();
-        m_wandLowerThresholdSpinBox->hide();
-        m_wandUpperThresholdSpinBox->hide();
         m_wand3DCheckbox->hide();
         m_wand3DRealTime->hide();
         m_wandInfo->hide(); 
         m_brushSizeSlider->hide();
-        m_brushSizeSpinBox->hide();
-        m_brushRadiusLabel->hide();
         m_labelColorWidget->hide();
         m_strokeLabelSpinBox->hide();
         m_colorLabel->hide();
@@ -1333,29 +1314,17 @@ void AlgorithmPaintToolbox::updateButtons()
         m_colorLabel->show();
 
         if ( m_paintState == PaintState::Wand ) {
-            m_wandLowerThresholdLabel->show();
-            m_wandUpperThresholdLabel->show();
             m_wandLowerThresholdSlider->show();
             m_wandUpperThresholdSlider->show();
-            m_wandLowerThresholdSpinBox->show();
-            m_wandUpperThresholdSpinBox->show();
             m_wand3DCheckbox->show();
             m_wand3DRealTime->show();
             m_wandInfo->show();    
             m_brushSizeSlider->hide();
-            m_brushSizeSpinBox->hide();
-            m_brushRadiusLabel->hide();
         }
         else if ( m_paintState == PaintState::Stroke ) {
             m_brushSizeSlider->show();
-            m_brushSizeSpinBox->show();
-            m_brushRadiusLabel->show();
-            m_wandLowerThresholdLabel->hide();
-            m_wandUpperThresholdLabel->hide();
             m_wandLowerThresholdSlider->hide();
             m_wandUpperThresholdSlider->hide();
-            m_wandLowerThresholdSpinBox->hide();
-            m_wandUpperThresholdSpinBox->hide();
             m_wand3DCheckbox->hide();
             m_wand3DRealTime->hide();
         }
@@ -1386,12 +1355,12 @@ void AlgorithmPaintToolbox::setParameter(int channel, int value) // LOIC's metho
     if(channel == 0)
     {
         m_wandLowerThresholdSlider->setValue(value);
-        m_wandLowerThresholdSpinBox->setValue(value);
+        m_wandLowerThresholdSlider->getSpinBox()->setValue(value);
     }
     if (channel == 1)
     {
         m_wandUpperThresholdSlider->setValue(value);
-        m_wandUpperThresholdSpinBox->setValue(value);
+        m_wandUpperThresholdSlider->getSpinBox()->setValue(value);
     }
 
 }

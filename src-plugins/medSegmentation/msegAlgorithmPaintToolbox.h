@@ -18,7 +18,8 @@
 #include <medSegmentationPluginExport.h>
 
 #include <medAbstractData.h>
-
+#include <medIntParameter.h>
+#include <medDoubleParameter.h>
 #include <medDataIndex.h>
 #include <medViewEventFilter.h>
 #include <medImageMaskAnnotationData.h>
@@ -170,9 +171,7 @@ private:
 
     // Stroke's objects
     QPushButton *m_strokeButton;
-    QSlider *m_brushSizeSlider;
-    QSpinBox *m_brushSizeSpinBox;
-    QLabel *m_brushRadiusLabel;
+    medIntParameter* m_brushSizeSlider;
     QShortcut *addBrushSize_shortcut, *reduceBrushSize_shortcut;
     double m_strokeRadius;
     bool maskHasBeenSaved;
@@ -183,9 +182,7 @@ private:
     // wandradius = (max - min) * sliderPerc / 2.0
     QPushButton *m_magicWandButton;
     QFormLayout * magicWandLayout;
-    QLabel * m_wandUpperThresholdLabel, *m_wandLowerThresholdLabel;
-    QSlider *m_wandUpperThresholdSlider, *m_wandLowerThresholdSlider;
-    QDoubleSpinBox *m_wandUpperThresholdSpinBox , * m_wandLowerThresholdSpinBox;
+    medDoubleParameter *m_wandUpperThresholdSlider, *m_wandLowerThresholdSlider;
     QPushButton * m_removeSeedButton;
     QShortcut *removeSeed_shortcut;
     QCheckBox *m_wand3DCheckbox, *m_wand3DRealTime;
