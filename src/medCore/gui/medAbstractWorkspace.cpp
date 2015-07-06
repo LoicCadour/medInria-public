@@ -323,6 +323,7 @@ void medAbstractWorkspace::updateLayersToolBox()
                 QString name = medMetaDataKeys::SeriesDescription.getFirstValue(data,"<i>no name</i>");
 
                 QHBoxLayout* layout = new QHBoxLayout(layerWidget);
+                layout->setContentsMargins(0,0,0,0);
 
                 medBoolParameter* visibilityParam = dynamic_cast<medBoolParameter*>(layeredView->visibilityParameter(layer));
                 QPushButton* thumbnailButton = visibilityParam->getPushButton();
@@ -496,6 +497,7 @@ void medAbstractWorkspace::updateInteractorsToolBox()
             interactorsIdentifier << interactorIdentifier;
             QGroupBox *groupBox = new QGroupBox;
             QVBoxLayout *groupBoxLayout = new QVBoxLayout(groupBox);
+            groupBoxLayout->setContentsMargins(0,0,0,0);
 
             QWidget *intercatorWidget = interactor->toolBoxWidget();
             if(intercatorWidget)
