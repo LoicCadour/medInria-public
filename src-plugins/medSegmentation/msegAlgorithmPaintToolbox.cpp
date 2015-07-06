@@ -367,13 +367,13 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     magicWandCheckboxes->addWidget(m_wand3DCheckbox);
     magicWandCheckboxes->addWidget(m_wand3DRealTime);
     QHBoxLayout * magicWandLayout1 = new QHBoxLayout();
-    magicWandLayout1->addWidget( m_wandLowerThresholdLabel );
-    magicWandLayout1->addWidget( m_wandLowerThresholdSlider );
-    magicWandLayout1->addWidget( m_wandLowerThresholdSpinBox );
+    magicWandLayout1->addWidget( m_wandUpperThresholdLabel );
+    magicWandLayout1->addWidget( m_wandUpperThresholdLabel );
+    magicWandLayout1->addWidget( m_wandUpperThresholdLabel );
     QHBoxLayout * magicWandLayout2 = new QHBoxLayout();
-    magicWandLayout2->addWidget( m_wandUpperThresholdLabel );
-    magicWandLayout2->addWidget( m_wandUpperThresholdSlider );
-    magicWandLayout2->addWidget( m_wandUpperThresholdSpinBox );
+    magicWandLayout2->addWidget( m_wandLowerThresholdSpinBox );
+    magicWandLayout2->addWidget( m_wandLowerThresholdSpinBox );
+    magicWandLayout2->addWidget( m_wandLowerThresholdSpinBox );
     QHBoxLayout * magicWandLayout3 = new QHBoxLayout();
     magicWandLayout3->addWidget( m_removeSeedButton );
 
