@@ -579,7 +579,11 @@ void AlgorithmPaintToolbox::activateCustomedCursor()
 
     // Get size of the brush
     medAbstractImageView * imageView = dynamic_cast<medAbstractImageView *>(currentView);
-    int si = floor((float)(m_brushSizeSpinBox->value())*2.0f/imageView->sliceThickness() + 0.5);
+    double si_t = (double)(m_brushSizeSpinBox->value())*2.0/imageView->sliceThickness();
+
+    // Adapt to zoom factor
+    vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(currentView->backend())->view2D;
+    int si = floor(si_t * view2d->GetZoom() + 0.5);
 
     // Create shape of the new cursor
     QPixmap pix(si,si);
