@@ -19,8 +19,8 @@
 #include <medApplication.h>
 #include <medSplashScreen.h>
 
-
 #include <dtkCore>
+#include <dtkLog/dtkLog.h>
 
 #include <medPluginManager.h>
 #include <medDataIndex.h>
@@ -65,14 +65,45 @@ void forceShow(medMainWindow& mainwindow )
 #endif
 }
 
+
+void myMessageOutput(QtMsgType type, const char *msg)
+{
+    switch (type) {
+    case QtDebugMsg:
+        dtkDebug()<<msg;
+        break;
+    case QtWarningMsg:
+        dtkWarn()<<msg;
+        break;
+    case QtCriticalMsg:
+        dtkError()<<msg;
+        break;
+    case QtFatalMsg:
+        dtkFatal()<<msg;
+        abort();
+    }
+}
+
+
 int main(int argc,char* argv[]) {
 
     qRegisterMetaType<medDataIndex>("medDataIndex");
+
+    //Redirects Qt messages
+    qInstallMsgHandler(myMessageOutput);
+    //qInstallMessageHandler(myMessageOutput);later with Qt5.
 
     // this needs to be done before creating the QApplication object, as per the
     // Qt doc, otherwise there are some edge cases where the style is not fully applied
     QApplication::setStyle("plastique");
     medApplication application(argc,argv);
+
+    dtkLogger::instance().setLevel(dtkLog::Warn);
+    dtkLogger::instance().attachFile(dtkLogPath(&application));
+    dtkLogger::instance().attachConsole();
+    dtkLogger::instance().redirectCerr();
+    dtkLogger::instance().redirectCout();
+
     medSplashScreen splash(QPixmap(":music_logo.png"));
     setlocale(LC_NUMERIC, "C");
 
