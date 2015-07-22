@@ -121,12 +121,10 @@ void medFilteringWorkspace::changeToolBoxInput()
  */
 void medFilteringWorkspace::onProcessSuccess()
 {
-    if(d->filteringToolBox.isNull())
-        return;
+    if(d->filteringToolBox.isNull()) return;
 
     d->filterOutput = d->filteringToolBox->currentToolBox()->processOutput();
-    if ( !d->filterOutput )
-        return;
+    if ( !d->filterOutput ) return;
 
     qDebug() << "d->filterOutput->identifier()" << d->filterOutput->identifier();
 
