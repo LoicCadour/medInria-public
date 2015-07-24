@@ -60,6 +60,8 @@ class MEDVIEWSEGMENTATIONPLUGIN_EXPORT AlgorithmPaintToolbox : public medSegment
     MED_TOOLBOX_INTERFACE("AlgorithmPaintToolbox", "Paint Tool",
                           <<"segmentation")
 public:
+
+    static const int importNameRandomSuffixSize = 5;
     
     typedef QPair<Mask2dType::Pointer,unsigned int> SlicePair;
     typedef QPair<QList<SlicePair>,unsigned char> PairListSlicePlaneId;
@@ -105,7 +107,9 @@ public slots:
     void activateMagicWand();
     void updateMagicWandComputationSpeed();
 
-    void import();
+    void save();
+
+    void import(medAbstractData* data);
     void clearMask();
 
     void setLabel(int newVal);
@@ -140,7 +144,9 @@ protected:
     friend class ClickAndMoveEventFilter;
     
     void addStroke( medAbstractImageView *view, const QVector3D &vec );
-    void setData( medAbstractData *data );
+    void updateData();
+
+    void setMaskMetaData();
 
     // update with seed point data.
     void updateTableRow(int row);
@@ -164,6 +170,7 @@ protected:
 
 signals:
     void installEventFilterRequest(medViewEventFilter *filter);
+    void save(medAbstractData* data);
 
 private:
     typedef dtkSmartPointer<medSeedPointAnnotationData> SeedPoint;

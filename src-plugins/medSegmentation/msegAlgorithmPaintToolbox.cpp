@@ -437,7 +437,8 @@ AlgorithmPaintToolbox::AlgorithmPaintToolbox(QWidget *parent ) :
     connect (m_strokeButton, SIGNAL(pressed()), this, SLOT(activateStroke ()));
     connect (m_magicWandButton, SIGNAL(pressed()),this,SLOT(activateMagicWand()));
     connect (m_clearMaskButton, SIGNAL(pressed()), this, SLOT(clearMask()));
-    connect (m_applyButton, SIGNAL(pressed()),this, SLOT(import()));
+    connect (m_applyButton, SIGNAL(pressed()),this, SLOT(save()));
+    connect(this, SIGNAL(save(medAbstractData*)), this, SLOT(import(medAbstractData*)));
     connect(this->segmentationToolBox(), SIGNAL(inputChanged()), this, SLOT(updateMouseInteraction()));
 
     connect (m_interpolateButton, SIGNAL(clicked()),
@@ -670,13 +671,15 @@ void AlgorithmPaintToolbox::updateMagicWandComputationSpeed()
     }
 }
 
-void AlgorithmPaintToolbox::import()
-{  
-    m_maskData->copyMetaDataFrom(m_imageData);
-    QString newSeriesDescription = m_imageData->metadata ( medMetaDataKeys::SeriesDescription.key() ) + " painted";
-    m_maskData->setMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-    medDataManager::instance()->importData(m_maskData, true);
+void AlgorithmPaintToolbox::save()
+{
+    emit save(m_maskData);
     maskHasBeenSaved = true;
+}
+
+void AlgorithmPaintToolbox::import(medAbstractData* data)
+{
+    medDataManager::instance()->importData(data, true);
 }
 
 void AlgorithmPaintToolbox::setWorkspace(medAbstractWorkspace* workspace)
@@ -720,7 +723,7 @@ void AlgorithmPaintToolbox::updateView()
         medImageMaskAnnotationData * existingMaskAnnData = dynamic_cast<medImageMaskAnnotationData *>(data);
         if(!existingMaskAnnData)
         {
-            setData( data );
+            updateData();
         }
     }
 
@@ -773,26 +776,17 @@ void AlgorithmPaintToolbox::clearMask()
         {
             m_imageData->removeAttachedData(m_maskAnnotationData);
             maskHasBeenSaved = false;
-            setData(currentView->layerData(0));
+            updateData();
         }
     }
 }
 
-void AlgorithmPaintToolbox::setData( medAbstractData *medData )
+void AlgorithmPaintToolbox::updateData()
 {
-    if (!medData)
-        return;
-
-    // disconnect existing
-    if ( m_imageData )
-    {
-        // TODO?
-    }
-
     m_lastVup = QVector3D();
     m_lastVpn = QVector3D();
 
-    m_imageData = medData;
+    m_imageData = currentView->layerData(0);
 
     // Update values of slider
 
@@ -823,7 +817,6 @@ void AlgorithmPaintToolbox::setData( medAbstractData *medData )
             m_maskData = existingMaskAnnData->maskData();
 
         } else {
-
             m_maskData =
                 medAbstractDataFactory::instance()->createSmartPointer( "itkDataImageUChar3" );
 
@@ -839,6 +832,11 @@ void AlgorithmPaintToolbox::setData( medAbstractData *medData )
             m_maskAnnotationData->setColorMap( m_labelColorMap );
 
             m_imageData->addAttachedData(m_maskAnnotationData);
+
+            currentView->removeLayer(1);
+            currentView->addLayer(m_maskAnnotationData);
+
+            setMaskMetaData();
         }
     }
 
@@ -849,6 +847,20 @@ void AlgorithmPaintToolbox::setData( medAbstractData *medData )
         m_itkMask = NULL;
         this->showButtons(false);
     }
+}
+
+void AlgorithmPaintToolbox::setMaskMetaData()
+{
+    m_maskData->copyMetaDataFrom(m_imageData);
+
+    QString newSeriesDescription = m_imageData->metadata(medMetaDataKeys::SeriesDescription.key()) + " (painted) ";
+    QString seriesSuffix = QString::number(qrand());
+    seriesSuffix.resize(importNameRandomSuffixSize);
+    newSeriesDescription += seriesSuffix;
+    m_maskData->setMetaData(medMetaDataKeys::SeriesDescription.key(), newSeriesDescription);
+
+    QString generatedSeriesID = QUuid::createUuid().toString().replace("{", "").replace("}", "");
+    m_maskData->setMetaData(medMetaDataKeys::SeriesID.key(), generatedSeriesID);
 }
 
 void AlgorithmPaintToolbox::generateLabelColorMap(unsigned int numLabels)
@@ -970,7 +982,7 @@ void AlgorithmPaintToolbox::updateWandRegion(medAbstractImageView * view, QVecto
    
     if ( !m_imageData )
     {
-        this->setData(view->layerData(0));
+        this->updateData();
     }
     if (!m_imageData) {
         dtkWarn() << "Could not set data";
@@ -1003,16 +1015,6 @@ void AlgorithmPaintToolbox::updateWandRegion(medAbstractImageView * view, QVecto
         RunConnectedFilter < itk::Image <float,3> > (index,planeIndex);
         RunConnectedFilter < itk::Image <double,3> > (index,planeIndex);
     }
-
-    if(!view->contains(m_maskAnnotationData))
-    {
-        view->addLayer(m_maskAnnotationData);
-        m_maskData->copyMetaDataFrom(m_imageData);
-        QString newSeriesDescription = m_imageData->metadata ( medMetaDataKeys::SeriesDescription.key() ) + " painted";
-        m_maskData->setMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-        medDataManager::instance()->importData(m_maskData);
-    }
-
 }
 
 template <typename IMAGE>
@@ -1172,7 +1174,7 @@ void AlgorithmPaintToolbox::updateStroke(ClickAndMoveEventFilter * filter, medAb
     const double radius = m_strokeRadius; // in image units.
 
     if ( !m_imageData ) {
-        this->setData(view->layerData(0));
+        this->updateData();
     }
     if (!m_imageData) {
         dtkWarn() << "Could not set data";
@@ -1274,15 +1276,6 @@ void AlgorithmPaintToolbox::updateStroke(ClickAndMoveEventFilter * filter, medAb
     m_itkMask->Modified();
     m_itkMask->GetPixelContainer()->Modified();
     m_itkMask->SetPipelineMTime(m_itkMask->GetMTime());
-
-    if(!view->contains(m_maskAnnotationData))
-    {
-        view->addLayer(m_maskAnnotationData);
-        m_maskData->copyMetaDataFrom(m_imageData);
-        QString newSeriesDescription = m_imageData->metadata ( medMetaDataKeys::SeriesDescription.key() ) + " painted";
-        m_maskData->setMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-        medDataManager::instance()->importData(m_maskData);
-    }
 
     m_maskAnnotationData->invokeModified();
 }
