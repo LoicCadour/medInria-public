@@ -675,7 +675,7 @@ void AlgorithmPaintToolbox::import()
     m_maskData->copyMetaDataFrom(m_imageData);
     QString newSeriesDescription = m_imageData->metadata ( medMetaDataKeys::SeriesDescription.key() ) + " painted";
     m_maskData->setMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-    medDataManager::instance()->importData(m_maskData, true);
+    medDataManager::instance()->importData(m_maskData, false);
     maskHasBeenSaved = true;
 }
 
@@ -1007,12 +1007,7 @@ void AlgorithmPaintToolbox::updateWandRegion(medAbstractImageView * view, QVecto
     if(!view->contains(m_maskAnnotationData))
     {
         view->addLayer(m_maskAnnotationData);
-        m_maskData->copyMetaDataFrom(m_imageData);
-        QString newSeriesDescription = m_imageData->metadata ( medMetaDataKeys::SeriesDescription.key() ) + " painted";
-        m_maskData->setMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-        medDataManager::instance()->importData(m_maskData);
     }
-
 }
 
 template <typename IMAGE>
@@ -1278,10 +1273,6 @@ void AlgorithmPaintToolbox::updateStroke(ClickAndMoveEventFilter * filter, medAb
     if(!view->contains(m_maskAnnotationData))
     {
         view->addLayer(m_maskAnnotationData);
-        m_maskData->copyMetaDataFrom(m_imageData);
-        QString newSeriesDescription = m_imageData->metadata ( medMetaDataKeys::SeriesDescription.key() ) + " painted";
-        m_maskData->setMetaData ( medMetaDataKeys::SeriesDescription.key(), newSeriesDescription );
-        medDataManager::instance()->importData(m_maskData);
     }
 
     m_maskAnnotationData->invokeModified();
