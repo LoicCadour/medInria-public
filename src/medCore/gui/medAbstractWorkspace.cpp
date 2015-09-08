@@ -297,22 +297,11 @@ void medAbstractWorkspace::updateLayersToolBox()
         // fill the layer widget
         medViewContainer *container = medViewContainerManager::instance()->container(uuid);
         medAbstractLayeredView* layeredView = dynamic_cast<medAbstractLayeredView*>(container->view());
+
         if(layeredView)
         {
-            if(d->layerListWidget->count() != 0)
-            {
-                // add an empty widget to separate layers from different views
-                QListWidgetItem * item = new QListWidgetItem;
-                item->setSizeHint(QSize(10, 10));
-                item->setFlags(Qt::NoItemFlags);
-                d->layerListWidget->addItem(item);
-            }
-
             for(int layer = layeredView->layersCount() - 1; layer >= 0; --layer)
             {
-                if(layer < 0)
-                    break;
-
                 medAbstractData *data = layeredView->layerData(layer);
                 if(!data)
                     continue;
@@ -368,7 +357,6 @@ void medAbstractWorkspace::updateLayersToolBox()
 
                     layout->addWidget(removeButton);
                     connect(removeButton, SIGNAL(clicked()), this, SLOT(removeLayer()));
-
                 }
 
                 layerWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
@@ -389,13 +377,16 @@ void medAbstractWorkspace::updateLayersToolBox()
                     item->setSelected(true);
                 }
                 d->layerListWidget->blockSignals(false);
-
             }
+
             // add the layer widgets
             if (layeredView->layersCount() > 0)
             {
                 d->layersToolBox->show();
                 d->layerListToolBox->addWidget(d->layerListWidget);
+
+                // resize layerListWidget to number of item
+                d->layerListWidget->setFixedHeight(d->layerListWidget->sizeHintForRow(0) * d->layerListWidget->count() + 2 * d->layerListWidget->frameWidth());
                 d->layerListWidget->show();
             }
         }
