@@ -24,8 +24,9 @@ class superResolutionToolBoxPrivate;
 
 class REFORMATPLUGIN_EXPORT superResolutionToolBox : public medSegmentationAbstractToolBox
 {
-    Q_OBJECT;
-    MED_TOOLBOX_INTERFACE("superResolutionToolBox","shape based interpolation algorithm", << "reformat");
+    Q_OBJECT
+    MED_TOOLBOX_INTERFACE("superResolutionToolBox",
+                          "shape based interpolation algorithm", << "view")
 
 public:
     superResolutionToolBox(QWidget *parentToolBox = 0);

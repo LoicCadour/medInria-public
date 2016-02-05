@@ -56,25 +56,10 @@ reformatWorkspace::reformatWorkspace(QWidget *parent) : medAbstractWorkspace(par
         {
             medToolBox* toolBox = medToolBoxFactory::instance()->createToolBox(toolbox, parent);
             addToolBox(toolBox);
+            toolBox->setWorkspace(this);
             toolBox->switchMinimize();
         }
     }
-
-    reformatToolBox * reformatTb = new reformatToolBox();
-    reformatTb->setWorkspace(this);
-    addToolBox(reformatTb);
-    reformatTb->switchMinimize();
-
-    medSegmentationAbstractToolBox * cropTb =
-            qobject_cast<medSegmentationAbstractToolBox*>(medToolBoxFactory::instance()->createToolBox("medCropToolBox"));
-    cropTb->setWorkspace(this);
-    addToolBox(cropTb);
-    cropTb->switchMinimize();
-    
-    superResolutionToolBox * superResolutionTb = new superResolutionToolBox();
-    superResolutionTb->setWorkspace(this);
-    addToolBox(superResolutionTb);
-    superResolutionTb->switchMinimize();
 }
 
 reformatWorkspace::~reformatWorkspace()

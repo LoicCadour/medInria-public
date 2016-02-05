@@ -8,9 +8,8 @@ class reformatToolBoxPrivate;
 
 class REFORMATPLUGIN_EXPORT reformatToolBox : public medSegmentationAbstractToolBox
 {
-    Q_OBJECT;
-
-    MED_TOOLBOX_INTERFACE("reformatToolBox","used to reformat an image", << "reformat");
+    Q_OBJECT
+    MED_TOOLBOX_INTERFACE("reformatToolBox","used to reformat an image", << "view")
         
 public:
     reformatToolBox(QWidget *parentToolBox = 0);
