@@ -36,8 +36,6 @@ itkMorphologicalFiltersProcessBase::itkMorphologicalFiltersProcessBase(itkMorpho
 
     d->isRadiusInPixels = false;    
     d->description = "";
-
-    d->kernelShape = BallKernel;
 }
 
 itkMorphologicalFiltersProcessBase::itkMorphologicalFiltersProcessBase(const itkMorphologicalFiltersProcessBase& other) 
@@ -70,13 +68,6 @@ void itkMorphologicalFiltersProcessBase::setParameter(double data, int channel)
             d->isRadiusInPixels = false;
         }
     }
-}
-
-void itkMorphologicalFiltersProcessBase::setParameter(int data)
-{
-    DTK_D(itkMorphologicalFiltersProcessBase);
-
-    d->kernelShape = static_cast<KernelShape>(data);
 }
 
 //only called if not defined in subclasses (e.g. dilate/erodeFilter)
