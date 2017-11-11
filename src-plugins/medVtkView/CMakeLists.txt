@@ -111,6 +111,8 @@ target_link_libraries(${PROJECT_NAME}
   QVTK
   medCore
   medVtkInria
+  ITKIOPhilipsREC
+  ITKIOTIFF
   )
 
 

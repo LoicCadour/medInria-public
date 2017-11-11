@@ -70,6 +70,7 @@ target_link_libraries(${PROJECT_NAME}
   dtkLog
   medCore
   ITKCommon
+  ITKIOPhilipsREC
   ITKIOImageBase
   ITKIOBMP
   ITKIOLSM
@@ -87,6 +88,7 @@ target_link_libraries(${PROJECT_NAME}
   ITKIOBioRad
   ITKIOStimulate
   ITKIOMRC
+  ITKIOTIFF
   ${DCMTK_LIBRARIES}
   )
 

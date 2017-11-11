@@ -58,8 +58,8 @@ set(PLUGIN_LIST
   itkFilters                                ON
   qtdcmDataSource                           ON
   itkDataSHImage                            ON
-  undoRedoRegistration                      ON
-  itkProcessRegistrationDiffeomorphicDemons ON
+  #undoRedoRegistration                      ON
+  #itkProcessRegistrationDiffeomorphicDemons ON
   medVtkView                                ON
   )   
 
