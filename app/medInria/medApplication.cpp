@@ -76,7 +76,7 @@ medApplication::medApplication(int & argc, char**argv) :
     //}
     d->mainWindow = NULL;
 
-    this->setApplicationName("MUSIC Viewer");
+    this->setApplicationName("inHEART Viewer");
     qDebug() << "Version:" << MEDINRIA_VERSION;
     this->setApplicationVersion(MEDINRIA_VERSION);
     this->setOrganizationName("INRIA_IHU-LIRYC"); /*Beware, change database name*/

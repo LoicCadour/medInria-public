@@ -41,7 +41,7 @@ medVisualizationWorkspace::medVisualizationWorkspace(QWidget *parent) : medAbstr
 void medVisualizationWorkspace::setupViewContainerStack()
 {
     if (!stackedViewContainers()->count()) {
-        this->stackedViewContainers()->addContainerInTab("MUSIC Viewer");
+        this->stackedViewContainers()->addContainerInTab("inHEART Viewer");
         this->stackedViewContainers()->containersInTab(0).at(0)->setClosingMode(medViewContainer::CLOSE_VIEW);
     }
     this->stackedViewContainers()->lockTabs();
