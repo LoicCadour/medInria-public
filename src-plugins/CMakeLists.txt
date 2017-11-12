@@ -49,17 +49,8 @@ option(BUILD_COMPOSITEDATASET_PLUGIN
 ## ADD here any new plugin with a default compilation value, 
 ## you want to include in the build, 
 set(PLUGIN_LIST
-  medVtkFibersData                          ON
   itkDataImage                              ON
   vtkDataMesh                               ON
-  itkDataDiffusionGradientList              ON
-  itkDataTensorImage                        ON
-  medSegmentation                           ON
-  itkFilters                                ON
-  qtdcmDataSource                           ON
-  itkDataSHImage                            ON
-  #undoRedoRegistration                      ON
-  #itkProcessRegistrationDiffeomorphicDemons ON
   medVtkView                                ON
   )   
 
@@ -71,10 +62,3 @@ set(PLUGIN_LIST
 ## see cmake/module/add_plugin.cmake
 add_plugins(${PLUGIN_LIST})
 
-if(BUILD_COMPOSITEDATASET_PLUGIN)
-  add_subdirectory(medCompositeDataSets)          
-endif() 
-
-if (BUILD_EXAMPLE_PLUGINS)
-  add_subdirectory(examples)
-endif()

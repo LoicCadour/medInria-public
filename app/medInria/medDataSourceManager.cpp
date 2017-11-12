@@ -19,14 +19,12 @@
 #include <medAbstractDataSource.h>
 #include <medAbstractDataSourceFactory.h>
 #include <medDataManager.h>
-#include <medPacsWidget.h>
 #include <medMetaDataKeys.h>
 #include <medStorage.h>
 #include <medMessageController.h>
 
 #include <medFileSystemDataSource.h>
 #include <medDatabaseDataSource.h>
-#include <medPacsDataSource.h>
 
 #include <medApplication.h>
 
@@ -37,7 +35,6 @@ public:
 
     medDatabaseDataSource *dbSource;
     medFileSystemDataSource *fsSource;
-    medPacsDataSource *pacsSource;
 };
 
 medDataSourceManager::medDataSourceManager(): d(new medDataSourceManagerPrivate)
@@ -51,19 +48,6 @@ medDataSourceManager::medDataSourceManager(): d(new medDataSourceManagerPrivate)
     d->fsSource = new medFileSystemDataSource();
     d->dataSources.push_back(d->fsSource);
     connectDataSource(d->fsSource);
-
-    // Pacs data source
-    medPacsDataSource *pacsDataSource = new medPacsDataSource;
-    medPacsWidget * mainPacsWidget = qobject_cast<medPacsWidget*> (pacsDataSource->mainViewWidget());
-    //make the widget hide if not functional (otehrwise it flickers in and out).
-    mainPacsWidget->hide();
-    if (mainPacsWidget->isServerFunctional())
-    {
-        d->pacsSource = new medPacsDataSource();
-        d->dataSources.push_back(d->pacsSource);
-        connectDataSource(d->pacsSource);
-    }
-    else mainPacsWidget->deleteLater();
 
     // dynamic data sources (from plugins)
 
