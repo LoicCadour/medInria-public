@@ -188,28 +188,6 @@ medMainWindow::medMainWindow ( QWidget *parent ) : QMainWindow ( parent ), d ( n
     connect(d->quitButton, SIGNAL( pressed()), this, SLOT (close()));
     d->quitButton->setToolTip(tr("Close inHEART Viewer"));
 
-    //  Setup Fullscreen Button
-    QIcon fullscreenIcon ;
-    fullscreenIcon.addPixmap(QPixmap(":icons/fullscreenExpand.png"),QIcon::Normal,QIcon::Off);
-    fullscreenIcon.addPixmap(QPixmap(":icons/fullscreenReduce.png"),QIcon::Normal,QIcon::On);
-
-    //  Setting up shortcuts
-    //  we use a toolbutton, which has shorcuts,
-    //  so we don't need the application shortcut anymore.
-    d->fullscreenButton = new QToolButton(this);
-    d->fullscreenButton->setIcon(fullscreenIcon);
-    d->fullscreenButton->setCheckable(true);
-    d->fullscreenButton->setChecked(false);
-    d->fullscreenButton->setObjectName("fullScreenButton");
-#if defined(Q_WS_MAC)
-    d->fullscreenButton->setShortcut(Qt::ControlModifier + Qt::Key_F);
-    d->fullscreenButton->setToolTip(tr("Switch FullScreen state (Cmd+f)"));
-#else
-    d->fullscreenButton->setShortcut(Qt::Key_F11);
-    d->fullscreenButton->setToolTip(tr("Switch FullScreen state (F11)"));
-#endif
-    connect ( d->fullscreenButton, SIGNAL ( toggled(bool) ),
-                       this, SLOT ( setFullScreen(bool) ) );
     
     QPushButton* infoButton = new QPushButton("INFO");
     QObject::connect(infoButton, SIGNAL(clicked()), this, SLOT(showInfo()));
@@ -266,7 +244,6 @@ medMainWindow::medMainWindow ( QWidget *parent ) : QMainWindow ( parent ), d ( n
     rightEndButtonsLayout->addWidget( infoButton );
     rightEndButtonsLayout->addWidget( d->adjustSizeButton );
     rightEndButtonsLayout->addWidget( d->screenshotButton );
-    rightEndButtonsLayout->addWidget( d->fullscreenButton );
     rightEndButtonsLayout->addWidget( d->quitButton );
 
     //  Setting up status bar
@@ -633,26 +610,17 @@ void medMainWindow::captureScreenshot()
 
 void medMainWindow::showFullScreen()
 {
-    d->fullscreenButton->blockSignals(true);
-    d->fullscreenButton->setChecked(true);
-    d->fullscreenButton->blockSignals(false);
     QMainWindow::showFullScreen();
     this->setAcceptDrops(true);
 }
 
 void medMainWindow::showNormal()
 {
-    d->fullscreenButton->blockSignals(true);
-    d->fullscreenButton->setChecked(false);
-    d->fullscreenButton->blockSignals(false);
     QMainWindow::showNormal();
 }
 
 void medMainWindow::showMaximized()
 {
-    d->fullscreenButton->blockSignals(true);
-    d->fullscreenButton->setChecked(false);
-    d->fullscreenButton->blockSignals(false);
     QMainWindow::showMaximized();
 }
 

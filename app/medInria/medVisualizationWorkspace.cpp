@@ -45,6 +45,7 @@ void medVisualizationWorkspace::setupViewContainerStack()
         this->stackedViewContainers()->containersInTab(0).at(0)->setClosingMode(medViewContainer::CLOSE_VIEW);
     }
     this->stackedViewContainers()->lockTabs();
+    this->stackedViewContainers()->hideTabBar();
 }
 
 medVisualizationWorkspace::~medVisualizationWorkspace(void)
