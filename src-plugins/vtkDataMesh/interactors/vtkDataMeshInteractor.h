@@ -93,6 +93,7 @@ private slots:
     void updateRange();
     void showRangeWidgets(bool);
     void exportToNavX();
+    void exportToRhythmia();
     void exportToCarto();
     void showPatientInfoDialog();
     void stopWaiting();

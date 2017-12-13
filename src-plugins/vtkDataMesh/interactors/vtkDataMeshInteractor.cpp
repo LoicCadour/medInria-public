@@ -94,6 +94,7 @@ public:
     QPushButton * range_button;
     QPushButton * export_button;
     QPushButton * carto_button;
+    QPushButton * rhythmia_button;
 
     QList <medAbstractParameter*> parameters;
 
@@ -131,8 +132,11 @@ medAbstractImageViewInteractor(parent), d(new vtkDataMeshInteractorPrivate)
     d->export_button = new QPushButton("Export to NavX");
     connect(d->export_button,SIGNAL(clicked()),this,SLOT(exportToNavX()));
 
-    d->carto_button = new QPushButton("Export to Carto");
+    d->carto_button = new QPushButton("Export to CARTO");
     connect(d->carto_button,SIGNAL(clicked()),this,SLOT(exportToCarto()));
+    
+    d->rhythmia_button = new QPushButton("Export to RHYTHMIA");
+    connect(d->rhythmia_button,SIGNAL(clicked()),this,SLOT(exportToRhythmia()));
 }
 
 
@@ -607,6 +611,7 @@ QWidget* vtkDataMeshInteractor::buildToolBoxWidget()
     layout->addRow(d->maxRange->getLabel(),maxRangeLayout);
     layout->addRow(d->export_button);
     layout->addRow(d->carto_button);
+    layout->addRow(d->rhythmia_button);
     showRangeWidgets(false);
     return toolbox;
 }
@@ -779,6 +784,48 @@ void vtkDataMeshInteractor::exportToCarto()
         if (lut && mesh->GetCurrentScalarArray())
             d->metaDataSet->GetCurrentScalarArray()->SetLookupTable(lut);
         medDataManager::instance()->exportDataToPath(dataToExport, filename, "cartoVtkWriter");
+
+        //To leave the loop after export (otherwise, dataToExport deleted)
+        connect(medDataManager::instance(), SIGNAL(dataExported()), this, SLOT(stopWaiting()));
+        d->exporting = true;
+        while (d->exporting)
+            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    }
+}
+
+void vtkDataMeshInteractor::exportToRhythmia()
+{
+    QString dir = QFileDialog::getExistingDirectory(0, tr("Select a directory to save your RHYTHMIA files"));
+    if(dir == "")
+    {
+        return;
+    }
+
+    medAbstractLayeredView* layeredView=dynamic_cast<medAbstractLayeredView*>(d->view);
+    for (unsigned int i=0 ; i<layeredView->layersCount();++i)
+    {
+        medAbstractData *data = d->view->layerData(i);
+        QString seriesName = data->metaDataValues(medMetaDataKeys::SeriesDescription.key())[0];
+        QString filename =  dir + "/" + seriesName + ".vtk";
+
+        vtkMetaDataSet * mesh = dynamic_cast<vtkMetaDataSet*>((vtkDataObject *)(data->data()));
+
+        dtkSmartPointer<vtkDataMesh> dataToExport = new vtkDataMesh;
+        dataToExport->setData(mesh);
+
+        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(d->view->backend())->view2D;
+        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(d->view->backend())->view3D;
+
+        vtkActor * actor2d = static_cast<vtkActor*>(view2d->FindDataSetActor(mesh->GetDataSet()));
+        vtkActor * actor3d = static_cast<vtkActor*>(view3d->FindDataSetActor(mesh->GetDataSet()));
+        vtkMapper * mapper2d = actor2d->GetMapper();
+        vtkMapper * mapper3d = actor3d->GetMapper();
+        vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper3d->GetLookupTable());
+        //    if (!lut)
+        //        vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper2d->GetLookupTable());
+        if (lut && mesh->GetCurrentScalarArray())
+            d->metaDataSet->GetCurrentScalarArray()->SetLookupTable(lut);
+        medDataManager::instance()->exportDataToPath(dataToExport, filename, "vtkDataMeshWriter");
 
         //To leave the loop after export (otherwise, dataToExport deleted)
         connect(medDataManager::instance(), SIGNAL(dataExported()), this, SLOT(stopWaiting()));
