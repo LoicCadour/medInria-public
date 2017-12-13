@@ -91,7 +91,7 @@ public slots:
     void setMultiLayered(bool multiLayer);
     void setUserOpenable(bool openable);
 
-    void highlight(QString color = "#FFAA88");
+    void highlight(QString color = "#000000");
     void unHighlight();
     void loadScene();
 
