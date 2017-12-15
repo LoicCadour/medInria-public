@@ -36,20 +36,22 @@ $DARKGRAY          = #2a416f; /*toolbox headers*/
 $MEDINRIA_DARKGRAY = #39548a; /*toolbox headers*/
 
 $INHEART_GRAY      = #363636;
+$INHEART_MEDIUMGRAY  = #2e2e2e;
+$INHEART_DARKGRAY  = #2a2a2a;
 
 
-$BLUE       = #1E6A8E; /*only in tooltip background*/
+$BLUE       = #1D4A66;//#1E6A8E; /*only in tooltip background*/
 $GREEN      = #64FF32; /*only in success progress bar*/
 $RED        = #FF3333; /*only in failure progress bar*/
 /*******************************************************************************
     BACKGROUND
  *******************************************************************************/
-$WIDGET_BACKGROUND                      = #2a2a2a;
+$WIDGET_BACKGROUND                      = $INHEART_DARKGRAY;
 
 $TOOLTIP_BACKGROUND                     = $BLUE;
 
-$LIST_BACKGROUND                        = $INHEART_GRAY;
-$ALT_LIST_BACKGROUND                    = $GREY03;
+$LIST_BACKGROUND                        = $INHEART_DARKGRAY;
+$ALT_LIST_BACKGROUND                    = $INHEART_MEDIUMGRAY;
 
 $EDITION_BACKGROUND                     = $GREY06;
 
@@ -59,14 +61,14 @@ $PROGRESS_BAR_BACKGROUND                = $GREY03;
 
 $STATUS_BAR_BACKGROUND                  = #2e2e2e; //qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 $GREY06, stop: 1 $GREY05);
 
-$SLIDER_HORIZONTAL_BACKGROUND           = qradialgradient(cx: 0.5, cy: 0, fx: 0.5, fy: 0, radius: 1, stop: 0 $GREY07, stop: 1 $GREY04);
-$SLIDER_VERTICAL_BACKGROUND             = qradialgradient(cx: 0, cy: 0.5, fx: 0, fy: 0.5, radius: 1, stop: 0 $GREY07, stop: 1 $GREY04);
+$SLIDER_HORIZONTAL_BACKGROUND           = black;//qradialgradient(cx: 0.5, cy: 0, fx: 0.5, fy: 0, radius: 1, stop: 0 $GREY07, stop: 1 $GREY04);
+$SLIDER_VERTICAL_BACKGROUND             = black;//qradialgradient(cx: 0, cy: 0.5, fx: 0, fy: 0.5, radius: 1, stop: 0 $GREY07, stop: 1 $GREY04);
 $SLIDER_DISABLED_HORIZONTAL_BACKGROUND = qradialgradient(cx: 0.5, cy: 0, fx: 0.5, fy: 0, radius: 1, stop: 0 $GREY05, stop: 1 $GREY02);
 $SLIDER_DISABLED_VERTICAL_BACKGROUND   = qradialgradient(cx: 0, cy: 0.5, fx: 0, fy: 0.5, radius: 1, stop: 0 $GREY05, stop: 1 $GREY02);
 
-$PUSH_BUTTON_BACKGROUND                 = #1E6A8E;
+$PUSH_BUTTON_BACKGROUND                 = $BLUE;
 $PUSH_BUTTON_DISABLED_BACKGROUND        = qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 $GREY05, stop: 1 $GREY04);
-$PUSH_BUTTON_HOVER_BACKGROUND           = #1D4A66;
+$PUSH_BUTTON_HOVER_BACKGROUND           = #1E6A8E;
 $PUSH_BUTTON_CHECKED_BACKGROUND         = $GREY00;
 $PUSH_BUTTON_PRESSED_BACKGROUND         = PUSH_BUTTON_HOVER_BACKGROUND;
 
@@ -86,10 +88,10 @@ $SCROLL_BAR_VERTICAL_BACKGROUND         = $GREY04;
 $HOME_PAGE_BUTTON_BACKGROUND            = $GREY03;
 $HOME_PAGE_BUTTON_HOVER_BACKGROUND      = $GREY00;
 
-$TOOLBOX_CONTAINER_BACKGROUND           = $GREY01;
+$TOOLBOX_CONTAINER_BACKGROUND           = $INHEART_MEDIUMGRAY;
 $TOOLBOX_HEADER_BACKGROUND              = $PUSH_BUTTON_BACKGROUND;
-$TOOLBOX_BODY_BACKGROUND                = qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 $GREY02, stop: 1 $GREY01);
-$TOOLBOX_BACKGROUND                     = $GREY05;
+$TOOLBOX_BODY_BACKGROUND                = $INHEART_MEDIUMGRAY;//qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 $GREY02, stop: 1 $GREY01);
+$TOOLBOX_BACKGROUND                     = $INHEART_MEDIUMGRAY;
 
 $VIEW_PROPERTY_BACKGROUND               = $GREY03;
 $VIEW_PROPERTY_HEADER_BACKGROUND        = qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 $GREY01, stop: 1 $GREY00);
@@ -322,6 +324,7 @@ QToolTip
 QTableView
 {
     gridline-color: $GRIDLINE_COLOR;
+    color: white;
     background: $LIST_BACKGROUND;
     alternate-background-color: $ALT_LIST_BACKGROUND;
 }
