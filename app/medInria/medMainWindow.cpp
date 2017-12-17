@@ -121,6 +121,8 @@ medMainWindow::medMainWindow ( QWidget *parent ) : QMainWindow ( parent ), d ( n
     //  To avoid strange behaviours with the homepageshifter
     this->setMinimumHeight ( 600 );
     this->setMinimumWidth ( 800 );
+    
+    this->menuBar()->addMenu(tr("&Shortcuts"));
 
     //  Setting up widgets
     d->settingsEditor = NULL;
