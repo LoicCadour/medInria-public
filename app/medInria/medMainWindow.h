@@ -86,7 +86,7 @@ private slots:
     void hideQuickAccess();
     void showShortcutAccess();
     void hideShortcutAccess();
-    void onInfosButton(bool);
+    void onAboutButton(bool);
 
     void availableSpaceOnStatusBar();
 

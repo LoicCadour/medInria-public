@@ -123,9 +123,9 @@ medMainWindow::medMainWindow ( QWidget *parent ) : QMainWindow ( parent ), d ( n
     this->setMinimumWidth ( 800 );
     
     QMenuBar *menuBar = new QMenuBar(0);
-    QMenu *infoMenu = menuBar->addMenu("&Settings");
-    QAction *showInfoAction = infoMenu->addAction("&About");
-    connect(showInfoAction, SIGNAL(triggered(bool)), this, SLOT(onInfosButton(bool)));
+    QMenu *aboutMenu = menuBar->addMenu("&Settings");
+    QAction *showAboutAction = aboutMenu->addAction("&About");
+    connect(showAboutAction, SIGNAL(triggered(bool)), this, SLOT(onAboutButton(bool)));
 
     //  Setting up widgets
     d->settingsEditor = NULL;
@@ -301,25 +301,25 @@ medMainWindow::~medMainWindow()
     d = NULL;
 }
 
-void medMainWindow::onInfosButton(bool checked)
+void medMainWindow::onAboutButton(bool checked)
 {
-    QMessageBox info(this);
-    info.setStyleSheet("background:white; color:#363636");
+    QMessageBox about(this);
+    about.setStyleSheet("background:white; color:#363636");
     QString m_version = "v1.0";
     QString ITK_VERSION = "v4.9";
     QString VTK_VERSION = "v5.10";
-    info.setWindowTitle("inHEART Viewer - Info");
-    info.setTextFormat(Qt::RichText);
-    info.setText("<p align='center'>inHEART Viewer <br>"
+    about.setWindowTitle("inHEART Viewer - about");
+    about.setTextFormat(Qt::RichText);
+    about.setText("<p align='center'>inHEART Viewer <br>"
                  "version : " + m_version + "<br>" +
                  "Qt version : "QT_VERSION_STR +
                  "<br>ITK version : " + ITK_VERSION  +
                  "<br>VTK version : " + VTK_VERSION  +
-                 "<br><br>Support :"+ "<a href='mailto:customer-support@inheart.fr'>customer-support@inheart.fr </a>" +
+                 "<br><br> Support :"+ "<a href='mailto:support@inheart.fr'>support@inheart.fr </a>" +
                  "<br><br> Website :" + "<a href='http://www.inheart.fr' title='inHEART web site'>inheart.fr</a>" +
                  "<br><br> Copyright (c) 2017-2018, inHEART ");
     
-    info.exec();
+    about.exec();
 }
 
 void medMainWindow::mousePressEvent ( QMouseEvent* event )

@@ -40,7 +40,8 @@ $INHEART_MEDIUMGRAY  = #2e2e2e;
 $INHEART_DARKGRAY  = #2a2a2a;
 
 
-$BLUE       = #1D4A66;//#1E6A8E; /*only in tooltip background*/
+$BLUE       = #1E6A8E;
+$DARKBLUE   = #1D4A66;
 $GREEN      = #64FF32; /*only in success progress bar*/
 $RED        = #FF3333; /*only in failure progress bar*/
 /*******************************************************************************
@@ -55,20 +56,20 @@ $ALT_LIST_BACKGROUND                    = $INHEART_MEDIUMGRAY;
 
 $EDITION_BACKGROUND                     = $GREY06;
 
-$HEADER_BACKGROUND                      = qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 $GREY01, stop: 1 $GREY00);//#1E6A8E;
+$HEADER_BACKGROUND                      = $BLUE;
 
 $PROGRESS_BAR_BACKGROUND                = $GREY03;
 
-$STATUS_BAR_BACKGROUND                  = #2e2e2e; //qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 $GREY06, stop: 1 $GREY05);
+$STATUS_BAR_BACKGROUND                  = $INHEART_MEDIUMGRAY; //qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 $GREY06, stop: 1 $GREY05);
 
 $SLIDER_HORIZONTAL_BACKGROUND           = black;//qradialgradient(cx: 0.5, cy: 0, fx: 0.5, fy: 0, radius: 1, stop: 0 $GREY07, stop: 1 $GREY04);
 $SLIDER_VERTICAL_BACKGROUND             = black;//qradialgradient(cx: 0, cy: 0.5, fx: 0, fy: 0.5, radius: 1, stop: 0 $GREY07, stop: 1 $GREY04);
 $SLIDER_DISABLED_HORIZONTAL_BACKGROUND = qradialgradient(cx: 0.5, cy: 0, fx: 0.5, fy: 0, radius: 1, stop: 0 $GREY05, stop: 1 $GREY02);
 $SLIDER_DISABLED_VERTICAL_BACKGROUND   = qradialgradient(cx: 0, cy: 0.5, fx: 0, fy: 0.5, radius: 1, stop: 0 $GREY05, stop: 1 $GREY02);
 
-$PUSH_BUTTON_BACKGROUND                 = $BLUE;
+$PUSH_BUTTON_BACKGROUND                 = $DARKBLUE;
 $PUSH_BUTTON_DISABLED_BACKGROUND        = qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 $GREY05, stop: 1 $GREY04);
-$PUSH_BUTTON_HOVER_BACKGROUND           = #1E6A8E;
+$PUSH_BUTTON_HOVER_BACKGROUND           = $BLUE;
 $PUSH_BUTTON_CHECKED_BACKGROUND         = $GREY00;
 $PUSH_BUTTON_PRESSED_BACKGROUND         = PUSH_BUTTON_HOVER_BACKGROUND;
 
@@ -580,14 +581,14 @@ QTableWidget
  *******************************************************************************/
 QHeaderView
 {
-    background-color: $HEADER_BACKGROUND;
+background-color: $HEADER_BACKGROUND;
     color: $HEADER_COLOR;
     border: none;
 }
 
 QHeaderView::section
 {
-    background-color: $HEADER_BACKGROUND;
+background-color: $HEADER_BACKGROUND;
     color: $HEADER_COLOR;
     padding: $HEADER_PADDING;
     padding-left: $HEADER_LEFT_PADDING;
