@@ -19,12 +19,14 @@
 #include <QUuid>
 
 #include <medCoreExport.h>
+#include <medDatabaseExporter.h>
 #include <medDataIndex.h>
 
 class medDataManagerPrivate;
 class medAbstractData;
 class medAbstractDbController;
 class dtkAbstractDataWriter;
+
 
 class MEDCORE_EXPORT medDataManager : public QObject
 {
@@ -43,6 +45,7 @@ public:
 
     void exportData(medAbstractData* data);
     void exportDataToPath(medAbstractData* data, const QString& path, const QString& format = "");
+    void exportDataToPath(QList<medAbstractData *> dataList, const QString& path, const QString& format = "");
 
     QUuid makePersistent(medAbstractData* data);
 
@@ -50,6 +53,8 @@ public:
     void removeData(const medDataIndex& index);
 
     QPixmap thumbnail(const medDataIndex& index);
+
+    QList<medDataIndex> getSeriesListFromStudy(const medDataIndex &indexStudy);
 
     // ------------------------- To be moved elsewhere -----------------------
 
@@ -64,7 +69,7 @@ signals:
     void metadataModified(const medDataIndex& index, const QString& key = "", const QString& value = "");
     void dataImported(const medDataIndex& index, QUuid importId);
     void dataRemoved(const medDataIndex& index);
-    void dataExported(); //MUSIC Viewer
+    void exportFinished();
 
     // ------------------------- To be moved elsewhere -----------------------
     void patientModified(medDataIndex index);
@@ -84,6 +89,7 @@ private:
     virtual ~medDataManager();
 
     static medDataManager * s_instance;
+    void launchExporter(medDatabaseExporter* exporter, const QString & filename);
 
     Q_DECLARE_PRIVATE(medDataManager)
 };

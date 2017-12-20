@@ -717,122 +717,156 @@ void vtkDataMeshInteractor::showRangeWidgets(bool checked)
 
 void vtkDataMeshInteractor::exportToNavX()
 {
-    dtkSmartPointer<vtkDataMesh> dataToExport = new vtkDataMesh;
-    dataToExport->setData(d->metaDataSet);
-
-    vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(d->view->backend())->view2D;
-    vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(d->view->backend())->view3D;
-
-    vtkActor * actor2d = static_cast<vtkActor*>(view2d->FindDataSetActor(d->metaDataSet->GetDataSet()));
-    vtkActor * actor3d = static_cast<vtkActor*>(view3d->FindDataSetActor(d->metaDataSet->GetDataSet()));
-    vtkMapper * mapper2d = actor2d->GetMapper();
-    vtkMapper * mapper3d = actor3d->GetMapper();
-    vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper3d->GetLookupTable());
-    //    if (!lut)
-    //        vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper2d->GetLookupTable());
-    if (lut && d->metaDataSet->GetCurrentScalarArray())
-        d->metaDataSet->GetCurrentScalarArray()->SetLookupTable(lut);
-
-    QString fileName = QFileDialog::getSaveFileName(0, tr("Save Navx file"), QDir::home().absolutePath() + "/navX.xml");
-    if(fileName == "")
+    medAbstractLayeredView * view3d = dynamic_cast<medAbstractLayeredView*>(d->view);
+    QList<medAbstractData*> dataList;
+    if(view3d)
     {
-        return;
+        for (unsigned int i = 0; i < view3d->layersCount(); i++)
+        {
+            dataList.append(view3d->layerData(i));
+        }
+        
+        QString fileName = QFileDialog::getSaveFileName(0, tr("Save NavX file"), QDir::home().absolutePath() + "/navX.xml");
+        if(fileName != "")
+        {
+            medDataManager::instance()->exportDataToPath(dataList, fileName, "navxDifWriter");
+        }
     }
-
-    medDataManager::instance()->exportDataToPath(dataToExport, fileName, "navxDifWriter");
+    else
+    {
+        medMessageController::instance()->showError(tr("Select the view containing the meshes to export"), 5000);
+    }
 }
 
 void vtkDataMeshInteractor::exportToCarto()
 {
-    QString dir = QFileDialog::getExistingDirectory(0, tr("Select a directory to save your CARTO files"));
-    if(dir == "")
+    medAbstractLayeredView * layeredView = dynamic_cast<medAbstractLayeredView*>(d->view);
+    
+    if(layeredView)
     {
-        return;
+        QList<QString> descriptions = getSeriesDescriptions(layeredView);
+        
+        QList<medAbstractData*> dataList;
+        for (unsigned int i = 0; i < layeredView->layersCount(); i++)
+        {
+            dataList.append(layeredView->layerData(i));
+        }
+        
+        QString filePath = QFileDialog::getExistingDirectory(0, tr("Select a directory to save your CARTO files"), QDir::home().absolutePath());
+        if(filePath != "")
+        {
+            // The .vtk extension is needed to validate cartoVtkWriter::canWrite
+            // If there is only 1 mesh to export, we give it its final name here
+            QString currentDescription = dataList[0]->metadata(medMetaDataKeys::SeriesDescription.key());
+            QString baseFileName = filePath + QString("/") + currentDescription + ".vtk";
+            
+            // Export
+            medDataManager::instance()->exportDataToPath(dataList, baseFileName, "cartoVtkWriter");
+            
+            // Wait for the export ending
+            connect(medDataManager::instance(), SIGNAL(exportFinished()), this, SLOT(stopWaiting()));
+            d->exporting = true;
+            while (d->exporting)
+            {
+                QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+            }
+        }
     }
-
-    //Get info for all files
-    this->moveToThread(qApp->thread());
-    connect(this, SIGNAL(needMoreParameters()), 
-        this, SLOT(showPatientInfoDialog()), Qt::UniqueConnection);
-    emit needMoreParameters();
-
-    medAbstractLayeredView* layeredView=dynamic_cast<medAbstractLayeredView*>(d->view);
-    for (unsigned int i=0 ; i<layeredView->layersCount();++i)
+    else
     {
-        medAbstractData *data = d->view->layerData(i);
-        QString seriesName = data->metaDataValues(medMetaDataKeys::SeriesDescription.key())[0];
-        QString filename =  dir + "/" + seriesName + ".vtk";
-
-        vtkMetaDataSet * mesh = dynamic_cast<vtkMetaDataSet*>((vtkDataObject *)(data->data()));
-
-        dtkSmartPointer<vtkDataMesh> dataToExport = new vtkDataMesh;
-        dataToExport->setData(mesh);
-        dataToExport->addMetaData(medMetaDataKeys::PatientName.key(), patientFirstName+" "+patientLastName);
-        dataToExport->addMetaData ( medMetaDataKeys::PatientID.key(), QStringList() << patientID );
-
-
-        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(d->view->backend())->view2D;
-        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(d->view->backend())->view3D;
-
-        vtkActor * actor2d = static_cast<vtkActor*>(view2d->FindDataSetActor(mesh->GetDataSet()));
-        vtkActor * actor3d = static_cast<vtkActor*>(view3d->FindDataSetActor(mesh->GetDataSet()));
-        vtkMapper * mapper2d = actor2d->GetMapper();
-        vtkMapper * mapper3d = actor3d->GetMapper();
-        vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper3d->GetLookupTable());
-        //    if (!lut)
-        //        vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper2d->GetLookupTable());
-        if (lut && mesh->GetCurrentScalarArray())
-            d->metaDataSet->GetCurrentScalarArray()->SetLookupTable(lut);
-        medDataManager::instance()->exportDataToPath(dataToExport, filename, "cartoVtkWriter");
-
-        //To leave the loop after export (otherwise, dataToExport deleted)
-        connect(medDataManager::instance(), SIGNAL(dataExported()), this, SLOT(stopWaiting()));
-        d->exporting = true;
-        while (d->exporting)
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        medMessageController::instance()->showError(tr("Select the view containing the meshes to export"), 5000);
     }
+}
+
+QList<QString> vtkDataMeshInteractor::getSeriesDescriptions(medAbstractLayeredView* view)
+{
+    QList<QString> descriptions;
+    
+    for (unsigned int i = 0 ; i < view->layersCount() ; i++)
+    {
+        QString currentDescription = view->layerData(i)->metadata(medMetaDataKeys::SeriesDescription.key());
+        descriptions.append(currentDescription);
+    }
+    
+    return descriptions;
 }
 
 void vtkDataMeshInteractor::exportToRhythmia()
 {
-    QString dir = QFileDialog::getExistingDirectory(0, tr("Select a directory to save your RHYTHMIA files"));
-    if(dir == "")
+    medAbstractLayeredView * layeredView = dynamic_cast<medAbstractLayeredView*>(d->view);
+    
+    if(layeredView)
     {
-        return;
+        QList<QString> descriptions = getSeriesDescriptions(layeredView);
+        
+        QList<medAbstractData*> dataList;
+        for (unsigned int i = 0; i < layeredView->layersCount(); i++)
+        {
+            dataList.append(layeredView->layerData(i));
+        }
+        
+        QString filePath = QFileDialog::getExistingDirectory(0, tr("Select a directory to save your RHYTHMIA files"), QDir::home().absolutePath());
+        if(filePath != "")
+        {
+            // The .vtk extension is needed to validate cartoVtkWriter::canWrite
+            // If there is only 1 mesh to export, we give it its final name here
+            QString currentDescription = dataList[0]->metadata(medMetaDataKeys::SeriesDescription.key());
+            QString baseFileName = filePath + QString("/") + currentDescription + ".vtk";
+            
+            // Export
+            medDataManager::instance()->exportDataToPath(dataList, baseFileName, "vtkDataMeshWriter");
+            
+            // Wait for the export ending
+            connect(medDataManager::instance(), SIGNAL(exportFinished()), this, SLOT(stopWaiting()));
+            d->exporting = true;
+            while (d->exporting)
+            {
+                QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+            }
+        }
     }
-
-    medAbstractLayeredView* layeredView=dynamic_cast<medAbstractLayeredView*>(d->view);
-    for (unsigned int i=0 ; i<layeredView->layersCount();++i)
+    else
     {
-        medAbstractData *data = d->view->layerData(i);
-        QString seriesName = data->metaDataValues(medMetaDataKeys::SeriesDescription.key())[0];
-        QString filename =  dir + "/" + seriesName + ".vtk";
-
-        vtkMetaDataSet * mesh = dynamic_cast<vtkMetaDataSet*>((vtkDataObject *)(data->data()));
-
-        dtkSmartPointer<vtkDataMesh> dataToExport = new vtkDataMesh;
-        dataToExport->setData(mesh);
-
-        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(d->view->backend())->view2D;
-        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(d->view->backend())->view3D;
-
-        vtkActor * actor2d = static_cast<vtkActor*>(view2d->FindDataSetActor(mesh->GetDataSet()));
-        vtkActor * actor3d = static_cast<vtkActor*>(view3d->FindDataSetActor(mesh->GetDataSet()));
-        vtkMapper * mapper2d = actor2d->GetMapper();
-        vtkMapper * mapper3d = actor3d->GetMapper();
-        vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper3d->GetLookupTable());
-        //    if (!lut)
-        //        vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper2d->GetLookupTable());
-        if (lut && mesh->GetCurrentScalarArray())
-            d->metaDataSet->GetCurrentScalarArray()->SetLookupTable(lut);
-        medDataManager::instance()->exportDataToPath(dataToExport, filename, "vtkDataMeshWriter");
-
-        //To leave the loop after export (otherwise, dataToExport deleted)
-        connect(medDataManager::instance(), SIGNAL(dataExported()), this, SLOT(stopWaiting()));
-        d->exporting = true;
-        while (d->exporting)
-            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        medMessageController::instance()->showError(tr("Select the view containing the meshes to export"), 5000);
     }
+//    QString dir = QFileDialog::getExistingDirectory(0, tr("Select a directory to save your RHYTHMIA files"));
+//    if(dir == "")
+//    {
+//        return;
+//    }
+//
+//    medAbstractLayeredView* layeredView=dynamic_cast<medAbstractLayeredView*>(d->view);
+//    for (unsigned int i=0 ; i<layeredView->layersCount();++i)
+//    {
+//        medAbstractData *data = d->view->layerData(i);
+//        QString seriesName = data->metaDataValues(medMetaDataKeys::SeriesDescription.key())[0];
+//        QString filename =  dir + "/" + seriesName + ".vtk";
+//
+//        vtkMetaDataSet * mesh = dynamic_cast<vtkMetaDataSet*>((vtkDataObject *)(data->data()));
+//
+//        dtkSmartPointer<vtkDataMesh> dataToExport = new vtkDataMesh;
+//        dataToExport->setData(mesh);
+//
+//        vtkImageView2D * view2d = static_cast<medVtkViewBackend*>(d->view->backend())->view2D;
+//        vtkImageView3D * view3d = static_cast<medVtkViewBackend*>(d->view->backend())->view3D;
+//
+//        vtkActor * actor2d = static_cast<vtkActor*>(view2d->FindDataSetActor(mesh->GetDataSet()));
+//        vtkActor * actor3d = static_cast<vtkActor*>(view3d->FindDataSetActor(mesh->GetDataSet()));
+//        vtkMapper * mapper2d = actor2d->GetMapper();
+//        vtkMapper * mapper3d = actor3d->GetMapper();
+//        vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper3d->GetLookupTable());
+//        //    if (!lut)
+//        //        vtkLookupTable * lut = static_cast<vtkLookupTable*>(mapper2d->GetLookupTable());
+//        if (lut && mesh->GetCurrentScalarArray())
+//            d->metaDataSet->GetCurrentScalarArray()->SetLookupTable(lut);
+//        medDataManager::instance()->exportDataToPath(dataToExport, filename, "vtkDataMeshWriter");
+//
+//        //To leave the loop after export (otherwise, dataToExport deleted)
+//        connect(medDataManager::instance(), SIGNAL(dataExported()), this, SLOT(stopWaiting()));
+//        d->exporting = true;
+//        while (d->exporting)
+//            QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+//    }
 }
 
 void vtkDataMeshInteractor::stopWaiting()

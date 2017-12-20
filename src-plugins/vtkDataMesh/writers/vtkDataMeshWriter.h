@@ -13,12 +13,12 @@
 
 #pragma once
 
-#include <dtkCore/dtkAbstractDataWriter.h>
+#include <medAbstractDataWriter.h>
 
 #include <vtkDataMeshPluginExport.h>
 class vtkDataSetWriter;
 
-class VTKDATAMESHPLUGIN_EXPORT vtkDataMeshWriter : public dtkAbstractDataWriter
+class VTKDATAMESHPLUGIN_EXPORT vtkDataMeshWriter : public medAbstractDataWriter
 {
     Q_OBJECT
 

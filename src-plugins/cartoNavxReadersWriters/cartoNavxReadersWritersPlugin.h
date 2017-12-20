@@ -9,7 +9,7 @@ class CARTONAVXREADERSWRITERSPLUGIN_EXPORT cartoNavxReadersWritersPlugin : publi
     Q_INTERFACES(dtkPlugin)
 
 public:
-     cartoNavxReadersWritersPlugin(QObject *parent = 0);
+    cartoNavxReadersWritersPlugin(QObject *parent = 0);
     ~cartoNavxReadersWritersPlugin(void);
 
     virtual bool initialize(void);
@@ -19,6 +19,7 @@ public:
     virtual QString description(void) const;
 
     virtual QStringList authors(void) const;
+    virtual QStringList contributors() const;
     virtual QStringList tags(void) const;
     virtual QStringList types(void) const;
 };

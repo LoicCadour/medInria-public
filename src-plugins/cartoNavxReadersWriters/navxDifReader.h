@@ -1,7 +1,7 @@
 #pragma once
 
-#include <dtkCore/dtkAbstractDataReader.h>
 #include <cartoNavxReadersWritersPluginExport.h>
+#include <dtkCore/dtkAbstractDataReader.h>
 
 class CARTONAVXREADERSWRITERSPLUGIN_EXPORT navxDifReader : public dtkAbstractDataReader
 {
@@ -22,5 +22,6 @@ public:
 
 public slots:
     virtual bool canRead(const QString &file);
+    virtual bool readInformation(const QString &path);
     virtual bool read(const QString &file);
 };

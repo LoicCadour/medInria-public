@@ -18,10 +18,10 @@
 #include <medAbstractDataFactory.h>
 #include <medDatabaseController.h>
 #include <medDatabaseNonPersistentController.h>
-#include <medDatabaseExporter.h>
 #include <medMessageController.h>
 #include <medJobManager.h>
 #include <medPluginManager.h>
+#include <medGlobalDefs.h>
 
 /* THESE CLASSES NEED TO BE THREAD-SAFE, don't forget to lock the mutex in the
  * methods below that access state.
@@ -99,7 +99,6 @@ medAbstractData* medDataManager::retrieveData(const medDataIndex& index)
 
     if(dataObjRef) {
         // we found an existing instance of that object
-        qDebug()<<"medDataManager we found an existing instance of that object" <<dataObjRef->count();
         return dataObjRef;
     }
 
@@ -221,7 +220,7 @@ void medDataManager::exportData(medAbstractData* data)
 
     if ( exportDialog->exec() ) {
         QString chosenFormat = typesHandled->itemData(typesHandled->currentIndex()).toString();
-        this->exportDataToPath(data, exportDialog->selectedFiles().first(), chosenFormat);
+        this->exportDataToPath(data, exportDialog->selectedFiles().first().toUtf8(), chosenFormat);
     }
 
     qDeleteAll(possibleWriters);
@@ -232,19 +231,45 @@ void medDataManager::exportData(medAbstractData* data)
 void medDataManager::exportDataToPath(medAbstractData *data, const QString & filename, const QString & writer)
 {
     medDatabaseExporter *exporter = new medDatabaseExporter (data, filename, writer);
+    launchExporter(exporter, filename);
+}
+
+void medDataManager::exportDataToPath(QList<medAbstractData*> dataList, const QString & filename, const QString & writer)
+{
+    medDatabaseExporter *exporter = new medDatabaseExporter (dataList, filename, writer);
+    launchExporter(exporter, filename);
+}
+
+void medDataManager::launchExporter(medDatabaseExporter* exporter, const QString & filename)
+{
     QFileInfo info(filename);
     medMessageProgress *message = medMessageController::instance()->showProgress("Exporting data to " + info.baseName());
 
     connect(exporter, SIGNAL(progressed(int)), message, SLOT(setProgress(int)));
     connect(exporter, SIGNAL(success(QObject *)), message, SLOT(success()));
-    connect(exporter, SIGNAL(success(QObject *)), this, SIGNAL(dataExported()));
     connect(exporter, SIGNAL(failure(QObject *)), message, SLOT(failure()));
-    connect(exporter, SIGNAL(failure(QObject *)), this, SIGNAL(dataExported()));
+    connect(exporter, SIGNAL(success(QObject *)), this, SIGNAL(exportFinished()));
+    connect(exporter, SIGNAL(failure(QObject *)), this, SIGNAL(exportFinished()));
 
     medJobManager::instance()->registerJobItem(exporter);
     QThreadPool::globalInstance()->start(exporter);
 }
 
+QList<medDataIndex> medDataManager::getSeriesListFromStudy(const medDataIndex& indexStudy)
+{
+    Q_D(medDataManager);
+    QList<medDataIndex> indexList;
+
+    medAbstractDbController * dbc = d->controllerForDataSource(indexStudy.dataSourceId());
+
+    if (dbc)
+    {
+        // Get the list of each series from that study index
+        indexList = dbc->series(indexStudy);
+    }
+
+    return indexList;
+}
 
 QList<medDataIndex> medDataManager::moveStudy(const medDataIndex& indexStudy, const medDataIndex& toPatient)
 {
@@ -298,11 +323,7 @@ void medDataManager::exportDialog_updateSuffix(int index)
     QFileDialog * exportDialog = qobject_cast<QFileDialog*>(typesHandled->itemData(index, Qt::UserRole+2).value<QObject*>());
     QString extension = typesHandled->itemData(index, Qt::UserRole+1).toString();
 
-    QString currentFilename = exportDialog->selectedFiles().first();
-    int lastDot = currentFilename.lastIndexOf('.');
-    if (lastDot != -1) {
-        currentFilename = currentFilename.mid(0, lastDot);
-    }
+    QString currentFilename = med::smartBaseName(exportDialog->selectedFiles().first());
     currentFilename += extension;
     exportDialog->selectFile(currentFilename);
 }
@@ -403,7 +424,7 @@ QPixmap medDataManager::thumbnail(const medDataIndex & index)
         pix = dbc->thumbnail(index);
     }
 
-    return pix.isNull() ? QPixmap(":/medGui/pixmaps/default_thumbnail.png") : pix;
+    return pix.isNull() ? QPixmap(":/pixmaps/default_thumbnail.png") : pix;
 }
 
 void medDataManager::setWriterPriorities()

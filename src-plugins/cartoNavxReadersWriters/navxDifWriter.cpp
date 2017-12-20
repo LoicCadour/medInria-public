@@ -1,86 +1,88 @@
 #include <navxDifWriter.h>
 
-#include <dtkCore/dtkSmartPointer.h>
-
-#include <medAbstractData.h>
 #include <medAbstractDataFactory.h>
+#include <medMessageController.h>
 #include <medMetaDataKeys.h>
-#include <viewerFilesToSaveDialog.h>
 
+#include <vtkActor.h>
+#include <vtkCellArray.h>
 #include <vtkMetaSurfaceMesh.h>
 #include <vtkPolyData.h>
-#include <vtkSmartPointer.h>
-#include <vtkErrorCode.h>
-#include <vtkCellArray.h>
-#include <vtkActor.h>
 #include <vtkProperty.h>
+#include <vtkSmartPointer.h>
 
-#include <QXmlStreamWriter>
 
 // /////////////////////////////////////////////////////////////////
 // navxDifWriter
 // /////////////////////////////////////////////////////////////////
 
-navxDifWriter::navxDifWriter() : dtkAbstractDataWriter()
+navxDifWriter::navxDifWriter() : medAbstractDataWriter()
 {
+    validated = true;
 }
-
-
-navxDifWriter::~navxDifWriter()
-{
-}
-
 
 QString navxDifWriter::identifier() const
 {
     return QString("navxDifWriter");
 }
 
-
 QString navxDifWriter::description() const
 {
-    return QString("Saint-Jude NavX .xml mesh exporter");
+    return QString("Saint-Jude NavX/Siemens .xml mesh exporter");
 }
-
 
 QStringList navxDifWriter::handled() const
 {
     return QStringList() << "vtkDataMesh";
 }
 
-
 QStringList navxDifWriter::supportedFileExtensions() const
 {
     return QStringList() << ".xml";
 }
-
 
 bool navxDifWriter::registered()
 {
     return medAbstractDataFactory::instance()->registerDataWriterType("navxDifWriter", QStringList() << "vtkDataMesh", create);
 }
 
-
 bool navxDifWriter::canWrite(const QString & path)
 {
     return path.endsWith(".xml");
 }
 
+QString navxDifWriter::getMetaData(medAbstractData* medData, QString key)
+{
+    if (medData->hasMetaData(key))
+    {
+        return medData->metadata(key);
+    }
+    return QString("NA");
+}
 
 bool navxDifWriter::write(const QString & path)
 {
-    this->moveToThread(qApp->thread());
-    connect(this, SIGNAL(needDataList()), 
-        this, SLOT(selectDataToSave()), Qt::BlockingQueuedConnection);
-    emit needDataList();
+    if(!getDataList().isEmpty())
+    {
+        return writeFile(path);
+    }
+    else
+    {
+        displayWarning("There is no dataset to write.");
+    }
 
-    if(indexList.isEmpty())
-        return false;
+    return false;
+}
 
+bool navxDifWriter::writeFile(const QString & path)
+{
+    //Later on, we'll write the metaData of this volume in the xml
+    medAbstractData* medData = getDataList()[0];
 
     QFile difFile(path);
-    if ( ! difFile.open(QIODevice::WriteOnly) ) {
-        qDebug() << "navxDifWriter: Could not open file" << path;
+    if ( ! difFile.open(QIODevice::WriteOnly) )
+    {
+        displayWarning(QString("Could not open file "+path));
         return false;
     }
 
@@ -92,74 +94,96 @@ bool navxDifWriter::write(const QString & path)
     xmlWriter.writeStartElement("DIF");
 
     xmlWriter.writeStartElement("DIFHeader");
-    xmlWriter.writeTextElement("Version", "SJM_DIF_3.0");
-    xmlWriter.writeTextElement("VendorVersion", "NA");
-    xmlWriter.writeTextElement("PatientName", "NA");
-    xmlWriter.writeTextElement("PatientID", "NA");
-    xmlWriter.writeEmptyElement("PatientBirthDate");
-    xmlWriter.writeTextElement("PatientGender", "NA");
-    xmlWriter.writeEmptyElement("StudyID");
-    xmlWriter.writeEmptyElement("SeriesNumber");
-    xmlWriter.writeEmptyElement("StudyDate");
-    xmlWriter.writeEmptyElement("StudyTime");
-    xmlWriter.writeEmptyElement("SeriesTime");
-    xmlWriter.writeEmptyElement("Modality");
-    xmlWriter.writeEmptyElement("RefPhysName");
-    xmlWriter.writeEmptyElement("StudyDesc");
-    xmlWriter.writeEmptyElement("SeriesDesc");
-    xmlWriter.writeEmptyElement("OperatorName");
-    xmlWriter.writeTextElement("OperatorComment", "NA");
-    xmlWriter.writeEmptyElement("SegmentationDate");
-    xmlWriter.writeTextElement("Inventor", "1");
+    xmlWriter.writeTextElement("Version",          "SJM_DIF_3.0");
+    xmlWriter.writeTextElement("VendorVersion",    "NA");
+    xmlWriter.writeTextElement("PatientName",      getMetaData(medData, medMetaDataKeys::PatientName.key()));
+    xmlWriter.writeTextElement("PatientID",        getMetaData(medData, medMetaDataKeys::PatientID.key()));
+    xmlWriter.writeTextElement("PatientBirthDate", getMetaData(medData, medMetaDataKeys::BirthDate.key()));
+    xmlWriter.writeTextElement("PatientGender",    getMetaData(medData, medMetaDataKeys::Gender.key()));
+    xmlWriter.writeTextElement("StudyID",          getMetaData(medData, medMetaDataKeys::StudyID.key()));
+    xmlWriter.writeTextElement("SeriesNumber",     getMetaData(medData, medMetaDataKeys::SeriesNumber.key()));
+    xmlWriter.writeTextElement("StudyDate",        getMetaData(medData, medMetaDataKeys::StudyDate.key()));
+    xmlWriter.writeTextElement("StudyTime",        getMetaData(medData, medMetaDataKeys::StudyTime.key()));
+    xmlWriter.writeTextElement("SeriesTime",       getMetaData(medData, medMetaDataKeys::SeriesTime.key()));
+    xmlWriter.writeTextElement("Modality",         getMetaData(medData, medMetaDataKeys::Modality.key()));
+    xmlWriter.writeTextElement("RefPhyName",       getMetaData(medData, medMetaDataKeys::Referee.key()));
+    xmlWriter.writeTextElement("StudyDesc",        getMetaData(medData, medMetaDataKeys::StudyDescription.key()));
+    xmlWriter.writeTextElement("SeriesDesc",       getMetaData(medData, medMetaDataKeys::SeriesDescription.key()));
+    xmlWriter.writeTextElement("OperatorName",     getMetaData(medData, medMetaDataKeys::Performer.key()));
+    xmlWriter.writeTextElement("OperatorComments", getMetaData(medData, medMetaDataKeys::Comments.key()));
+    xmlWriter.writeTextElement("SegmentationDate", "NA");
+    xmlWriter.writeTextElement("Inventor",         "1");
     xmlWriter.writeEndElement(); // DIFHeader
 
     xmlWriter.writeStartElement("DIFBody");
     xmlWriter.writeStartElement("Volumes");
-    xmlWriter.writeAttribute("number", QString::number(indexList.size()));
+    xmlWriter.writeAttribute("number", QString::number(getDataList().size()));
 
-
-    vtkMetaSurfaceMesh * metaSurface = 0;
     vtkSmartPointer<vtkIdList> pointIds = vtkIdList::New();
     double point[3];
     double * color;
-    int final_colors[3];
+    int final_colors[4];
 
-    foreach (medDataIndex index, indexList)
+    for (int j = 0; j < getDataList().size(); j++)
     {
-        medAbstractData* data = medDataManager::instance()->retrieveData(index);
-        if ( ! data || data->identifier() != "vtkDataMesh") 
+        medAbstractData* data = getDataList().at(j);
+        if ( !data || (data->identifier() != "vtkDataMesh"))
         {
-            qDebug() << "navxDifWriter: No data provided, or wrong type";
+            displayWarning("Only works with meshes");
             return false;
         }
-
         vtkMetaSurfaceMesh * metadata = dynamic_cast<vtkMetaSurfaceMesh*>( (vtkObject*)(data->data()));
-        if ( ! metadata) {
-            qDebug() << "navxDifWriter: not a vtkMetaSurfaceMesh";
+        if ( ! metadata)
+        {
+            displayWarning("Only works with surface meshes");
             return false;
         }
 
         xmlWriter.writeStartElement("Volume");
-        QString seriesName = data->metaDataValues(medMetaDataKeys::SeriesDescription.key())[0];
-        xmlWriter.writeAttribute("name", QString(seriesName));
 
+        /* --- Name Tag --- */
+        if (std::strcmp(metadata->GetName(), "") == 0)
+        {
+            xmlWriter.writeAttribute("name", QString("Vol")+QString::number(j));
+        }
+        else
+        {
+            xmlWriter.writeAttribute("name", QString(metadata->GetName()));
+        }
+
+        /* --- Color Tag --- RRGGBBAA */
         QString colorHex;
         vtkActor * dataSetActor = metadata->GetActor(0);
-        if (dataSetActor) {
+        if (dataSetActor)
+        {
+            // RGB channels
             color = dataSetActor->GetProperty()->GetColor();
-            final_colors[0] = int(color[0]*255);
-            final_colors[1] = int(color[1]*255);
-            final_colors[2] = int(color[2]*255);
+            final_colors[0] = int(color[0]*255.0);
+            final_colors[1] = int(color[1]*255.0);
+            final_colors[2] = int(color[2]*255.0);
 
-            colorHex = QString::number(final_colors[0], 16) +
-                               QString::number(final_colors[1], 16) +
-                               QString::number(final_colors[2], 16);
-        } else {
-            colorHex = "FFFFFF";
+            // Alpha channel, AA: 00/0 opaque, FF/255 transparent
+            final_colors[3] = int(dataSetActor->GetProperty()->GetOpacity()*255.0);
+
+            // decimal to hex color
+            for (int i=0; i<4; i++)
+            {
+                // Add a "0" to the hex number to follow "RRGGBBAA"
+                if (final_colors[i] < 15)
+                {
+                    colorHex += "0";
+                }
+                colorHex += QString::number(final_colors[i], 16);
+            }
+        }
+        else
+        {
+            colorHex = "FFFFFFFF";
         }
 
         xmlWriter.writeAttribute("color", colorHex);
 
+        /* --- Vertices Tags --- */
         xmlWriter.writeStartElement("Vertices");
         xmlWriter.writeAttribute("number", QString::number(metadata->GetPolyData()->GetNumberOfPoints()));
         for(vtkIdType i = 0; i < metadata->GetPolyData()->GetNumberOfPoints(); ++i)
@@ -169,8 +193,15 @@ bool navxDifWriter::write(const QString & path)
                                       QString::number(point[1]) + " " +
                                       QString::number(point[2]) + "\n");
         }
+
         xmlWriter.writeEndElement(); // Vertices
 
+        /* --- Normals Tags --- */
+        xmlWriter.writeStartElement("Normals");
+        xmlWriter.writeAttribute("number", QString::number(0));
+        xmlWriter.writeEndElement(); // Normals
+
+        /* --- Polygons Tags --- */
         xmlWriter.writeStartElement("Polygons");
         xmlWriter.writeAttribute("number", QString::number(metadata->GetPolyData()->GetPolys()->GetNumberOfCells()));
         for(unsigned int i = 0; i<metadata->GetPolyData()->GetPolys()->GetNumberOfCells(); ++i)
@@ -178,7 +209,7 @@ bool navxDifWriter::write(const QString & path)
             metadata->GetPolyData()->GetCellPoints(i, pointIds);
             if (pointIds->GetNumberOfIds() != 3)
             {
-                qDebug() << "navxVtkWriter: wrong type of cells !";
+                qDebug() << "navxVtkWriter: wrong type of cells ! (number of Ids: "<<pointIds->GetNumberOfIds()<<")";
                 return false;
             }
             xmlWriter.writeCharacters(QString::number(pointIds->GetId(0)+1) + " " +
@@ -186,7 +217,6 @@ bool navxDifWriter::write(const QString & path)
                                       QString::number(pointIds->GetId(2)+1) + "\n");
         }
         xmlWriter.writeEndElement(); // Polygons
-
         xmlWriter.writeEndElement(); //Volume
     }
 
@@ -214,19 +244,68 @@ bool navxDifWriter::write(const QString & path)
     return true;
 }
 
-void navxDifWriter::selectDataToSave()
+void navxDifWriter::showWarning(QString warning)
 {
-    viewerFilesToSaveDialog *saveDialog = new viewerFilesToSaveDialog(NULL);
-    saveDialog->show();
+    qDebug() << name() + ": " + warning;
+    medMessageController::instance()->showInfo(warning,6000);
+}
 
-    int res = saveDialog->exec();
+void navxDifWriter::displayWarning(QString warning)
+{
+    this->moveToThread(qApp->thread());
+    connect(this, SIGNAL(needWarning(QString)),
+            this, SLOT(showWarning(QString)), Qt::BlockingQueuedConnection);
+    emit needWarning(warning);
+}
 
-    if(res == QDialog::Accepted)
+void navxDifWriter::showWarningPopUp(QString warning)
+{
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("NavX system error");
+    msgBox.setText(warning);
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::No);
+
+    if (msgBox.exec() == QMessageBox::Yes)
     {
-        this->indexList = saveDialog->indexList();
+        qDebug() << "navxDifWriter::showWarningPopUp - Yes was clicked";
+        validated = true;
+
+    }
+    else
+    {
+        qDebug() << "navxDifWriter::showWarningPopUp - Yes was *not* clicked";
+        validated = false;
     }
 }
 
+void navxDifWriter::displayWarningPopUp(QString warning)
+{
+    this->moveToThread(qApp->thread());
+    connect(this, SIGNAL(needWarningPopUp(QString)),
+            this, SLOT(showWarningPopUp(QString)), Qt::BlockingQueuedConnection);
+    emit needWarningPopUp(warning);
+}
+
+void navxDifWriter::askForConfirmationIfNavXLimitsExceeded()
+{
+    // Compute number of vertices/triangles
+    int numberVertices  = 0;
+    int numberTriangles = 0;
+
+    for (int j = 0; j < getDataList().size(); j++)
+    {
+        medAbstractData* data = getDataList().at(j);
+        vtkMetaSurfaceMesh* metadata = dynamic_cast<vtkMetaSurfaceMesh*>( (vtkObject*)(data->data()));
+        numberVertices += metadata->GetPolyData()->GetNumberOfPoints();
+        numberTriangles += metadata->GetPolyData()->GetPolys()->GetNumberOfCells();
+    }
+
+    if ((numberVertices >= maxNumberVertices) || (numberTriangles >= maxNumberTriangles))
+    {
+        displayWarningPopUp("File exceeds NavX Feb 2016 limits: 100k vertices/200k triangles.\n\nExport it anyway?");
+    }
+}
 
 // /////////////////////////////////////////////////////////////////
 // Type instantiation

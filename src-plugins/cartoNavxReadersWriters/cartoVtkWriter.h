@@ -1,12 +1,11 @@
 #pragma once
 
-#include <dtkCore/dtkAbstractDataWriter.h>
 #include <cartoNavxReadersWritersPluginExport.h>
-#include <medDataIndex.h>
+#include <medAbstractDataWriter.h>
 
 class vtkPolyData;
 
-class CARTONAVXREADERSWRITERSPLUGIN_EXPORT cartoVtkWriter : public dtkAbstractDataWriter
+class CARTONAVXREADERSWRITERSPLUGIN_EXPORT cartoVtkWriter : public medAbstractDataWriter
 {
     Q_OBJECT
 
@@ -26,7 +25,14 @@ public:
 public slots:
     virtual bool canWrite(const QString &file);
     virtual bool write(const QString &file);
+    void showPatientInfoDialog();
+
+signals:
+    void needMoreParameters();
 
 private:
     void rescaleScalarsToLUTRange(vtkPolyData * mesh);
+    QString patientLastName, patientFirstName, patientID;
+    QList<QString> ptAttributes, ptValues;
+    bool isDialogOK;
 };

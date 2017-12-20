@@ -1,7 +1,6 @@
 #include <cartoNavxReadersWritersPlugin.h>
-
-#include <cartoMeshReader.h>
 #include <cartoVtkWriter.h>
+#include <navxDifReader.h>
 #include <navxDifWriter.h>
 
 #include <dtkLog/dtkLog.h>
@@ -16,14 +15,14 @@ cartoNavxReadersWritersPlugin::~cartoNavxReadersWritersPlugin(void)
 
 bool cartoNavxReadersWritersPlugin::initialize(void)
 {
-    if( ! cartoMeshReader::registered()) {
-        dtkWarn() << "Unable to register cartoMeshReader type";
-    }
     if( ! cartoVtkWriter::registered()) {
         dtkWarn() << "Unable to register cartoVtkWriter type";
     }
     if( ! navxDifWriter::registered()) {
         dtkWarn() << "Unable to register navxDifWriter type";
+    }
+    if( ! navxDifReader::registered()) {
+        dtkWarn() << "Unable to register navxDifReader type";
     }
     return true;
 }
@@ -46,6 +45,13 @@ QString cartoNavxReadersWritersPlugin::description(void) const
 QStringList cartoNavxReadersWritersPlugin::authors(void) const
 {
     return QStringList() << "Florian Vichot";
+}
+
+QStringList cartoNavxReadersWritersPlugin::contributors() const
+{
+    QStringList list;
+    list << "Mathilde Merle <mathilde.merle@ihu-liryc.fr>";
+    return list;
 }
 
 QStringList cartoNavxReadersWritersPlugin::tags(void) const

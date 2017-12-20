@@ -1,18 +1,16 @@
 #include <navxDifReader.h>
-#include <dtkCore/dtkSmartPointer.h>
 
 #include <medAbstractData.h>
 #include <medAbstractDataFactory.h>
+#include <medMetaDataKeys.h>
 
+#include <vtkActor.h>
+#include <vtkCellArray.h>
 #include <vtkMetaSurfaceMesh.h>
 #include <vtkPolyData.h>
-#include <vtkSmartPointer.h>
-#include <vtkErrorCode.h>
-#include <vtkCellArray.h>
-#include <vtkActor.h>
 #include <vtkProperty.h>
-
-#include <QXmlStreamReader>
+#include <vtkSmartPointer.h>
+#include <vtkTriangle.h>
 
 // /////////////////////////////////////////////////////////////////
 // navxDifReader
@@ -22,192 +20,229 @@ navxDifReader::navxDifReader() : dtkAbstractDataReader()
 {
 }
 
-
 navxDifReader::~navxDifReader()
 {
 }
-
 
 QString navxDifReader::identifier() const
 {
     return QString("navxDifReader");
 }
 
-
 QString navxDifReader::description() const
 {
-    return QString("Saint-Jude NavX .dif mesh importer");
+    return QString("Saint-Jude NavX/Siemens mesh importer");
 }
-
 
 QStringList navxDifReader::handled() const
 {
     return QStringList() << "vtkDataMesh";
 }
 
-
 QStringList navxDifReader::supportedFileExtensions() const
 {
-    return QStringList() << ".dif";
+    return QStringList() << ".xml" << ".dif";
 }
-
 
 bool navxDifReader::registered()
 {
     return medAbstractDataFactory::instance()->registerDataReaderType("navxDifReader", QStringList() << "vtkDataMesh", create);
 }
 
-
 bool navxDifReader::canRead(const QString & path)
 {
-    return path.endsWith(".dif");
+    return path.endsWith(".xml") || path.endsWith(".dif");
 }
 
+bool navxDifReader::readInformation(const QString& path)
+{
+    medAbstractData *medData = medAbstractDataFactory::instance()->create("vtkDataMesh");
+    this->setData(medData);
+
+    return true;
+}
 
 bool navxDifReader::read(const QString & path)
 {
-//    dtkAbstractData * dtkData = this->data();
+    // create data
+    if (!data())
+    {
+        readInformation(path);
+    }
 
-//    if ( ! dtkData || dtkData->identifier() != "vtkDataMesh") {
-//        qDebug() << "navxDifReader: No data provided, or wrong type";
-//        return false;
-//    }
+    vtkPolyData *polyData = vtkPolyData::New();
+    vtkMetaSurfaceMesh * smesh = vtkMetaSurfaceMesh::New();
+    smesh->SetDataSet(polyData);
+    this->data()->setData(smesh);
 
-//    vtkMetaSurfaceMesh * dataSet = dynamic_cast<vtkMetaSurfaceMesh*>( (vtkObject*)(dtkData->data()));
-//    if ( ! dataSet) {
-//        qDebug() << "navxDifReader: not a vtkMetaSurfaceMesh";
-//        return false;
-//    }
+    QString strHeader;
 
-//    vtkPolyData * polyData = dataSet->GetPolyData();
+    // Open the file
+    QFile file(path);
+    if (file.open(QFile::ReadOnly | QFile::Text))
+    {
+        QXmlStreamReader xmlReader;
+        xmlReader.setDevice(&file);
 
-//    QList<vtkMetaDataSet*> datasetList;
-//    datasetList.push_back(dataSet); //TODO = this->Input->GetMetaDataSetList();
+        while(!xmlReader.atEnd())
+        {
+            xmlReader.readNext();
+            if(xmlReader.isStartElement())
+            {
+                // Read the tag name.
+                QString sec(xmlReader.name().toString());
 
+                /* --- Color Tag --- */
+                if (sec == "Volume")
+                {
+                    QString color = xmlReader.attributes().value("color").toString();
 
-//    QFile difFile(path);
-//    if ( ! difFile.open(QIODevice::WriteOnly) ) {
-//        qDebug() << "navxDifReader: Could not open file" << path;
-//        return false;
-//    }
+                    double final_colors[4];
+                    final_colors[0] = double(QString(color.at(0)).append(color.at(1)).toUInt(NULL, 16))/255.0; //rr
+                    final_colors[1] = double(QString(color.at(2)).append(color.at(3)).toUInt(NULL, 16))/255.0; //gg
+                    final_colors[2] = double(QString(color.at(4)).append(color.at(5)).toUInt(NULL, 16))/255.0; //bb
+                    final_colors[3] = double(QString(color.at(6)).append(color.at(7)).toUInt(NULL, 16))/255.0; //aa
 
-//    QXmlStreamWriter xmlWriter(&difFile);
+                    vtkMetaDataSet * dataSet = dynamic_cast<vtkMetaDataSet*>( (vtkObject*)(this->data()->data()));
 
-//    xmlWriter.setAutoFormatting(true);
+                    // Cf. vtkDataMeshInteractor::setupParameters(), add color and opacity in the view
+                    vtkActor* actor = vtkActor::New();
+                    dataSet->AddActor(actor);
+                    dataSet->GetActor(0)->GetProperty()->SetColor(final_colors[0], final_colors[1], final_colors[2]);
+                    dataSet->GetActor(0)->GetProperty()->SetOpacity(final_colors[3]);
+                }
 
-//    xmlWriter.writeStartDocument();
-//    xmlWriter.writeStartElement("DIF");
+                /* --- Header --- */
+                else if ((sec == "PatientName")  ||
+                         (sec == "PatientID")    ||
+                         (sec == "StudyID")      ||
+                         (sec == "SeriesNumber") ||
+                         (sec == "StudyDate")    ||
+                         (sec == "StudyTime")    ||
+                         (sec == "SeriesTime")   ||
+                         (sec == "Modality")     ||
+                         (sec == "SeriesDesc")
+                         )
+                {
+                    strHeader = xmlReader.readElementText();
+                    if (strHeader != "NA") //if valid data
+                    {
+                        this->data()->setMetaData(sec, strHeader);
+                    }
+                }
+                else if (sec == "PatientBirthDate")
+                {
+                    strHeader = xmlReader.readElementText();
+                    if (strHeader != "NA") //if valid data
+                    {
+                        this->data()->setMetaData(medMetaDataKeys::BirthDate.key(), strHeader);
+                    }
+                }
+                else if (sec == "PatientGender")
+                {
+                    strHeader = xmlReader.readElementText();
+                    if (strHeader != "NA") //if valid data
+                    {
+                        this->data()->setMetaData(medMetaDataKeys::Gender.key(), strHeader);
+                    }
+                }
+                else if (sec == "RefPhyName")
+                {
+                    strHeader = xmlReader.readElementText();
+                    if (strHeader != "NA") //if valid data
+                    {
+                        this->data()->setMetaData(medMetaDataKeys::Referee.key(), strHeader);
+                    }
+                }
+                else if (sec == "StudyDesc")
+                {
+                    strHeader = xmlReader.readElementText();
+                    if (strHeader != "NA") //if valid data
+                    {
+                        this->data()->setMetaData(medMetaDataKeys::StudyDescription.key(), strHeader);
+                    }
+                }
+                else if (sec == "OperatorName")
+                {
+                    strHeader = xmlReader.readElementText();
+                    if (strHeader != "NA") //if valid data
+                    {
+                        this->data()->setMetaData(medMetaDataKeys::Performer.key(), strHeader);
+                    }
+                }
+                else if (sec == "OperatorComments")
+                {
+                    strHeader = xmlReader.readElementText();
+                    if (strHeader != "NA") //if valid data
+                    {
+                        this->data()->setMetaData(medMetaDataKeys::Comments.key(), strHeader);
+                    }
+                }
 
-//    xmlWriter.writeStartElement("DIFHeader");
-//    xmlWriter.writeTextElement("Version", "SJM_DIF_3.0");
-//    xmlWriter.writeTextElement("VendorVersion", "NA");
-//    xmlWriter.writeTextElement("PatientName", "NA");
-//    xmlWriter.writeTextElement("PatientID", "NA");
-//    xmlWriter.writeEmptyElement("PatientBirthDate");
-//    xmlWriter.writeTextElement("PatientGender", "NA");
-//    xmlWriter.writeEmptyElement("StudyID");
-//    xmlWriter.writeEmptyElement("SeriesNumber");
-//    xmlWriter.writeEmptyElement("StudyDate");
-//    xmlWriter.writeEmptyElement("StudyTime");
-//    xmlWriter.writeEmptyElement("SeriesTime");
-//    xmlWriter.writeEmptyElement("Modality");
-//    xmlWriter.writeEmptyElement("RefPhysName");
-//    xmlWriter.writeEmptyElement("StudyDesc");
-//    xmlWriter.writeEmptyElement("SeriesDesc");
-//    xmlWriter.writeEmptyElement("OperatorName");
-//    xmlWriter.writeTextElement("OperatorComment", "NA");
-//    xmlWriter.writeEmptyElement("SegmentationDate");
-//    xmlWriter.writeTextElement("Inventor", "1");
-//    xmlWriter.writeEndElement(); // DIFHeader
+                /* --- Vertices --- */
+                else if (sec == "Vertices")
+                {
+                    // list of every points
+                    QString strPoints = xmlReader.readElementText();
+                    QStringList listPoints = strPoints.split("\n", QString::SkipEmptyParts);
+                    vtkSmartPointer<vtkPoints> newPoints = vtkSmartPointer<vtkPoints>::New();
 
-//    xmlWriter.writeStartElement("DIFBody");
-//    xmlWriter.writeStartElement("Volumes");
-//    xmlWriter.writeAttribute("number", QString::number(datasetList.size()));
+                    // for each point, extract values
+                    for (int i=0; i<listPoints.count(); i++)
+                    {
+                        QStringList listOnePoint = listPoints.at(i).split(" ");
 
-//    vtkMetaSurfaceMesh * metaSurface = 0;
-//    vtkSmartPointer<vtkIdList> pointIds = vtkIdList::New();
-//    double point[3];
-//    double * color;
-//    int final_colors[3];
+                        double point[3];
+                        point[0] = listOnePoint.at(0).toDouble();
+                        point[1] = listOnePoint.at(1).toDouble();
+                        point[2] = listOnePoint.at(2).toDouble();
+                        newPoints->InsertNextPoint(point);
+                    }
 
-//    for (unsigned int j = 0; j<datasetList.size(); ++j)
-//    {
-//        vtkMetaDataSet* metadata = datasetList.at(j);
+                    // add points to data
+                    if (newPoints->GetNumberOfPoints() !=0)
+                    {
+                        static_cast<vtkMetaSurfaceMesh *>(this->data()->data())->GetPolyData()->SetPoints(newPoints);
+                    }
+                }
 
-//        if (metadata->GetType() != vtkMetaDataSet::VTK_META_SURFACE_MESH)
-//            continue;
+                /* --- Polygons Tags --- */
+                else if (sec == "Polygons")
+                {
+                    // list of every cells
+                    QString strPoints = xmlReader.readElementText();
+                    QStringList listPoints = strPoints.split("\n", QString::SkipEmptyParts);
+                    vtkCellArray* newCells = vtkCellArray::New();
 
-//        metaSurface = vtkMetaSurfaceMesh::SafeDownCast(metadata);
+                    // for each cells, extract values
+                    for (int i=0; i<listPoints.count(); i++)
+                    {
+                        QStringList listOnePoint = listPoints.at(i).split(" ");
 
-//        xmlWriter.writeStartElement("Volume");
-//        xmlWriter.writeAttribute("name", QString(metadata->GetName()));
+                        vtkSmartPointer<vtkTriangle> triangle = vtkSmartPointer<vtkTriangle>::New();
+                        triangle->GetPointIds()->SetId ( 0, listOnePoint.at(0).toInt()-1 );
+                        triangle->GetPointIds()->SetId ( 1, listOnePoint.at(1).toInt()-1 );
+                        triangle->GetPointIds()->SetId ( 2, listOnePoint.at(2).toInt()-1 );
+                        newCells->InsertNextCell(triangle);
+                    }
 
-//        QString colorHex;
-//        vtkActor * dataSetActor = metadata->GetActor(0);
-//        if (dataSetActor) {
-//            color = dataSetActor->GetProperty()->GetColor();
-//            final_colors[0] = int(color[0]*255);
-//            final_colors[1] = int(color[1]*255);
-//            final_colors[2] = int(color[2]*255);
-
-//            colorHex = QString::number(final_colors[0], 16) +
-//                               QString::number(final_colors[1], 16) +
-//                               QString::number(final_colors[2], 16);
-//        } else {
-//            colorHex = "FFFFFF";
-//        }
-
-//        xmlWriter.writeAttribute("color", colorHex);
-
-//        xmlWriter.writeStartElement("Vertices");
-//        xmlWriter.writeAttribute("number", QString::number(metaSurface->GetPolyData()->GetNumberOfPoints()));
-//        for(vtkIdType i = 0; i < metaSurface->GetPolyData()->GetNumberOfPoints(); ++i)
-//        {
-//            metaSurface->GetPolyData()->GetPoint(i, point);
-//            xmlWriter.writeCharacters(QString::number(point[0]) + " " +
-//                                      QString::number(point[1]) + " " +
-//                                      QString::number(point[2]) + "\n");
-//        }
-//        xmlWriter.writeEndElement(); // Vertices
-
-//        xmlWriter.writeStartElement("Polygons");
-//        xmlWriter.writeAttribute("number", QString::number(metaSurface->GetPolyData()->GetPolys()->GetNumberOfCells()));
-//        for(unsigned int i = 0; i<metaSurface->GetPolyData()->GetPolys()->GetNumberOfCells(); ++i)
-//        {
-//            metaSurface->GetPolyData()->GetCellPoints(i, pointIds);
-//            if (pointIds->GetNumberOfIds() != 3)
-//            {
-//                qDebug() << "navxVtkWriter: wrong type of cells !";
-//                return false;
-//            }
-//            xmlWriter.writeCharacters(QString::number(pointIds->GetId(0)+1) + " " +
-//                                      QString::number(pointIds->GetId(1)+1) + " " +
-//                                      QString::number(pointIds->GetId(2)+1) + "\n");
-//        }
-//        xmlWriter.writeEndElement(); // Polygons
-
-//        xmlWriter.writeEndElement(); //Volume
-//    }
-
-//    xmlWriter.writeEndElement(); // Volumes
-
-//    xmlWriter.writeStartElement("Labels");
-//    xmlWriter.writeAttribute("number", 0);
-//    xmlWriter.writeEndElement(); // Labels
-
-//    xmlWriter.writeStartElement("ObjectMap");
-//    xmlWriter.writeTextElement("Rotation", "0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000");
-//    xmlWriter.writeTextElement("Translation", "0 0 0");
-//    xmlWriter.writeTextElement("Scaling", "1 1 1");
-//    xmlWriter.writeTextElement("MD5Signature", "0");
-//    xmlWriter.writeEndElement(); // ObjectMap
-
-//    xmlWriter.writeEndElement(); // DIFBody
-
-//    xmlWriter.writeEndElement(); // DIF
-//    xmlWriter.writeEndDocument();
-
-//    difFile.close();
+                    // add points to data
+                    if (newCells->GetNumberOfCells() !=0)
+                    {
+                        static_cast<vtkMetaSurfaceMesh *>(this->data()->data())->GetPolyData()->SetPolys(newCells);
+                    }
+                }
+            }
+        }
+        if (xmlReader.hasError())
+        {
+            return false;
+        }
+    }
+    else
+    {
+        return false;
+    }
 
     return true;
 }

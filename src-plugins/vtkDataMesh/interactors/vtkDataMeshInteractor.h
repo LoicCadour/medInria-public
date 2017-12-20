@@ -84,6 +84,7 @@ protected:
 
 private:
     static QStringList dataHandled();
+    QList<QString> getSeriesDescriptions(medAbstractLayeredView* view);
 
 signals:
     void needMoreParameters();
