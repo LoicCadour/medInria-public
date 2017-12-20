@@ -52,6 +52,7 @@ set(PLUGIN_LIST
   itkDataImage                              ON
   vtkDataMesh                               ON
   medVtkView                                ON
+  cartoNavxReadersWriters   ON
   )   
 
 
